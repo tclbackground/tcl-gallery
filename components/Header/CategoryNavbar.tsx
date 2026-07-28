@@ -1,52 +1,34 @@
 "use client";
 
 import { useState } from "react";
+import { menuData } from "@/data/megaMenu";
 import MegaMenu from "./MegaMenu";
 
-const menus = [
-  "New Arrivals",
-  "Deal Zone",
-  "Sofas & Recliners",
-  "Living",
-  "Bedroom",
-  "Dining & Kitchen",
-  "Mattresses",
-  "Study",
-  "Storage Furniture",
-  "Lighting & Decor",
-  "Furnishing",
-];
-
 export default function CategoryNavbar() {
-  const [showMega, setShowMega] = useState(false);
+  const [activeMenu, setActiveMenu] = useState<number | null>(null);
 
   return (
     <div
       className="relative bg-white border-b"
-      onMouseLeave={() => setShowMega(false)}
+      onMouseLeave={() => setActiveMenu(null)}
     >
-      <div className="max-w-[1500px] mx-auto h-14 flex items-center justify-center gap-10">
+      <div className="max-w-7xl mx-auto flex items-center justify-center gap-8 h-16">
 
-        {menus.map((menu) => (
-
+        {menuData.map((menu, index) => (
           <button
-            key={menu}
-            onMouseEnter={() => {
-              if (menu === "Sofas & Recliners") {
-                setShowMega(true);
-              }
-            }}
-            className="hover:text-orange-500 transition-colors"
+            key={menu.title}
+            onMouseEnter={() => setActiveMenu(index)}
+            className="text-sm font-medium hover:text-[#C4A892]"
           >
-            {menu}
+            {menu.title}
           </button>
-
         ))}
 
       </div>
 
-      {showMega && <MegaMenu />}
-
+      {activeMenu !== null && (
+        <MegaMenu menu={menuData[activeMenu]} />
+      )}
     </div>
   );
 }

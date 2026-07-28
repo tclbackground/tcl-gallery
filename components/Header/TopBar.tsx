@@ -1,37 +1,39 @@
-import { FaStore } from "react-icons/fa";
-import { MdKeyboardArrowDown } from "react-icons/md";
+import { FaMapMarkerAlt } from "react-icons/fa";
 
 export default function TopBar() {
   return (
-    <div className="bg-[#ef6c35] text-white text-sm">
-      <div className="max-w-[1400px] mx-auto h-10 flex items-center justify-between px-6">
+    <div className="bg-[#C4A892] text-[#3E2F24] text-sm">
+      <div className="max-w-[1500px] mx-auto h-11 flex items-center justify-between px-6">
 
         {/* Left */}
         <div className="flex items-center gap-2">
-          <FaStore className="text-base" />
+          <FaMapMarkerAlt />
 
-          <span className="font-medium">
-            Nearest Store -
-          </span>
-
-          <button className="flex items-center underline underline-offset-2 hover:no-underline">
-            UL Store Chokli Circle
-            <MdKeyboardArrowDown className="ml-1 text-lg" />
+          <button className="hover:underline">
+            Visit Our Gallery • Bengaluru
           </button>
         </div>
 
         {/* Center */}
-        <div className="hidden lg:block">
-          Additional up to ₹10,000 off. Use code
-          <span className="font-semibold"> EXTRA10K </span>
-          | Limited-time deal
+        <div className="hidden lg:block font-medium">
+          Free Shipping Across India | Museum Quality Fine Art Prints
         </div>
 
         {/* Right */}
-        <div className="flex items-center gap-6">
-          <button>Gift Cards</button>
-          <button>Become a Franchisee</button>
-          <button>Help</button>
+        <div className="hidden md:flex items-center gap-8">
+
+          <button className="hover:text-black">
+            Art Advisory
+          </button>
+
+          <button className="hover:text-black">
+            Corporate Projects
+          </button>
+
+          <button className="hover:text-black">
+            Help
+          </button>
+
         </div>
 
       </div>
