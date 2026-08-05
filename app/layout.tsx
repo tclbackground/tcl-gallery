@@ -7,7 +7,7 @@ import {
 
 import "./globals.css";
 
-import Header from "@/components/Header/MainNavbar";
+import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 
 const geistSans = Geist({
