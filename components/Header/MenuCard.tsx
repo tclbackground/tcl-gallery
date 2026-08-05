@@ -1,48 +1,61 @@
+"use client";
+
 import Image from "next/image";
-import { FiArrowUpRight } from "react-icons/fi";
+import Link from "next/link";
+import { FiArrowRight } from "react-icons/fi";
 
 interface MenuCardProps {
   image: string;
   title: string;
-  price: string;
+  description: string;
+  button: string;
+  href: string;
 }
 
 export default function MenuCard({
   image,
   title,
-  price,
+  description,
+  button,
+  href,
 }: MenuCardProps) {
   return (
-    <div className="w-[320px] bg-[#fdf7f2] rounded-lg overflow-hidden">
+    <div className="group overflow-hidden rounded-2xl bg-white shadow-lg">
 
-      <Image
-        src={image}
-        alt={title}
-        width={320}
-        height={240}
-        className="w-full h-[240px] object-cover"
-      />
+      {/* Image */}
+      <div className="relative h-[320px] overflow-hidden">
+        <Image
+          src={image}
+          alt={title}
+          fill
+          className="object-cover transition-transform duration-700 group-hover:scale-110"
+        />
+      </div>
 
-      <div className="p-5">
+      {/* Content */}
+      <div className="p-6">
 
-        <h2 className="text-4xl font-bold text-[#552d1f]">
+        <p className="mb-2 text-xs uppercase tracking-[3px] text-[#7B8F50]">
+          Featured Collection
+        </p>
+
+        <h2 className="font-serif text-3xl font-semibold text-[#222]">
           {title}
         </h2>
 
-        <div className="flex justify-between items-center mt-3">
+        <p className="mt-3 text-[15px] leading-7 text-gray-600">
+          {description}
+        </p>
 
-          <p className="text-xl font-medium">
-            {price}
-          </p>
-
-          <div className="w-12 h-12 rounded-full bg-[#552d1f] text-white flex items-center justify-center">
-            <FiArrowUpRight size={24} />
-          </div>
-
-        </div>
+        <Link
+          href={href}
+          className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#7B8F50] px-6 py-3 text-white transition hover:bg-black"
+        >
+          {button}
+          <FiArrowRight />
+        </Link>
 
       </div>
-
     </div>
   );
 }

@@ -162,7 +162,7 @@ export default function MainNavbar() {
         {/* Footer */}
         <div className="border-t bg-gray-50 px-6 py-5">
           <p className="text-center text-sm text-gray-500">
-            © {new Date().getFullYear()} Hamadryad Gallery
+            © {new Date().getFullYear()} TCL GALLERY
           </p>
         </div>
       </aside>

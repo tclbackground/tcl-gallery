@@ -7,6 +7,8 @@ import Newletter from "@/components/Home/Newletter";
 import Footer from "@/components/Footer/Footer";
 import BlogSection from "@/components/Home/BlogSection";
 
+import MaisonDeMeraki from "@/components/MaisonDeMeraki/page";
+
 export default function Home() {
   return (
     <>
@@ -16,6 +18,7 @@ export default function Home() {
 
       <NewArrivals />
       <BlogSection />
+   <MaisonDeMeraki />
 
       <WhyChooseUs />
 
