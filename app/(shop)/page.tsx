@@ -1,4 +1,4 @@
-import Header from "@/components/Header/Header";
+
 import Hero from "@/components/Hero/Hero";
 import NewArrivals from "@/components/Home/NewArrival";
 import WhyChooseUs from "@/components/Home/WhyChooseUs";
