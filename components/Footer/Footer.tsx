@@ -57,21 +57,23 @@ export default function Footer() {
         <div className="mx-auto max-w-[1800px] px-4 lg:px-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           
           {/* Brand Intro */}
-          <div className="lg:col-span-6 space-y-4">
-            <Link href="/" className="inline-block">
-              <Image
-                src={logoImg}
-                alt="TCL Gallery Logo"
-                width={130}
-                height={65}
-                className="h-auto w-[100px] lg:w-[120px] brightness-0 invert"
-              />
-            </Link>
-            <p className="text-sm text-[#E8DBCA]/80 max-w-lg leading-relaxed">
-              TCL Gallery is a contemporary fine art institution and home to <strong>Maison de Meraki</strong>—our dedicated art learning center committed to fostering artistic mastery and curation.
-            </p>
-          </div>
-
+         <div className="lg:col-span-6 space-y-4">
+  <Link href="/" className="inline-block">
+    <Image
+      src="/images/Logo.jpg"
+      alt="TCL Gallery Logo"
+      width={130}
+      height={65}
+      priority
+      className="h-auto w-[100px] lg:w-[120px] mix-blend-screen"
+    />
+  </Link>
+  <p className="text-sm !text-[#E8DBCA]/80 max-w-lg leading-relaxed">
+    TCL Gallery is a contemporary fine art institution and home to{" "}
+    <strong className="text-[#FBF9F0] font-semibold">Maison de Meraki</strong>—our
+    dedicated art learning center committed to fostering artistic mastery and curation.
+  </p>
+</div>
           {/* Newsletter Input */}
           <div className="lg:col-span-6 space-y-3 bg-[#4D3024]/40 p-6 sm:p-8 rounded-2xl border border-[#C4A892]/20">
             <span className="text-xs font-semibold uppercase tracking-widest text-[#C4A892]">
@@ -178,15 +180,15 @@ export default function Footer() {
             <div className="space-y-3 text-xs text-[#E8DBCA]/70">
               <p className="flex items-start gap-2.5">
                 <FiMapPin className="text-[#C4A892] text-sm flex-shrink-0 mt-0.5" />
-                <span>104 Cultural District Way, Art Avenue, Suite 200</span>
+                <span></span>
               </p>
               <p className="flex items-center gap-2.5">
                 <FiPhone className="text-[#C4A892] text-sm flex-shrink-0" />
-                <span>+1 (800) 555-ART-TCL</span>
+                <span>+91 990014886</span>
               </p>
               <p className="flex items-center gap-2.5">
                 <FiMail className="text-[#C4A892] text-sm flex-shrink-0" />
-                <span>curator@tclgallery.com</span>
+                <span>info@tclgallery.com</span>
               </p>
               <div className="pt-2">
                 <span className="block text-[10px] uppercase font-bold text-[#C4A892] tracking-wider mb-1">
@@ -207,7 +209,7 @@ export default function Footer() {
           
           {/* Copyright */}
           <p className="text-xs text-[#E8DBCA]/60 text-center md:text-left">
-            © {currentYear} TCL GALLERY & MAISON DE MERAKI. ALL RIGHTS RESERVED.
+            © {currentYear} TCL GALLERY. ALL RIGHTS RESERVED.
           </p>
 
           {/* Social Icons */}

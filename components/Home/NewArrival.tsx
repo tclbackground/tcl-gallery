@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { FiArrowRight, FiHeart, FiEye, FiShoppingCart, FiClock } from "react-icons/fi";
 
 const newArrivals = [
@@ -15,7 +16,7 @@ const newArrivals = [
     addedDate: "2 DAYS AGO",
     isOriginal: true,
     slug: "serenade-in-sienna",
-    image: "/images/new-arrivals/arrival-1.jpg",
+    image: "/images/1.png",
   },
   {
     id: "2",
@@ -27,7 +28,7 @@ const newArrivals = [
     addedDate: "3 DAYS AGO",
     isOriginal: true,
     slug: "sculpted-horizon-no-8",
-    image: "/images/new-arrivals/arrival-2.jpg",
+    image: "/images/2.png",
   },
   {
     id: "3",
@@ -39,7 +40,7 @@ const newArrivals = [
     addedDate: "JUST IN",
     isOriginal: false,
     slug: "whispers-of-the-coast",
-    image: "/images/new-arrivals/arrival-3.jpg",
+    image: "/images/3.png",
   },
 ];
 
@@ -53,7 +54,7 @@ export default function NewArrivalsSection() {
   };
 
   return (
-    <section className="bg-[#FBF9F0] py-20 text-[#22211B]">
+    <section className="bg-[#FBF9F0] py-10 text-[#22211B]">
       <div className="mx-auto max-w-[1800px] px-4 lg:px-8">
         
         {/* Section Header */}
@@ -87,6 +88,16 @@ export default function NewArrivalsSection() {
                 <div>
                   {/* Square Image Container */}
                   <div className="relative aspect-square w-full bg-[#E8DBCA]/40 overflow-hidden">
+                    
+                    {/* Rendered Product Image */}
+                    <Image
+                      src={item.image}
+                      alt={item.title}
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                    />
+
                     {/* Badges */}
                     <div className="absolute top-4 left-4 z-10 flex flex-col gap-1.5">
                       <span className="rounded-full bg-[#4D3024] px-3 py-1 text-[10px] font-bold tracking-wider text-[#FBF9F0] uppercase">

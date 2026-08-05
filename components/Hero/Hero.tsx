@@ -13,7 +13,7 @@ export default function Hero() {
         {/* Palm Leaves Background */}
         {/* ⚠️ Make sure this filename matches the green leaf image inside public/images (e.g. 1.png, A1.png, or banner-1.png) */}
         <Image
-          src="/images/1.png"
+          src="/images/Sunset.jpeg"
           alt="Palm Leaves Background"
           fill
           priority

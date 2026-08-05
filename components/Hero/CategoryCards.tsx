@@ -5,20 +5,20 @@ import Image from "next/image";
 const cards = [
   {
     id: 1,
-    src: "/images/banner-1.png",
-    title: "Table Tree Plant",
+    src: "/images/1.png",
+    title: "Photography",
     items: 50,
   },
   {
     id: 2,
-    src: "/images/banner-2.png",
-    title: "Indoor Plants",
+    src: "/images/2.png",
+    title: "Fine Art Prints",
     items: 75,
   },
   {
     id: 3,
-    src: "/images/banner-3.png",
-    title: "House Plants",
+    src: "/images/6.png",
+    title: "Jeweltree",
     items: 50,
   },
 ];

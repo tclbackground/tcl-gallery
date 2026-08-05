@@ -8,7 +8,7 @@ export default function HeroContent() {
     <div className="flex flex-col items-center justify-center text-center px-6">
       {/* Small Heading */}
       <h3 className="font-serif text-xl sm:text-2xl md:text-3xl lg:text-4xl text-white">
-        Spring House
+       Limited Edition Prints
       </h3>
 
       {/* Main Heading */}
@@ -26,22 +26,23 @@ export default function HeroContent() {
           lg:text-8xl
         "
       >
-      A Radiant Horizon
+      Sunset Bond
       </h1>
 
       {/* Subtitle */}
       <p
-        className="
-          mt-6
-          text-sm
-          sm:text-base
-          md:text-lg
-          text-gray-200
-          tracking-wide
-        "
-      >
-      Transforming Everyday Moments into Lasting Memories.
-      </p>
+  className="
+    mt-6
+    text-sm
+    sm:text-base
+    md:text-lg
+    text-black
+    drop-shadow-md
+    tracking-wide
+  "
+>
+  Bring the serene warmth and vivid colors of dramatic ocean sunsets into your living space.
+</p>
 
       {/* Button */}
       <Link
@@ -66,7 +67,7 @@ export default function HeroContent() {
           transition-all
           duration-300
 
-          hover:bg-[#7B8F50]
+          hover:bg-[#C4A892]
           hover:text-white
         "
       >

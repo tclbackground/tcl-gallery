@@ -5,7 +5,7 @@ import { FiArrowRight } from "react-icons/fi";
 
 export default function MaisonDeMeraki() {
   return (
-    <section className="bg-[#FBF9F0] py-24">
+    <section className="bg-[#FBF9F0] py-8">
       <div className="mx-auto max-w-7xl px-6 lg:px-10">
 
         <div className="max-w-4xl">
