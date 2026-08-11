@@ -1,42 +1,42 @@
 @import "tailwindcss";
 
 /* ==========================================
-   TCL GALLERY DESIGN SYSTEM
+   TCL GALLERY DESIGN SYSTEM - BLUE PALETTE
 ========================================== */
 
 :root {
   /* Backgrounds */
-  --background: #FBF9F0;
+  --background: #F7FAFC;
   --surface: #FFFFFF;
-  --surface-dark: #2B2823;
+  --surface-dark: #002B5B;
 
   /* Brand Colors */
-  --primary: #22211B;
-  --secondary: #4D3024;
-  --accent: #C4A892;
-  --accent-light: #E8DBCA;
-  --ivory: #FBF9F0;
+  --primary: #002B5B;
+  --secondary: #1F5AA6;
+  --accent: #5FA8FF;
+  --accent-light: #E2E8F0;
+  --ivory: #F7FAFC;
 
   /* Text */
-  --text-primary: #22211B;
-  --text-secondary: #4D3024;
-  --text-muted: #7C7469;
-  --text-light: #FBF9F0;
+  --text-primary: #1A202C;
+  --text-secondary: #1F5AA6;
+  --text-muted: #4A5568;
+  --text-light: #F7FAFC;
 
   /* Borders */
-  --border: #DDD5C9;
-  --border-dark: #4D3024;
+  --border: #E2E8F0;
+  --border-dark: #1F5AA6;
 
   /* Buttons */
-  --button-primary: #22211B;
-  --button-primary-hover: #4D3024;
+  --button-primary: #002B5B;
+  --button-primary-hover: #1F5AA6;
 
-  --button-secondary: #C4A892;
-  --button-secondary-hover: #B39379;
+  --button-secondary: #5FA8FF;
+  --button-secondary-hover: #1F5AA6;
 
   /* Shadows */
-  --shadow: rgba(34, 33, 27, 0.08);
-  --shadow-lg: rgba(34, 33, 27, 0.18);
+  --shadow: rgba(0, 43, 91, 0.08);
+  --shadow-lg: rgba(0, 43, 91, 0.18);
 
   /* Radius */
   --radius: 18px;
@@ -78,11 +78,10 @@ h6 {
   font-family: var(--font-heading);
   font-weight: 500;
   letter-spacing: -0.02em;
-  /* No color here */
 }
 
 h1 {
-  font-size: clamp(2rem, 6vw, 5.5rem);
+  font-size: clamp(1.5rem, 3.5vw, 3rem);
 }
 
 h2 {
@@ -94,7 +93,6 @@ h3 {
 }
 
 p {
-
   line-height: 1.9;
 }
 
@@ -128,7 +126,7 @@ a:hover {
 
 .btn-secondary {
   background: var(--button-secondary);
-  color: var(--primary);
+  color: white;
   border-radius: 999px;
 }
 
@@ -175,16 +173,16 @@ a:hover {
 }
 
 ::-webkit-scrollbar-track {
-  background: #EEE7DA;
+  background: #E2E8F0;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #4D3024;
+  background: #1F5AA6;
   border-radius: 20px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #22211B;
+  background: #002B5B;
 }
 
 /* ==========================================
@@ -192,6 +190,6 @@ a:hover {
 ========================================== */
 
 ::selection {
-  background: #C4A892;
-  color: #22211B;
+  background: #5FA8FF;
+  color: #FFFFFF;
 }

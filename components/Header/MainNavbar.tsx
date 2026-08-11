@@ -89,7 +89,7 @@ const navigationItems = [
   },
   {
     title: "Artists",
-    href: "/artists",
+    href: "/artist",
     isMega: true,
     categories: [
       {

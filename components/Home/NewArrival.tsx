@@ -1,57 +1,16 @@
-"use client";
-
-import { useState } from "react";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 import Link from "next/link";
 import Image from "next/image";
 import { FiArrowRight, FiHeart, FiEye, FiShoppingCart, FiClock } from "react-icons/fi";
+import { prisma } from "@/lib/prisma";
 
-const newArrivals = [
-  {
-    id: "1",
-    title: "Serenade in Sienna",
-    artist: "HELENA VANCE",
-    category: "Oil Painting",
-    price: 3100,
-    dimensions: '40" x 50"',
-    addedDate: "2 DAYS AGO",
-    isOriginal: true,
-    slug: "serenade-in-sienna",
-    image: "/images/1.png",
-  },
-  {
-    id: "2",
-    title: "Sculpted Horizon No. 8",
-    artist: "MARCUS VANCE",
-    category: "Ceramic Sculpture",
-    price: 1850,
-    dimensions: '14" x 10" x 8"',
-    addedDate: "3 DAYS AGO",
-    isOriginal: true,
-    slug: "sculpted-horizon-no-8",
-    image: "/images/2.png",
-  },
-  {
-    id: "3",
-    title: "Whispers of the Coast",
-    artist: "ARIA CHEN",
-    category: "Fine Art Photography",
-    price: 920,
-    dimensions: '30" x 40"',
-    addedDate: "JUST IN",
-    isOriginal: false,
-    slug: "whispers-of-the-coast",
-    image: "/images/3.png",
-  },
-];
-
-export default function NewArrivalsSection() {
-  const [favorites, setFavorites] = useState<string[]>([]);
-
-  const toggleFavorite = (id: string) => {
-    setFavorites((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
-  };
+export default async function NewArrivalsSection() {
+  // Fetch top 3 latest products from MongoDB via Prisma
+  const products = await prisma.product.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 3,
+  });
 
   return (
     <section className="bg-[#FBF9F0] py-10 text-[#22211B]">
@@ -75,12 +34,14 @@ export default function NewArrivalsSection() {
           </Link>
         </div>
 
-        {/* Product Cards Grid (3 Columns) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {newArrivals.map((item) => {
-            const isFav = favorites.includes(item.id);
-
-            return (
+        {/* Product Cards Grid */}
+        {products.length === 0 ? (
+          <div className="text-center py-12 text-[#22211B]/60 font-medium">
+            No new releases found in the gallery collection.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {products.map((item) => (
               <div
                 key={item.id}
                 className="group rounded-2xl border border-[#C4A892]/30 bg-[#FBF9F0] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
@@ -88,40 +49,28 @@ export default function NewArrivalsSection() {
                 <div>
                   {/* Square Image Container */}
                   <div className="relative aspect-square w-full bg-[#E8DBCA]/40 overflow-hidden">
-                    
-                    {/* Rendered Product Image */}
                     <Image
-                      src={item.image}
+                      src={item.imageUrl}
                       alt={item.title}
                       fill
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                     />
 
-                    {/* Badges */}
+                    {/* Badge */}
                     <div className="absolute top-4 left-4 z-10 flex flex-col gap-1.5">
                       <span className="rounded-full bg-[#4D3024] px-3 py-1 text-[10px] font-bold tracking-wider text-[#FBF9F0] uppercase">
-                        {item.addedDate}
+                        JUST IN
                       </span>
-                      {item.isOriginal && (
-                        <span className="rounded-full bg-[#C4A892] px-3 py-1 text-[10px] font-bold tracking-wider text-[#22211B] uppercase">
-                          ORIGINAL
-                        </span>
-                      )}
                     </div>
 
-                    {/* Hover Quick Actions */}
+                    {/* Quick Action Overlay */}
                     <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition duration-300">
                       <button
-                        onClick={() => toggleFavorite(item.id)}
-                        className={`rounded-full p-2.5 shadow-md transition ${
-                          isFav
-                            ? "bg-[#4D3024] text-[#FBF9F0]"
-                            : "bg-[#FBF9F0] text-[#22211B] hover:bg-[#4D3024] hover:text-[#FBF9F0]"
-                        }`}
+                        className="rounded-full bg-[#FBF9F0] p-2.5 text-[#22211B] shadow-md hover:bg-[#4D3024] hover:text-[#FBF9F0] transition"
                         aria-label="Add to Favorites"
                       >
-                        <FiHeart className={`text-sm ${isFav ? "fill-current" : ""}`} />
+                        <FiHeart className="text-sm" />
                       </button>
                       <button
                         className="rounded-full bg-[#FBF9F0] p-2.5 text-[#22211B] shadow-md hover:bg-[#4D3024] hover:text-[#FBF9F0] transition"
@@ -136,18 +85,19 @@ export default function NewArrivalsSection() {
                   <div className="p-6 space-y-3">
                     <div className="flex items-center justify-between text-xs font-medium text-[#C4A892]">
                       <span>{item.category}</span>
-                      <span>{item.dimensions}</span>
                     </div>
 
                     <h3 className="font-serif text-2xl font-normal text-[#22211B] group-hover:text-[#4D3024] transition leading-tight">
-                      <Link href={`/shop/${item.slug}`}>
+                      <Link href={`/shop/${item.id}`}>
                         {item.title}
                       </Link>
                     </h3>
 
-                    <p className="text-[11px] font-semibold text-[#22211B]/60 uppercase tracking-widest pt-1">
-                      {item.artist}
-                    </p>
+                    {item.description && (
+                      <p className="text-xs text-[#22211B]/70 line-clamp-2">
+                        {item.description}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -167,9 +117,9 @@ export default function NewArrivalsSection() {
                   </button>
                 </div>
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
 
       </div>
     </section>

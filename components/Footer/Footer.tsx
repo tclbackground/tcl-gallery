@@ -180,7 +180,7 @@ export default function Footer() {
             <div className="space-y-3 text-xs text-[#E8DBCA]/70">
               <p className="flex items-start gap-2.5">
                 <FiMapPin className="text-[#C4A892] text-sm flex-shrink-0 mt-0.5" />
-                <span></span>
+                <span>L T Karle and Company 151, Industrial Suburb, opp. Metro Wholesale Road, Dr.Ambedkar Nagar, Yeswanthpur, Bengaluru, Karnataka 560022</span>
               </p>
               <p className="flex items-center gap-2.5">
                 <FiPhone className="text-[#C4A892] text-sm flex-shrink-0" />
