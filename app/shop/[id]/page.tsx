@@ -38,8 +38,8 @@ const productsDatabase = [
     basePrice: 1999,
     originalPrice: 2199,
     stockCount: 20,
-    mainImage: "/images/24.png",
-    roomImage: "/images/23-R.png",
+    mainImage: "/images/23-R.png",
+    roomImage: "/images/24.png",
     description: "Elephant Procession - Kalamkari Art reflects the hand-painted beauty of Kalamkari art, offering timeless floral and folk elegance as part of your wall art decor.",
   },
 ];
