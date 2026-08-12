@@ -28,7 +28,7 @@ export default function AdminLayout({
       {/* Fixed Sidebar */}
       <aside className="w-64 border-r border-[#E8E2D5] bg-white flex flex-col h-screen sticky top-0 shrink-0 hidden md:flex">
         
-        {/* 1. FIXED TOP: Brand Logo (Will NOT Scroll) */}
+        {/* 1. FIXED TOP: Brand Logo */}
         <div className="p-6 border-b border-[#E8E2D5]/50 shrink-0">
           <Link href="/admin" className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-xl bg-[#22211B] text-white flex items-center justify-center font-serif text-lg font-bold">
@@ -48,16 +48,18 @@ export default function AdminLayout({
             </p>
             <Link
               href="/admin"
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-[#F8F4EE] text-[#4D3024] font-bold transition"
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-[#F8F4EE] hover:text-[#22211B] text-gray-600 font-bold transition"
             >
               <FiGrid size={16} /> Dashboard
             </Link>
+
             <Link
-              href="/admin/add-product"
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-gray-600 hover:bg-[#F8F4EE] hover:text-[#22211B] transition"
+              href="/admin/artworks"
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-[#F8F4EE] text-[#4D3024] font-bold transition"
             >
               <FiPackage size={16} /> Artworks
             </Link>
+
             <Link
               href="/admin/artists/add"
               className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-gray-600 hover:bg-[#F8F4EE] hover:text-[#22211B] transition"

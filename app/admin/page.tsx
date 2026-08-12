@@ -16,10 +16,10 @@ export const revalidate = 0;
 
 interface ProductWithArtist {
   id: string;
-  title: string;
-  price: number;
-  category: string;
-  imageUrl: string;
+  title?: string | null;
+  price?: number | null;
+  category?: string | null;
+  imageUrl?: string | null;
 }
 
 export default async function AdminDashboardOverview() {
@@ -215,7 +215,7 @@ export default async function AdminDashboardOverview() {
                       {p.imageUrl && (
                         <Image
                           src={p.imageUrl}
-                          alt={p.title}
+                          alt={p.title ?? "Artwork Image"}
                           fill
                           unoptimized
                           className="object-cover"
@@ -224,10 +224,10 @@ export default async function AdminDashboardOverview() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-[#22211B] truncate">
-                        {p.title}
+                        {p.title ?? "Untitled"}
                       </p>
                       <p className="text-[11px] font-semibold text-[#4D3024]">
-                        ${p.price.toLocaleString()}
+                        ${(p.price ?? 0).toLocaleString()}
                       </p>
                     </div>
                   </div>
