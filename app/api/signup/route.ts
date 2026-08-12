@@ -4,7 +4,8 @@ import bcrypt from "bcryptjs";
 
 export async function POST(req: Request) {
   try {
-    const { name, email, password } = await req.json();
+    const body = await req.json();
+    const { name, email, password } = body;
 
     if (!email || !password) {
       return NextResponse.json(
@@ -13,6 +14,7 @@ export async function POST(req: Request) {
       );
     }
 
+    // 1. Check if user already exists
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
       return NextResponse.json(
@@ -21,11 +23,13 @@ export async function POST(req: Request) {
       );
     }
 
+    // 2. Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // 3. Create new user in database
     const user = await prisma.user.create({
       data: {
-        name,
+        name: name || "",
         email,
         password: hashedPassword,
         role: "USER",
@@ -36,9 +40,15 @@ export async function POST(req: Request) {
       { message: "Account created successfully", userId: user.id },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (error: any) {
+    // Print explicit error in VS Code terminal for debugging
+    console.error("SIGNUP ROUTE ERROR:", error);
+
     return NextResponse.json(
-      { error: "Something went wrong" },
+      {
+        error: error.message || "Failed to create account",
+        details: String(error),
+      },
       { status: 500 }
     );
   }

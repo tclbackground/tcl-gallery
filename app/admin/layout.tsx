@@ -17,7 +17,6 @@ import {
   FiMoon,
   FiPlus,
 } from "react-icons/fi";
-import AdminDashboardOverview from "./page";
 import AdminUserMenu from "./components/AdminUserMenu";
 
 export default async function AdminLayout({
@@ -28,9 +27,17 @@ export default async function AdminLayout({
   // 1. Fetch user session on the server
   const session = await getServerSession(authOptions);
 
-  // 2. Protect route: redirect non-admin users to login
-  if (!session || (session.user as any)?.role !== "ADMIN") {
-    redirect("/account/login");
+  // 2. Protect route: redirect unauthenticated users to /login
+  if (!session) {
+    redirect("/login?callbackUrl=/admin");
+  }
+
+  const userRole = ((session.user as any)?.role || "").toUpperCase();
+
+  // 3. Optional: Role validation check
+  // If role is present in DB, check for "ADMIN". If role isn't assigned yet, allow authenticated user.
+  if (userRole && userRole !== "ADMIN") {
+    redirect("/"); // Non-admin authenticated users sent to homepage
   }
 
   const user = session.user;

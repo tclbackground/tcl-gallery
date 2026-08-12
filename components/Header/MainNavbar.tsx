@@ -9,12 +9,11 @@ import {
   FiMenu,
   FiX,
   FiChevronDown,
-  FiArrowRight,
 } from "react-icons/fi";
 
 import logoImg from "@/public/images/Logo.jpg";
 
-// Extended Menu Structure supporting Mega Menu Data for Shop, Collections, Artists, and Services
+// Cleaned Navigation Array containing only active, implemented routes
 const navigationItems = [
   { title: "Home", href: "/" },
   {
@@ -23,131 +22,19 @@ const navigationItems = [
     isMega: true,
     categories: [
       {
-        title: "Fine Art & Paintings",
+        title: "Categories",
         links: [
-          { label: "Oil Paintings", href: "/shop/oil-paintings" },
-          { label: "Watercolor", href: "/shop/watercolor" },
-          { label: "Acrylic Prints", href: "/shop/acrylic" },
-          { label: "Abstract Art", href: "/shop/abstract" },
-          { label: "Limited Editions", href: "/shop/limited-editions" },
-        ],
-      },
-      {
-        title: "Sculptures & Decor",
-        links: [
-          { label: "Bronze Sculptures", href: "/shop/bronze" },
-          { label: "Ceramics & Clay", href: "/shop/ceramics" },
-          { label: "Modern Structures", href: "/shop/modern" },
-          { label: "Wall Sculptures", href: "/shop/wall-art" },
-        ],
-      },
-      {
-        title: "Photography",
-        links: [
-          { label: "Landscape & Nature", href: "/shop/landscape" },
-          { label: "Architecture", href: "/shop/architecture" },
-          { label: "Black & White", href: "/shop/bw-photography" },
-          { label: "Portraiture", href: "/shop/portraiture" },
+          { label: "Paintings", href: "/category/painting" },
+          { label: "Sculptures", href: "/category/sculpture" },
+          { label: "Photography", href: "/category/photography" },
+          { label: "All Artworks", href: "/shop" },
         ],
       },
     ],
-    featured: {
-      title: "New Spring Exhibition",
-      description: "Explore exclusive original pieces from emerging artists.",
-      href: "/collections/spring-exhibition",
-    },
   },
-  {
-    title: "Collections",
-    href: "/collections",
-    isMega: true,
-    categories: [
-      {
-        title: "By Era",
-        links: [
-          { label: "Contemporary Art", href: "/collections/contemporary" },
-          { label: "Mid-Century Modern", href: "/collections/mid-century" },
-          { label: "Impressionism", href: "/collections/impressionism" },
-          { label: "Minimalism", href: "/collections/minimalism" },
-        ],
-      },
-      {
-        title: "Curated Themes",
-        links: [
-          { label: "Urban & Street Culture", href: "/collections/urban" },
-          { label: "Botanical & Floral", href: "/collections/botanical" },
-          { label: "Ethereal & Surreal", href: "/collections/surreal" },
-          { label: "Minimalist Forms", href: "/collections/minimalist-forms" },
-        ],
-      },
-    ],
-    featured: {
-      title: "Curated Selections",
-      description: "Hand-picked gallery favorites for private collectors.",
-      href: "/collections/curated",
-    },
-  },
-  {
-    title: "Artists",
-    href: "/artist",
-    isMega: true,
-    categories: [
-      {
-        title: "By Medium",
-        links: [
-          { label: "Painters", href: "/artists/painters" },
-          { label: "Sculptors", href: "/artists/sculptors" },
-          { label: "Photographers", href: "/artists/photographers" },
-          { label: "Digital & Media Artists", href: "/artists/digital" },
-        ],
-      },
-      {
-        title: "Featured Roster",
-        links: [
-          { label: "Resident Masters", href: "/artists/resident" },
-          { label: "Emerging Talents", href: "/artists/emerging" },
-          { label: "International Guest Artists", href: "/artists/international" },
-          { label: "Artist Submissions", href: "/artists/apply" },
-        ],
-      },
-    ],
-    featured: {
-      title: "Artist Spotlight",
-      description: "Discover works and retrospective interview with Helena Vance.",
-      href: "/artists/helena-vance",
-    },
-  },
-  {
-    title: "Services",
-    href: "/services",
-    isMega: true,
-    categories: [
-      {
-        title: "Advisory & Curation",
-        links: [
-          { label: "Art Consultation", href: "/services/art-consultation" },
-          { label: "Corporate Art Curation", href: "/services/corporate-curation" },
-          { label: "Interior Designer Partnerships", href: "/services/designers" },
-          { label: "Virtual Art Placement", href: "/services/virtual-placement" },
-        ],
-      },
-      {
-        title: "Care & Preservation",
-        links: [
-          { label: "Custom Framing", href: "/services/custom-framing" },
-          { label: "Restoration & Cleaning", href: "/services/restoration" },
-          { label: "Artwork Valuation & Appraisal", href: "/services/appraisal" },
-          { label: "White-Glove Delivery & Install", href: "/services/installation" },
-        ],
-      },
-    ],
-    featured: {
-      title: "Private Consultation",
-      description: "Book a 1-on-1 session with our senior art curators.",
-      href: "/services/book-consultation",
-    },
-  },
-  { title: "Inspiration", href: "/inspiration" },
+  { title: "Collections", href: "/category/painting" },
+  { title: "Artists", href: "/artists" },
+  { title: "Services", href: "/about" },
   { title: "About Us", href: "/about" },
   { title: "Contact", href: "/contact" },
 ];
@@ -170,7 +57,7 @@ export default function MainNavbar() {
           <Link href="/">
             <Image
               src={logoImg}
-              alt="Hamadryad Logo"
+              alt="TCL Gallery Logo"
               width={140}
               height={70}
               priority
@@ -182,7 +69,7 @@ export default function MainNavbar() {
           <nav className="hidden flex-1 justify-center xl:flex h-full">
             <ul className="flex items-center gap-10 h-full">
               {navigationItems.map((item) => (
-                <li key={item.title} className="group flex items-center h-full">
+                <li key={item.title} className="group relative flex items-center h-full">
                   <Link
                     href={item.href}
                     className="relative flex items-center gap-1 font-serif text-[17px] font-medium text-[#2f2f2f] transition hover:text-[#7B8F50] py-2"
@@ -194,63 +81,28 @@ export default function MainNavbar() {
                     <span className="absolute left-0 bottom-3 h-[2px] w-0 bg-[#7B8F50] transition-all duration-300 group-hover:w-full" />
                   </Link>
 
-                  {/* Desktop Mega Menu Dropdown */}
+                  {/* Desktop Dropdown */}
                   {item.isMega && (
-                    <div className="absolute left-0 top-full w-full bg-white border-b border-gray-200 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 ease-in-out z-50">
-                      <div className="mx-auto max-w-[1800px] px-12 py-10 grid grid-cols-12 gap-8">
-                        
-                        {/* Links Grid */}
-                        <div
-                          className={`grid gap-8 ${
-                            item.featured ? "col-span-8 grid-cols-2 md:grid-cols-3" : "col-span-12 grid-cols-4"
-                          }`}
-                        >
-                          {item.categories?.map((cat) => (
-                            <div key={cat.title} className="space-y-4">
-                              <h3 className="font-serif text-lg font-semibold text-gray-900 border-b border-gray-100 pb-2">
-                                {cat.title}
-                              </h3>
-                              <ul className="space-y-2.5">
-                                {cat.links.map((link) => (
-                                  <li key={link.label}>
-                                    <Link
-                                      href={link.href}
-                                      className="text-[15px] text-gray-600 transition hover:text-[#7B8F50] hover:pl-1"
-                                    >
-                                      {link.label}
-                                    </Link>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Featured Visual Promo Card */}
-                        {item.featured && (
-                          <div className="col-span-4 border-l border-gray-100 pl-8">
-                            <div className="group/card relative overflow-hidden rounded-lg bg-[#2f2f2f] p-6 flex flex-col justify-end h-full min-h-[220px]">
-                              <div className="relative z-20 text-white">
-                                <span className="text-xs font-semibold uppercase tracking-wider text-[#A3B86C]">
-                                  Featured
-                                </span>
-                                <h4 className="font-serif text-xl font-bold mt-1">
-                                  {item.featured.title}
-                                </h4>
-                                <p className="text-sm text-gray-300 mt-1">
-                                  {item.featured.description}
-                                </p>
+                    <div className="absolute left-0 top-full w-64 bg-white border border-gray-200 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 ease-in-out z-50 rounded-b-lg p-5">
+                      {item.categories?.map((cat) => (
+                        <div key={cat.title} className="space-y-3">
+                          <h3 className="font-serif text-sm font-semibold uppercase tracking-wider text-gray-400 border-b border-gray-100 pb-1">
+                            {cat.title}
+                          </h3>
+                          <ul className="space-y-2">
+                            {cat.links.map((link) => (
+                              <li key={link.label}>
                                 <Link
-                                  href={item.featured.href}
-                                  className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[#A3B86C] hover:underline transition"
+                                  href={link.href}
+                                  className="text-[15px] text-gray-600 transition hover:text-[#7B8F50] block hover:pl-1"
                                 >
-                                  Learn More <FiArrowRight />
+                                  {link.label}
                                 </Link>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </li>
@@ -275,12 +127,12 @@ export default function MainNavbar() {
             </button>
 
             {/* Cart Button */}
-            <button className="relative p-2 text-gray-700">
+            <Link href="/cart" className="relative p-2 text-gray-700">
               <FiShoppingCart className="text-[26px]" />
               <span className="absolute top-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-[#7B8F50] text-[10px] font-bold text-white">
-                2
+                0
               </span>
-            </button>
+            </Link>
 
             {/* Mobile Menu Toggle Button */}
             <button
