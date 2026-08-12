@@ -50,12 +50,12 @@ export default async function EditProductPage({
       </div>
 
       <form
-  action={async (formData) => {
-    "use server";
-    await updateProduct(formData);
-  }}
-  className="bg-white rounded-2xl border border-[#C4A892]/30 shadow-sm p-8 space-y-6"
->
+        action={async (formData) => {
+          "use server";
+          await updateProduct(formData);
+        }}
+        className="bg-white rounded-2xl border border-[#C4A892]/30 shadow-sm p-8 space-y-6"
+      >
         <input
           type="hidden"
           name="id"
@@ -65,7 +65,7 @@ export default async function EditProductPage({
         <input
           type="hidden"
           name="existingImageUrl"
-          value={product.imageUrl}
+          value={product.imageUrl ?? ""}
         />
 
         {/* Title */}
@@ -76,7 +76,7 @@ export default async function EditProductPage({
 
           <input
             name="title"
-            defaultValue={product.title}
+            defaultValue={product.title ?? ""}
             required
             className="w-full p-3 border rounded-xl"
           />
@@ -93,7 +93,7 @@ export default async function EditProductPage({
               name="price"
               type="number"
               step="0.01"
-              defaultValue={product.price}
+              defaultValue={product.price ?? ""}
               required
               className="w-full p-3 border rounded-xl"
             />
@@ -106,7 +106,7 @@ export default async function EditProductPage({
 
             <select
               name="category"
-              defaultValue={product.category}
+              defaultValue={product.category ?? "fine-art"}
               className="w-full p-3 border rounded-xl bg-white"
             >
               <option value="fine-art">FINE-ART</option>
@@ -124,17 +124,17 @@ export default async function EditProductPage({
           </label>
 
           <select
-  name="artistId"
-  defaultValue={(product as any).artistId || ""}
-  className="w-full p-3 border rounded-xl bg-white"
->
-  <option value="">Independent (No Artist)</option>
-  {artists.map((artist: any) => (
-    <option key={artist.id} value={artist.id}>
-      {artist.name}
-    </option>
-  ))}
-</select>
+            name="artistId"
+            defaultValue={(product as any).artistId ?? ""}
+            className="w-full p-3 border rounded-xl bg-white"
+          >
+            <option value="">Independent (No Artist)</option>
+            {artists.map((artist: any) => (
+              <option key={artist.id} value={artist.id}>
+                {artist.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Current Image */}
@@ -145,8 +145,8 @@ export default async function EditProductPage({
 
           <div className="relative w-full h-[500px] rounded-xl overflow-hidden border bg-[#F8F8F8]">
             <Image
-              src={product.imageUrl}
-              alt={product.title}
+              src={product.imageUrl ?? "/placeholder.png"}
+              alt={product.title ?? "Artwork"}
               fill
               priority
               sizes="100vw"
@@ -178,7 +178,7 @@ export default async function EditProductPage({
           <textarea
             name="description"
             rows={4}
-            defaultValue={product.description || ""}
+            defaultValue={product.description ?? ""}
             className="w-full p-3 border rounded-xl"
           />
         </div>
