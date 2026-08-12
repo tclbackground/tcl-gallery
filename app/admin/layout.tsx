@@ -1,5 +1,8 @@
-// app/admin/layout.tsx
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
 import {
   FiGrid,
   FiPackage,
@@ -13,22 +16,30 @@ import {
   FiBell,
   FiMoon,
   FiPlus,
-  FiChevronDown,
 } from "react-icons/fi";
+import AdminDashboardOverview from "./page";
+import AdminUserMenu from "./components/AdminUserMenu";
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const adminName = "PRASANNA HIREMAT CHINMAYI";
+  // 1. Fetch user session on the server
+  const session = await getServerSession(authOptions);
+
+  // 2. Protect route: redirect non-admin users to login
+  if (!session || (session.user as any)?.role !== "ADMIN") {
+    redirect("/account/login");
+  }
+
+  const user = session.user;
 
   return (
     <div className="min-h-screen bg-[#FBF9F0] text-[#22211B] flex font-sans antialiased">
-      {/* Fixed Sidebar */}
+      {/* Sidebar */}
       <aside className="w-64 border-r border-[#E8E2D5] bg-white flex flex-col h-screen sticky top-0 shrink-0 hidden md:flex">
-        
-        {/* 1. FIXED TOP: Brand Logo */}
+        {/* Brand Logo */}
         <div className="p-6 border-b border-[#E8E2D5]/50 shrink-0">
           <Link href="/admin" className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-xl bg-[#22211B] text-white flex items-center justify-center font-serif text-lg font-bold">
@@ -40,7 +51,7 @@ export default function AdminLayout({
           </Link>
         </div>
 
-        {/* 2. SCROLLABLE MIDDLE: Menu Navigation */}
+        {/* Menu Navigation */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           <nav className="space-y-1 text-xs font-semibold">
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-3 mb-2">
@@ -99,7 +110,7 @@ export default function AdminLayout({
           </nav>
         </div>
 
-        {/* 3. FIXED BOTTOM: Quick Actions Footer */}
+        {/* Quick Action Button */}
         <div className="p-4 border-t border-[#E8E2D5] bg-[#FAF7F0] shrink-0">
           <Link
             href="/admin/add-product"
@@ -110,12 +121,15 @@ export default function AdminLayout({
         </div>
       </aside>
 
-      {/* Main Right Content Layout */}
+      {/* Main Content Layout */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header Bar */}
         <header className="h-16 border-b border-[#E8E2D5] bg-white px-6 flex items-center justify-between gap-4 sticky top-0 z-10">
           <div className="relative w-full max-w-md">
-            <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
+            <FiSearch
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+              size={15}
+            />
             <input
               type="text"
               placeholder="Search or type command..."
@@ -137,18 +151,8 @@ export default function AdminLayout({
 
             <div className="h-6 w-[1px] bg-[#E8E2D5]" />
 
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-full bg-[#4D3024] text-white flex items-center justify-center font-bold text-xs shadow-2xs">
-                {adminName.charAt(0)}
-              </div>
-              <div className="hidden sm:block text-left">
-                <p className="text-xs font-bold text-[#22211B] leading-tight">
-                  {adminName}
-                </p>
-                <p className="text-[10px] text-gray-500 font-medium">Administrator</p>
-              </div>
-              <FiChevronDown size={14} className="text-gray-400" />
-            </div>
+            {/* Interactive Admin User Dropdown */}
+            <AdminUserMenu user={user} />
           </div>
         </header>
 

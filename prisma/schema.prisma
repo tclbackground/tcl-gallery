@@ -35,3 +35,18 @@ model Product {
   artistId    String?   @db.ObjectId
   artist      Artist?   @relation(fields: [artistId], references: [id])
 }
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String?
+  email         String?   @unique
+  password      String?
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
