@@ -29,6 +29,8 @@ interface Product {
   SIZE?: string | null;
   PRICE?: number | null;
   Photo?: string | null;
+  PHOTO?: string | null;
+  photo?: string | null;
   "REFERENCE NO"?: string | null;
 }
 
@@ -207,13 +209,19 @@ export default function ShopPage() {
                 const refNo = art.referenceNo || art["REFERENCE NO"] || "";
                 const price = art.price || art.PRICE || 0;
                 
-                // Flexible Image Resolving with Fallback
+                // 1. DYNAMICALLY RESOLVE IMAGE FROM ALL MAPPED CSV / DB KEYS
+                const rawImage =
+                  art.imageUrl ||
+                  art.Photo ||
+                  art.PHOTO ||
+                  art.photo ||
+                  "";
+
+                // 2. FALLBACK ONLY IF FIELD IS EMPTY IN DB
                 const imageSrc =
-                  art.imageUrl && art.imageUrl.trim() !== ""
-                    ? art.imageUrl
-                    : art.Photo && art.Photo.trim() !== ""
-                    ? art.Photo
-                    : "/images/products/artwork-1.jpg"; // Replace with any fallback in your /public directory
+                  rawImage && rawImage.trim() !== ""
+                    ? rawImage.trim()
+                    : "/placeholder.png";
 
                 return (
                   <Link
@@ -228,6 +236,7 @@ export default function ShopPage() {
                           src={imageSrc}
                           alt={title}
                           fill
+                          unoptimized
                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                           className="object-cover group-hover:scale-105 transition-transform duration-500"
                         />
