@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 // ==========================================
 // FILE UPLOAD HELPER
@@ -32,6 +33,8 @@ async function saveFile(file: File): Promise<string> {
 // ==========================================
 
 export async function uploadArtist(formData: FormData) {
+  let shouldRedirect = false;
+
   try {
     const name = formData.get("name") as string;
     const specialty = formData.get("specialty") as string;
@@ -66,11 +69,7 @@ export async function uploadArtist(formData: FormData) {
     revalidatePath("/admin/artists");
     revalidatePath("/admin/artists/add");
     revalidatePath("/artist");
-
-    return {
-      success: true,
-      message: "Artist created successfully!",
-    };
+    shouldRedirect = true;
   } catch (error) {
     console.error("Artist Upload Error:", error);
     return {
@@ -78,9 +77,15 @@ export async function uploadArtist(formData: FormData) {
       message: "Failed to create artist.",
     };
   }
+
+  if (shouldRedirect) {
+    redirect("/admin/artists?created=true");
+  }
 }
 
 export async function updateArtist(formData: FormData) {
+  let shouldRedirect = false;
+
   try {
     const id = formData.get("id") as string;
     const name = formData.get("name") as string;
@@ -118,17 +123,17 @@ export async function updateArtist(formData: FormData) {
     revalidatePath("/admin/artists");
     revalidatePath("/artist");
     revalidatePath(`/artist/${id}`);
-
-    return {
-      success: true,
-      message: "Artist updated successfully!",
-    };
+    shouldRedirect = true;
   } catch (error) {
     console.error("Artist Update Error:", error);
     return {
       success: false,
       message: "Failed to update artist.",
     };
+  }
+
+  if (shouldRedirect) {
+    redirect("/admin/artists?updated=true");
   }
 }
 
@@ -179,6 +184,8 @@ export async function deleteArtist(formData: FormData) {
 // ==========================================
 
 export async function uploadProduct(formData: FormData) {
+  let shouldRedirect = false;
+
   try {
     const title = formData.get("title") as string;
     const priceStr = formData.get("price") as string;
@@ -217,11 +224,7 @@ export async function uploadProduct(formData: FormData) {
     revalidatePath("/");
     revalidatePath("/shop");
     revalidatePath(`/shop/${category}`);
-
-    return {
-      success: true,
-      message: "Product published successfully!",
-    };
+    shouldRedirect = true;
   } catch (error) {
     console.error("Product Upload Error:", error);
     return {
@@ -229,9 +232,15 @@ export async function uploadProduct(formData: FormData) {
       message: "Failed to publish product.",
     };
   }
+
+  if (shouldRedirect) {
+    redirect("/admin?created=true");
+  }
 }
 
 export async function updateProduct(formData: FormData) {
+  let shouldRedirect = false;
+
   try {
     const id = formData.get("id") as string;
     const title = formData.get("title") as string;
@@ -280,17 +289,18 @@ export async function updateProduct(formData: FormData) {
     revalidatePath("/");
     revalidatePath("/shop");
     revalidatePath(`/shop/${category}`);
-
-    return {
-      success: true,
-      message: "Product updated successfully!",
-    };
+    shouldRedirect = true;
   } catch (error) {
     console.error("Product Update Error:", error);
     return {
       success: false,
       message: "Failed to update product.",
     };
+  }
+
+  // 5. REDIRECT WITH SUCCESS QUERY PARAM
+  if (shouldRedirect) {
+    redirect("/admin?updated=true");
   }
 }
 
