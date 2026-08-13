@@ -27,6 +27,10 @@ export default async function EditProductPage({
     notFound();
   }
 
+  // Safe Fallback Values
+  const currentImageUrl = product.imageUrl || "/images/products/artwork-1.jpg";
+  const currentTitle = product.title || "Artwork";
+
   return (
     <div className="max-w-3xl mx-auto py-8 space-y-6 text-[#22211B]">
       {/* Header */}
@@ -43,25 +47,18 @@ export default async function EditProductPage({
             Management
           </p>
 
-          <h1 className="font-serif text-4xl font-bold">
-            Edit Artwork
-          </h1>
+          <h1 className="font-serif text-4xl font-bold">Edit Artwork</h1>
         </div>
       </div>
 
       <form
-        action={async (formData) => {
+        action={async (formData: FormData) => {
           "use server";
           await updateProduct(formData);
         }}
         className="bg-white rounded-2xl border border-[#C4A892]/30 shadow-sm p-8 space-y-6"
       >
-        <input
-          type="hidden"
-          name="id"
-          value={product.id}
-        />
-
+        <input type="hidden" name="id" value={product.id} />
         <input
           type="hidden"
           name="existingImageUrl"
@@ -73,7 +70,6 @@ export default async function EditProductPage({
           <label className="block text-xs font-bold uppercase mb-2">
             Title
           </label>
-
           <input
             name="title"
             defaultValue={product.title ?? ""}
@@ -82,13 +78,12 @@ export default async function EditProductPage({
           />
         </div>
 
-        {/* Price + Category */}
+        {/* Price & Category */}
         <div className="grid md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold uppercase mb-2">
               Price ($)
             </label>
-
             <input
               name="price"
               type="number"
@@ -103,7 +98,6 @@ export default async function EditProductPage({
             <label className="block text-xs font-bold uppercase mb-2">
               Category
             </label>
-
             <select
               name="category"
               defaultValue={product.category ?? "fine-art"}
@@ -122,7 +116,6 @@ export default async function EditProductPage({
           <label className="block text-xs font-bold uppercase mb-2">
             Artist
           </label>
-
           <select
             name="artistId"
             defaultValue={(product as any).artistId ?? ""}
@@ -137,16 +130,15 @@ export default async function EditProductPage({
           </select>
         </div>
 
-        {/* Current Image */}
+        {/* Current Image Display */}
         <div>
           <label className="block text-xs font-bold uppercase mb-2">
-            Current Artwork
+            Current Artwork Image
           </label>
-
-          <div className="relative w-full h-[500px] rounded-xl overflow-hidden border bg-[#F8F8F8]">
+          <div className="relative w-full h-64 rounded-xl overflow-hidden border bg-[#F8F8F8]">
             <Image
-              src={product.imageUrl ?? "/placeholder.png"}
-              alt={product.title ?? "Artwork"}
+              src={currentImageUrl}
+              alt={currentTitle}
               fill
               priority
               sizes="100vw"
@@ -155,17 +147,30 @@ export default async function EditProductPage({
           </div>
         </div>
 
-        {/* Replace Image */}
+        {/* Direct Image URL / Path Input */}
         <div>
           <label className="block text-xs font-bold uppercase mb-2">
-            Replace Image (Optional)
+            Image URL / Public Path
           </label>
+          <input
+            type="text"
+            name="imageUrlInput"
+            defaultValue={product.imageUrl ?? ""}
+            placeholder="/images/products/artwork-1.jpg or https://..."
+            className="w-full p-3 border rounded-xl text-sm"
+          />
+        </div>
 
+        {/* Replace File (Optional) */}
+        <div>
+          <label className="block text-xs font-bold uppercase mb-2">
+            Or Replace With Local File
+          </label>
           <input
             type="file"
             name="image"
             accept="image/*"
-            className="w-full p-3 border rounded-xl"
+            className="w-full p-3 border rounded-xl text-sm"
           />
         </div>
 
@@ -174,7 +179,6 @@ export default async function EditProductPage({
           <label className="block text-xs font-bold uppercase mb-2">
             Description
           </label>
-
           <textarea
             name="description"
             rows={4}
@@ -183,10 +187,10 @@ export default async function EditProductPage({
           />
         </div>
 
-        {/* Button */}
+        {/* Submit Button */}
         <button
           type="submit"
-          className="w-full bg-[#22211B] hover:bg-[#4D3024] text-white py-4 rounded-full font-semibold transition"
+          className="w-full bg-[#22211B] hover:bg-[#4D3024] text-white py-4 rounded-full font-semibold transition cursor-pointer"
         >
           Update Artwork
         </button>
