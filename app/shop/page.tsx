@@ -12,15 +12,24 @@ import {
 } from "react-icons/fi";
 
 interface Product {
-  id: String;
-  title: string | null;
-  artistName: string | null;
-  category: string | null;
-  medium: string | null;
-  size: string | null;
-  price: number | null;
-  imageUrl: string | null;
-  referenceNo: string | null;
+  id: string;
+  title?: string | null;
+  artistName?: string | null;
+  category?: string | null;
+  medium?: string | null;
+  size?: string | null;
+  price?: number | null;
+  imageUrl?: string | null;
+  referenceNo?: string | null;
+  // Raw mapped keys fallback from Compass/CSV
+  TITLE?: string | null;
+  ARTIST?: string | null;
+  CATEGORY?: string | null;
+  MEDIUM?: string | null;
+  SIZE?: string | null;
+  PRICE?: number | null;
+  Photo?: string | null;
+  "REFERENCE NO"?: string | null;
 }
 
 const categories = [
@@ -64,16 +73,20 @@ export default function ShopPage() {
     fetchProducts();
   }, []);
 
-  // Filter & Sort Logic
+  // Filter & Sort Logic with lenient fallbacks
   const filteredProducts = products
     .filter((item) => {
-      const title = item.title || "";
-      const artist = item.artistName || "";
-      const category = item.category || "General";
-      const medium = item.medium || "";
+      const title = item.title || item.TITLE || "";
+      const artist = item.artistName || item.ARTIST || "";
+      const category = item.category || item.CATEGORY || "";
+      const medium = item.medium || item.MEDIUM || "";
 
+      // Allow "All Artworks" or empty categories to display, or match category substring flexible check
       const matchesCategory =
-        selectedCategory === "All Artworks" || category === selectedCategory;
+        selectedCategory === "All Artworks" ||
+        category === "" ||
+        category.toLowerCase().includes(selectedCategory.toLowerCase()) ||
+        medium.toLowerCase().includes(selectedCategory.toLowerCase());
 
       const matchesSearch =
         title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -83,8 +96,8 @@ export default function ShopPage() {
       return matchesCategory && matchesSearch;
     })
     .sort((a, b) => {
-      const priceA = a.price || 0;
-      const priceB = b.price || 0;
+      const priceA = a.price || a.PRICE || 0;
+      const priceB = b.price || b.PRICE || 0;
       if (sortBy === "Price: Low to High") return priceA - priceB;
       if (sortBy === "Price: High to Low") return priceB - priceA;
       return 0;
@@ -186,87 +199,98 @@ export default function ShopPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredProducts.map((art) => (
-                <Link
-                  key={String(art.id)}
-                  href={`/shop/${art.id}`}
-                  className="group rounded-3xl border border-[#EAE3D2] bg-white overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between cursor-pointer"
-                >
-                  <div>
-                    {/* Artwork Visual Container */}
-                    <div className="relative h-80 bg-[#ECE9E2] overflow-hidden flex items-center justify-center">
-                      {art.imageUrl ? (
+              {filteredProducts.map((art) => {
+                const title = art.title || art.TITLE || "Untitled Artwork";
+                const artist = art.artistName || art.ARTIST || "Joan Karle";
+                const category = art.category || art.CATEGORY || "Fine Art";
+                const size = art.size || art.SIZE || "Standard Size";
+                const refNo = art.referenceNo || art["REFERENCE NO"] || "";
+                const price = art.price || art.PRICE || 0;
+                
+                // Flexible Image Resolving with Fallback
+                const imageSrc =
+                  art.imageUrl && art.imageUrl.trim() !== ""
+                    ? art.imageUrl
+                    : art.Photo && art.Photo.trim() !== ""
+                    ? art.Photo
+                    : "/images/products/artwork-1.jpg"; // Replace with any fallback in your /public directory
+
+                return (
+                  <Link
+                    key={String(art.id)}
+                    href={`/shop/${art.id}`}
+                    className="group rounded-3xl border border-[#EAE3D2] bg-white overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between cursor-pointer"
+                  >
+                    <div>
+                      {/* Artwork Visual Container */}
+                      <div className="relative h-80 bg-[#ECE9E2] overflow-hidden flex items-center justify-center">
                         <Image
-                          src={art.imageUrl}
-                          alt={art.title || "Artwork"}
+                          src={imageSrc}
+                          alt={title}
                           fill
                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                           className="object-cover group-hover:scale-105 transition-transform duration-500"
                         />
-                      ) : (
-                        <span className="text-xs font-semibold text-[#88847C] uppercase tracking-wider">
-                          No Image Available
+
+                        {/* Category Badge */}
+                        <div className="absolute top-4 left-4 z-10 flex flex-col gap-1.5">
+                          <span className="rounded-full bg-white/90 backdrop-blur-md px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#7B8F50]">
+                            {category}
+                          </span>
+                        </div>
+
+                        {/* Quick Actions */}
+                        <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition duration-300">
+                          <button
+                            onClick={(e) => e.preventDefault()}
+                            className="rounded-full bg-white/90 p-2 text-[#22211B] shadow-md hover:bg-[#7B8F50] hover:text-white transition cursor-pointer"
+                          >
+                            <FiHeart className="text-sm" />
+                          </button>
+                          <button
+                            onClick={(e) => e.preventDefault()}
+                            className="rounded-full bg-white/90 p-2 text-[#22211B] shadow-md hover:bg-[#7B8F50] hover:text-white transition cursor-pointer"
+                          >
+                            <FiEye className="text-sm" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Artwork Details */}
+                      <div className="p-6 space-y-3">
+                        <div className="flex items-center justify-between text-xs font-semibold text-[#88847C]">
+                          <span>{size}</span>
+                          <span className="text-[#7B8F50] font-medium">{refNo}</span>
+                        </div>
+
+                        <h3 className="font-serif text-2xl font-bold text-[#22211B] group-hover:text-[#7B8F50] transition-colors leading-tight">
+                          {title}
+                        </h3>
+
+                        <p className="text-xs font-bold text-[#7B8F50] uppercase tracking-wider">
+                          By {artist}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Card Action Footer */}
+                    <div className="p-6 pt-0 border-t border-gray-100 mt-4 flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-[#88847C] uppercase tracking-widest block font-bold">
+                          Investment
                         </span>
-                      )}
-
-                      {/* Category Badge */}
-                      <div className="absolute top-4 left-4 z-10 flex flex-col gap-1.5">
-                        <span className="rounded-full bg-white/90 backdrop-blur-md px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#7B8F50]">
-                          {art.category || "Fine Art"}
+                        <span className="font-serif text-xl font-bold text-[#22211B]">
+                          {price > 0 ? `$${price.toLocaleString()}` : "Price on Request"}
                         </span>
                       </div>
 
-                      {/* Quick Actions */}
-                      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition duration-300">
-                        <button
-                          onClick={(e) => e.preventDefault()}
-                          className="rounded-full bg-white/90 p-2 text-[#22211B] shadow-md hover:bg-[#7B8F50] hover:text-white transition cursor-pointer"
-                        >
-                          <FiHeart className="text-sm" />
-                        </button>
-                        <button
-                          onClick={(e) => e.preventDefault()}
-                          className="rounded-full bg-white/90 p-2 text-[#22211B] shadow-md hover:bg-[#7B8F50] hover:text-white transition cursor-pointer"
-                        >
-                          <FiEye className="text-sm" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Artwork Details */}
-                    <div className="p-6 space-y-3">
-                      <div className="flex items-center justify-between text-xs font-semibold text-[#88847C]">
-                        <span>{art.size || "Standard Size"}</span>
-                        <span className="text-[#7B8F50] font-medium">{art.referenceNo || ""}</span>
-                      </div>
-
-                      <h3 className="font-serif text-2xl font-bold text-[#22211B] group-hover:text-[#7B8F50] transition-colors leading-tight">
-                        {art.title || "Untitled Artwork"}
-                      </h3>
-
-                      <p className="text-xs font-bold text-[#7B8F50] uppercase tracking-wider">
-                        By {art.artistName || "Unknown Artist"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Card Action Footer */}
-                  <div className="p-6 pt-0 border-t border-gray-100 mt-4 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] text-[#88847C] uppercase tracking-widest block font-bold">
-                        Investment
-                      </span>
-                      <span className="font-serif text-xl font-bold text-[#22211B]">
-                        {art.price ? `$${art.price.toLocaleString()}` : "Price Upon Request"}
+                      <span className="inline-flex items-center gap-2 rounded-full bg-[#F8F6F0] px-5 py-2.5 text-xs font-semibold text-[#22211B] group-hover:bg-[#7B8F50] group-hover:text-white transition-all shadow-sm">
+                        <FiShoppingCart /> View Artwork
                       </span>
                     </div>
-
-                    <span className="inline-flex items-center gap-2 rounded-full bg-[#F8F6F0] px-5 py-2.5 text-xs font-semibold text-[#22211B] group-hover:bg-[#7B8F50] group-hover:text-white transition-all shadow-sm">
-                      <FiShoppingCart /> View Artwork
-                    </span>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
           )}
 
