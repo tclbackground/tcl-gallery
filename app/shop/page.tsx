@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -8,79 +8,20 @@ import {
   FiShoppingCart,
   FiHeart,
   FiEye,
-  FiCheck,
   FiArrowRight,
 } from "react-icons/fi";
 
-// Sample Shop Products Data
-const productsData = [
-  {
-    id: "1",
-    title: "Ethereal Harmony No. 4",
-    artist: "Helena Vance",
-    category: "Photography",
-    frameType: "Museum Archival Frame",
-    price: 2400,
-    dimensions: '36" x 48"',
-    image: "/images/products/artwork-1.jpg",
-    isOriginal: true,
-  },
-  {
-    id: "2",
-    title: "Monolith in Bronze",
-    artist: "Marcus Vance",
-    category: "Sculptures",
-    frameType: "Custom Pedestal Mount",
-    price: 4100,
-    dimensions: '18" x 12" x 12"',
-    image: "/images/products/artwork-2.jpg",
-    isOriginal: true,
-  },
-  {
-    id: "3",
-    title: "Solitude in Dawn",
-    artist: "Aria Chen",
-    category: "Photography",
-    frameType: "Custom Handcrafted Wood",
-    price: 850,
-    dimensions: '24" x 36"',
-    image: "/images/products/artwork-3.jpg",
-    isOriginal: false,
-  },
-  {
-    id: "4",
-    title: "Architectural Echoes",
-    artist: "Elena Rostova",
-    category: "Oil Paintings",
-    frameType: "Gold Leaf Gallery Frame",
-    price: 3200,
-    dimensions: '40" x 40"',
-    image: "/images/products/artwork-4.jpg",
-    isOriginal: true,
-  },
-  {
-    id: "5",
-    title: "Serenade of Shadows",
-    artist: "Prasanna Chinmayi",
-    category: "Photography",
-    frameType: "Floating Gallery Frame",
-    price: 1450,
-    dimensions: '30" x 45"',
-    image: "/images/products/artwork-5.jpg",
-    isOriginal: true,
-  },
-  {
-    id: "6",
-    title: "Digital Horizon Study II",
-    artist: "Kaelen Voss",
-    category: "Digital Art",
-    frameType: "Black Gallery Box Frame",
-    price: 1250,
-    dimensions: '30" x 45"',
-    image: "/images/products/artwork-6.jpg",
-    isOriginal: false,
-  },
-];
+interface Product {
+  id: String;
+  title: string | null;
+  artistName: string | null;
+  category: string | null;
+  medium: string | null;
+  size: string | null;
+  price: number | null;
+  imageUrl: string | null;
+  referenceNo: string | null;
+}
 
 const categories = [
   "All Artworks",
@@ -99,26 +40,53 @@ const sortOptions = [
 ];
 
 export default function ShopPage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("All Artworks");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("Featured");
-  const [onlyOriginals, setOnlyOriginals] = useState(false);
+
+  // Fetch live products from API
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        const res = await fetch("/api/products", { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          setProducts(data);
+        }
+      } catch (err) {
+        console.error("Failed to load products:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProducts();
+  }, []);
 
   // Filter & Sort Logic
-  const filteredProducts = productsData
+  const filteredProducts = products
     .filter((item) => {
+      const title = item.title || "";
+      const artist = item.artistName || "";
+      const category = item.category || "General";
+      const medium = item.medium || "";
+
       const matchesCategory =
-        selectedCategory === "All Artworks" || item.category === selectedCategory;
+        selectedCategory === "All Artworks" || category === selectedCategory;
+
       const matchesSearch =
-        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.frameType.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesOriginal = !onlyOriginals || item.isOriginal;
-      return matchesCategory && matchesSearch && matchesOriginal;
+        title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        medium.toLowerCase().includes(searchQuery.toLowerCase());
+
+      return matchesCategory && matchesSearch;
     })
     .sort((a, b) => {
-      if (sortBy === "Price: Low to High") return a.price - b.price;
-      if (sortBy === "Price: High to Low") return b.price - a.price;
+      const priceA = a.price || 0;
+      const priceB = b.price || 0;
+      if (sortBy === "Price: Low to High") return priceA - priceB;
+      if (sortBy === "Price: High to Low") return priceB - priceA;
       return 0;
     });
 
@@ -160,14 +128,12 @@ export default function ShopPage() {
             ))}
           </div>
 
-          {/* Right Controls: Search, Original Checkbox & Sort */}
+          {/* Controls: Search & Sort */}
           <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto justify-between lg:justify-end">
-            
-            {/* Search Input */}
             <div className="flex items-center rounded-full bg-[#FAF8F5] border border-[#E0D8C8] px-4 py-2 w-full sm:w-64 focus-within:border-[#7B8F50]">
               <input
                 type="text"
-                placeholder="Search artwork, artist, or frame..."
+                placeholder="Search artwork, artist, or medium..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-transparent text-xs text-[#22211B] placeholder-[#88847C] outline-none"
@@ -175,18 +141,6 @@ export default function ShopPage() {
               <FiSearch className="text-[#7B8F50] text-base shrink-0" />
             </div>
 
-            {/* Originals Only Toggle */}
-            <label className="flex items-center gap-2 text-xs font-medium text-[#22211B] cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={onlyOriginals}
-                onChange={(e) => setOnlyOriginals(e.target.checked)}
-                className="accent-[#7B8F50] rounded h-4 w-4 cursor-pointer"
-              />
-              Originals Only
-            </label>
-
-            {/* Sort Select */}
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-[#88847C] uppercase">
                 Sort:
@@ -203,7 +157,6 @@ export default function ShopPage() {
                 ))}
               </select>
             </div>
-
           </div>
         </div>
       </section>
@@ -212,7 +165,11 @@ export default function ShopPage() {
       <section className="py-16">
         <div className="mx-auto max-w-[1700px] px-4 sm:px-6 lg:px-8">
           
-          {filteredProducts.length === 0 ? (
+          {loading ? (
+            <div className="py-20 text-center">
+              <p className="font-serif text-xl text-[#88847C]">Loading artworks...</p>
+            </div>
+          ) : filteredProducts.length === 0 ? (
             <div className="py-20 text-center space-y-4">
               <p className="font-serif text-2xl text-[#22211B]">
                 No artworks found matching your criteria.
@@ -221,7 +178,6 @@ export default function ShopPage() {
                 onClick={() => {
                   setSelectedCategory("All Artworks");
                   setSearchQuery("");
-                  setOnlyOriginals(false);
                 }}
                 className="text-sm font-semibold text-[#7B8F50] underline cursor-pointer"
               >
@@ -232,49 +188,44 @@ export default function ShopPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredProducts.map((art) => (
                 <Link
-                  key={art.id}
+                  key={String(art.id)}
                   href={`/shop/${art.id}`}
                   className="group rounded-3xl border border-[#EAE3D2] bg-white overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between cursor-pointer"
                 >
                   <div>
                     {/* Artwork Visual Container */}
-                    <div className="relative h-80 bg-[#ECE9E2] overflow-hidden">
-                      {art.image && (
+                    <div className="relative h-80 bg-[#ECE9E2] overflow-hidden flex items-center justify-center">
+                      {art.imageUrl ? (
                         <Image
-                          src={art.image}
-                          alt={art.title}
+                          src={art.imageUrl}
+                          alt={art.title || "Artwork"}
                           fill
                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                           className="object-cover group-hover:scale-105 transition-transform duration-500"
                         />
+                      ) : (
+                        <span className="text-xs font-semibold text-[#88847C] uppercase tracking-wider">
+                          No Image Available
+                        </span>
                       )}
 
-                      {/* Original / Photography Badge */}
+                      {/* Category Badge */}
                       <div className="absolute top-4 left-4 z-10 flex flex-col gap-1.5">
-                        {art.isOriginal && (
-                          <span className="rounded-full bg-[#22211B]/80 backdrop-blur-md px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
-                            Original Work
-                          </span>
-                        )}
                         <span className="rounded-full bg-white/90 backdrop-blur-md px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#7B8F50]">
-                          {art.category}
+                          {art.category || "Fine Art"}
                         </span>
                       </div>
 
-                      {/* Floating Quick Actions */}
+                      {/* Quick Actions */}
                       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition duration-300">
                         <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                          }}
+                          onClick={(e) => e.preventDefault()}
                           className="rounded-full bg-white/90 p-2 text-[#22211B] shadow-md hover:bg-[#7B8F50] hover:text-white transition cursor-pointer"
                         >
                           <FiHeart className="text-sm" />
                         </button>
                         <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                          }}
+                          onClick={(e) => e.preventDefault()}
                           className="rounded-full bg-white/90 p-2 text-[#22211B] shadow-md hover:bg-[#7B8F50] hover:text-white transition cursor-pointer"
                         >
                           <FiEye className="text-sm" />
@@ -285,16 +236,16 @@ export default function ShopPage() {
                     {/* Artwork Details */}
                     <div className="p-6 space-y-3">
                       <div className="flex items-center justify-between text-xs font-semibold text-[#88847C]">
-                        <span>{art.dimensions}</span>
-                        <span className="text-[#7B8F50] font-medium">{art.frameType}</span>
+                        <span>{art.size || "Standard Size"}</span>
+                        <span className="text-[#7B8F50] font-medium">{art.referenceNo || ""}</span>
                       </div>
 
                       <h3 className="font-serif text-2xl font-bold text-[#22211B] group-hover:text-[#7B8F50] transition-colors leading-tight">
-                        {art.title}
+                        {art.title || "Untitled Artwork"}
                       </h3>
 
                       <p className="text-xs font-bold text-[#7B8F50] uppercase tracking-wider">
-                        By {art.artist}
+                        By {art.artistName || "Unknown Artist"}
                       </p>
                     </div>
                   </div>
@@ -306,7 +257,7 @@ export default function ShopPage() {
                         Investment
                       </span>
                       <span className="font-serif text-xl font-bold text-[#22211B]">
-                        ${art.price.toLocaleString()}
+                        {art.price ? `$${art.price.toLocaleString()}` : "Price Upon Request"}
                       </span>
                     </div>
 
