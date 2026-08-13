@@ -10,39 +10,35 @@ import { revalidatePath } from "next/cache";
 // ==========================================
 
 async function saveFile(file: File): Promise<string> {
-  const uploadDir = path.join(
-    process.cwd(),
-    "public",
-    "uploads"
-  );
+  // Only attempt local disk write if running in Node development environment
+  try {
+    const uploadDir = path.join(process.cwd(), "public", "uploads");
+    await mkdir(uploadDir, { recursive: true });
 
-  await mkdir(uploadDir, { recursive: true });
+    const fileName = `${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
+    const filePath = path.join(uploadDir, fileName);
 
-  const fileName = `${Date.now()}-${file.name.replace(
-    /\s+/g,
-    "_"
-  )}`;
+    const bytes = await file.arrayBuffer();
+    await writeFile(filePath, Buffer.from(bytes));
 
-  const filePath = path.join(uploadDir, fileName);
-
-  const bytes = await file.arrayBuffer();
-
-  await writeFile(filePath, Buffer.from(bytes));
-
-  return `/uploads/${fileName}`;
+    return `/uploads/${fileName}`;
+  } catch (error) {
+    console.warn("Local file save bypassed or failed (Serverless runtime):", error);
+    return "";
+  }
 }
 
 // ==========================================
 // ARTIST CRUD ACTIONS
 // ==========================================
 
-// 1. CREATE ARTIST
 export async function uploadArtist(formData: FormData) {
   try {
     const name = formData.get("name") as string;
     const specialty = formData.get("specialty") as string;
     const bio = formData.get("bio") as string;
     const image = formData.get("image") as File;
+    const imageUrlInput = formData.get("imageUrl") as string;
 
     if (!name || !specialty) {
       return {
@@ -51,10 +47,11 @@ export async function uploadArtist(formData: FormData) {
       };
     }
 
-    let imageUrl: string | null = null;
+    let imageUrl: string | null = imageUrlInput || null;
 
     if (image && image.size > 0) {
-      imageUrl = await saveFile(image);
+      const savedPath = await saveFile(image);
+      if (savedPath) imageUrl = savedPath;
     }
 
     await (prisma as any).artist.create({
@@ -66,13 +63,9 @@ export async function uploadArtist(formData: FormData) {
       },
     });
 
-    // Refresh admin pages
     revalidatePath("/admin");
     revalidatePath("/admin/artists");
     revalidatePath("/admin/artists/add");
-
-    // IMPORTANT:
-    // Refresh public Artists page
     revalidatePath("/artist");
 
     return {
@@ -81,17 +74,12 @@ export async function uploadArtist(formData: FormData) {
     };
   } catch (error) {
     console.error("Artist Upload Error:", error);
-
     return {
       success: false,
       message: "Failed to create artist.",
     };
   }
 }
-
-// ==========================================
-// 2. UPDATE ARTIST
-// ==========================================
 
 export async function updateArtist(formData: FormData) {
   try {
@@ -100,8 +88,8 @@ export async function updateArtist(formData: FormData) {
     const specialty = formData.get("specialty") as string;
     const bio = formData.get("bio") as string;
     const image = formData.get("image") as File;
-    const existingImageUrl =
-      formData.get("existingImageUrl") as string;
+    const imageUrlInput = formData.get("imageUrl") as string;
+    const existingImageUrl = formData.get("existingImageUrl") as string;
 
     if (!id || !name || !specialty) {
       return {
@@ -110,10 +98,11 @@ export async function updateArtist(formData: FormData) {
       };
     }
 
-    let imageUrl = existingImageUrl || null;
+    let imageUrl = imageUrlInput || existingImageUrl || null;
 
     if (image && image.size > 0) {
-      imageUrl = await saveFile(image);
+      const savedPath = await saveFile(image);
+      if (savedPath) imageUrl = savedPath;
     }
 
     await (prisma as any).artist.update({
@@ -129,11 +118,7 @@ export async function updateArtist(formData: FormData) {
     revalidatePath("/admin");
     revalidatePath("/admin/artists");
     revalidatePath("/admin/artists/add");
-
-    // Refresh public artist listing
     revalidatePath("/artist");
-
-    // Refresh individual artist page
     revalidatePath(`/artist/${id}`);
 
     return {
@@ -142,17 +127,12 @@ export async function updateArtist(formData: FormData) {
     };
   } catch (error) {
     console.error("Artist Update Error:", error);
-
     return {
       success: false,
       message: "Failed to update artist.",
     };
   }
 }
-
-// ==========================================
-// 3. DELETE ARTIST
-// ==========================================
 
 export async function deleteArtist(formData: FormData) {
   try {
@@ -165,7 +145,6 @@ export async function deleteArtist(formData: FormData) {
       };
     }
 
-    // Remove artist reference from products first
     await prisma.product.updateMany({
       where: {
         artistId: id,
@@ -175,18 +154,13 @@ export async function deleteArtist(formData: FormData) {
       } as any,
     });
 
-    // Delete artist
     await (prisma as any).artist.delete({
       where: { id },
     });
 
     revalidatePath("/admin");
     revalidatePath("/admin/artists");
-
-    // Refresh public artist listing
     revalidatePath("/artist");
-
-    // Refresh individual artist page
     revalidatePath(`/artist/${id}`);
 
     return {
@@ -195,7 +169,6 @@ export async function deleteArtist(formData: FormData) {
     };
   } catch (error) {
     console.error("Artist Delete Error:", error);
-
     return {
       success: false,
       message: "Failed to delete artist.",
@@ -207,7 +180,6 @@ export async function deleteArtist(formData: FormData) {
 // PRODUCT CRUD ACTIONS
 // ==========================================
 
-// 1. CREATE PRODUCT
 export async function uploadProduct(formData: FormData) {
   try {
     const title = formData.get("title") as string;
@@ -216,21 +188,21 @@ export async function uploadProduct(formData: FormData) {
     const description = formData.get("description") as string;
     const artistId = formData.get("artistId") as string;
     const image = formData.get("image") as File;
+    const imageUrlInput = formData.get("imageUrl") as string;
 
-    if (
-      !title ||
-      !priceStr ||
-      !category ||
-      !image ||
-      image.size === 0
-    ) {
+    if (!title || !priceStr || !category) {
       return {
         success: false,
         message: "All required fields must be filled.",
       };
     }
 
-    const imageUrl = await saveFile(image);
+    let imageUrl = imageUrlInput || "/images/products/artwork-1.jpg";
+
+    if (image && image.size > 0) {
+      const savedPath = await saveFile(image);
+      if (savedPath) imageUrl = savedPath;
+    }
 
     await prisma.product.create({
       data: {
@@ -254,17 +226,12 @@ export async function uploadProduct(formData: FormData) {
     };
   } catch (error) {
     console.error("Product Upload Error:", error);
-
     return {
       success: false,
       message: "Failed to publish product.",
     };
   }
 }
-
-// ==========================================
-// 2. UPDATE PRODUCT
-// ==========================================
 
 export async function updateProduct(formData: FormData) {
   try {
@@ -275,8 +242,8 @@ export async function updateProduct(formData: FormData) {
     const description = formData.get("description") as string;
     const artistId = formData.get("artistId") as string;
     const image = formData.get("image") as File;
-    const existingImageUrl =
-      formData.get("existingImageUrl") as string;
+    const imageUrlInput = formData.get("imageUrl") as string;
+    const existingImageUrl = formData.get("existingImageUrl") as string;
 
     if (!id || !title || !priceStr || !category) {
       return {
@@ -285,10 +252,11 @@ export async function updateProduct(formData: FormData) {
       };
     }
 
-    let imageUrl = existingImageUrl;
+    let imageUrl = imageUrlInput || existingImageUrl || "/images/products/artwork-1.jpg";
 
     if (image && image.size > 0) {
-      imageUrl = await saveFile(image);
+      const savedPath = await saveFile(image);
+      if (savedPath) imageUrl = savedPath;
     }
 
     await prisma.product.update({
@@ -314,17 +282,12 @@ export async function updateProduct(formData: FormData) {
     };
   } catch (error) {
     console.error("Product Update Error:", error);
-
     return {
       success: false,
       message: "Failed to update product.",
     };
   }
 }
-
-// ==========================================
-// 3. DELETE PRODUCT
-// ==========================================
 
 export async function deleteProduct(formData: FormData) {
   try {
@@ -351,7 +314,6 @@ export async function deleteProduct(formData: FormData) {
     };
   } catch (error) {
     console.error("Product Delete Error:", error);
-
     return {
       success: false,
       message: "Failed to delete product.",

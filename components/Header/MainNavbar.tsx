@@ -33,7 +33,7 @@ const navigationItems = [
     ],
   },
   { title: "Collections", href: "/category/painting" },
-  { title: "Artists", href: "/artists" },
+  { title: "Artists", href: "/artist" },
   { title: "Services", href: "/about" },
   { title: "About Us", href: "/about" },
   { title: "Contact", href: "/contact" },
