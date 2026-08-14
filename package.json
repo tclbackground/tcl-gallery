@@ -13,6 +13,7 @@
     "@auth/prisma-adapter": "^2.11.3",
     "@prisma/client": "^5.22.0",
     "bcryptjs": "^3.0.3",
+    "crisp-sdk-web": "^1.2.0",
     "framer-motion": "^12.43.0",
     "lucide-react": "^1.27.0",
     "mongodb": "^7.5.0",
