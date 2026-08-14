@@ -7,12 +7,17 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 // ==========================================
-// FILE UPLOAD HELPER
+// FILE UPLOAD HELPER (Saves to public/images/products)
 // ==========================================
 
 async function saveFile(file: File): Promise<string> {
   try {
-    const uploadDir = path.join(process.cwd(), "public", "uploads");
+    const uploadDir = path.join(
+      process.cwd(),
+      "public",
+      "images",
+      "products"
+    );
     await mkdir(uploadDir, { recursive: true });
 
     const fileName = `${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
@@ -21,9 +26,9 @@ async function saveFile(file: File): Promise<string> {
     const bytes = await file.arrayBuffer();
     await writeFile(filePath, Buffer.from(bytes));
 
-    return `/uploads/${fileName}`;
+    return `/images/products/${fileName}`;
   } catch (error) {
-    console.warn("Local file save bypassed or failed (Serverless runtime):", error);
+    console.error("Local file save error:", error);
     return "";
   }
 }
@@ -264,11 +269,11 @@ export async function updateProduct(formData: FormData) {
     // 2. RESOLVE FINAL IMAGE URL PRIORITY
     let finalImageUrl = existingImageUrl || "";
 
-    if (imageUrlInput && imageUrlInput.trim() !== "") {
-      finalImageUrl = imageUrlInput.trim();
-    } else if (imageFile && imageFile.size > 0 && imageFile.name !== "undefined") {
+    if (imageFile && imageFile.size > 0 && imageFile.name !== "undefined") {
       const savedPath = await saveFile(imageFile);
       if (savedPath) finalImageUrl = savedPath;
+    } else if (imageUrlInput && imageUrlInput.trim() !== "") {
+      finalImageUrl = imageUrlInput.trim();
     }
 
     // 3. UPDATE DATABASE

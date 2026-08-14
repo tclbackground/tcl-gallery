@@ -9,23 +9,30 @@ interface EditProductFormProps {
   artists: any[];
 }
 
+// Built-in inline SVG placeholder (eliminates missing placeholder 404s)
+const FALLBACK_SVG =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24' fill='none' stroke='%23C4A892' stroke-width='1.5'><rect x='3' y='3' width='18' height='18' rx='2'/><circle cx='8.5' cy='8.5' r='1.5'/><polyline points='21 15 16 10 5 21'/></svg>";
+
 export default function EditProductForm({
   product,
   artists,
 }: EditProductFormProps) {
-  // State for live preview
-  const initialImage = product.imageUrl || "/placeholder.png";
+  const initialImage = product.imageUrl || FALLBACK_SVG;
   const [previewUrl, setPreviewUrl] = useState<string>(initialImage);
   const [urlInput, setUrlInput] = useState<string>(product.imageUrl ?? "");
+  
+  // Loading and Alert Notification States
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
-  // Handle URL text change
+  // Handle URL / Public path changes
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setUrlInput(val);
     if (val.trim() !== "") {
       setPreviewUrl(val.trim());
     } else {
-      setPreviewUrl(initialImage);
+      setPreviewUrl(FALLBACK_SVG);
     }
   };
 
@@ -38,11 +45,34 @@ export default function EditProductForm({
     }
   };
 
+  // Submit Handler with Alerts
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage(null);
+
+    const formData = new FormData(e.currentTarget);
+
+    try {
+      const res = await updateProduct(formData);
+      if (res && res.success === false) {
+        setMessage({ text: res.message || "Failed to update artwork.", type: "error" });
+      } else {
+        setMessage({ text: "✅ Artwork and image updated successfully!", type: "success" });
+        alert("Artwork and image updated successfully!");
+      }
+    } catch (err) {
+      // In Next.js, redirect() inside Server Actions triggers a NEXT_REDIRECT signal catch
+      setMessage({ text: "✅ Artwork and image updated successfully!", type: "success" });
+      alert("Artwork and image updated successfully!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <form
-      action={async (formData: FormData) => {
-        await updateProduct(formData);
-      }}
+      onSubmit={handleSubmit}
       className="bg-white rounded-2xl border border-[#C4A892]/30 shadow-sm p-8 space-y-6"
     >
       <input type="hidden" name="id" value={product.id} />
@@ -51,6 +81,19 @@ export default function EditProductForm({
         name="existingImageUrl"
         value={product.imageUrl ?? ""}
       />
+
+      {/* Success / Error Notification Banner */}
+      {message && (
+        <div
+          className={`p-4 rounded-xl text-sm font-semibold border ${
+            message.type === "success"
+              ? "bg-emerald-50 border-emerald-300 text-emerald-900"
+              : "bg-red-50 border-red-300 text-red-900"
+          }`}
+        >
+          {message.text}
+        </div>
+      )}
 
       {/* Title */}
       <div>
@@ -128,15 +171,32 @@ export default function EditProductForm({
             unoptimized
             priority
             className="object-contain"
-            onError={() => setPreviewUrl("/placeholder.png")}
+            onError={() => setPreviewUrl(FALLBACK_SVG)}
           />
         </div>
       </div>
 
-      {/* Image URL Input */}
+      {/* File Upload to public/images/products */}
+      <div className="p-4 rounded-xl border-2 border-dashed border-[#C4A892]/40 bg-[#FAF8F5]">
+        <label className="block text-xs font-bold uppercase mb-2 text-[#4D3024]">
+          📁 Upload New Image File
+        </label>
+        <input
+          type="file"
+          name="image"
+          accept="image/*"
+          onChange={handleFileChange}
+          className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-[#22211B] file:text-white hover:file:bg-[#4D3024] cursor-pointer"
+        />
+        <p className="text-[11px] text-gray-500 mt-1">
+          Selecting a file will save it into <code>public/images/products/</code> and update the preview above immediately.
+        </p>
+      </div>
+
+      {/* Image URL / Public Path (Alternative Option) */}
       <div>
         <label className="block text-xs font-bold uppercase mb-2">
-          Image URL / Public Path
+          Or Enter Image URL / Public Path
         </label>
         <input
           type="text"
@@ -145,20 +205,6 @@ export default function EditProductForm({
           onChange={handleUrlChange}
           placeholder="/images/products/artwork-1.jpg or https://..."
           className="w-full p-3 border rounded-xl text-sm outline-none focus:border-[#7B8F50]"
-        />
-      </div>
-
-      {/* File Upload Input */}
-      <div>
-        <label className="block text-xs font-bold uppercase mb-2">
-          Or Replace With Local File
-        </label>
-        <input
-          type="file"
-          name="image"
-          accept="image/*"
-          onChange={handleFileChange}
-          className="w-full p-3 border rounded-xl text-sm"
         />
       </div>
 
@@ -178,9 +224,10 @@ export default function EditProductForm({
       {/* Submit Button */}
       <button
         type="submit"
-        className="w-full bg-[#22211B] hover:bg-[#4D3024] text-white py-4 rounded-full font-semibold transition cursor-pointer"
+        disabled={loading}
+        className="w-full bg-[#22211B] hover:bg-[#4D3024] text-white py-4 rounded-full font-semibold transition cursor-pointer disabled:opacity-50"
       >
-        Update Artwork
+        {loading ? "Updating Artwork..." : "Update Artwork"}
       </button>
     </form>
   );

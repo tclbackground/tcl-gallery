@@ -4,7 +4,6 @@ import Link from "next/link";
 import { FiArrowLeft } from "react-icons/fi";
 import EditProductForm from "../EditProductForm";
 
-
 export default async function EditProductPage({
   params,
 }: {
