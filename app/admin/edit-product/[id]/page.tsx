@@ -45,7 +45,7 @@ export default async function EditProductPage({
         </div>
       </div>
 
-      {/* Interactive Form Component with Instant Live Preview */}
+      {/* Interactive Form Component */}
       <EditProductForm product={product} artists={artists} />
     </div>
   );
