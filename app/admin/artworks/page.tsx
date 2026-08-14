@@ -6,6 +6,10 @@ import { revalidatePath } from "next/cache";
 
 export const revalidate = 0;
 
+// Lightweight inline SVG fallback (prevents empty string warnings & 404 errors)
+const FALLBACK_IMAGE =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24' fill='none' stroke='%23C4A892' stroke-width='1.5'><rect x='3' y='3' width='18' height='18' rx='2'/><circle cx='8.5' cy='8.5' r='1.5'/><polyline points='21 15 16 10 5 21'/></svg>";
+
 async function deleteProduct(formData: FormData) {
   "use server";
   const id = formData.get("id") as string;
@@ -54,70 +58,81 @@ export default async function AdminArtworksPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E8E2D5]">
-              {products.map((product) => (
-                <tr key={product.id} className="hover:bg-[#FAF7F0]/40 transition">
-                  {/* Thumbnail & Title */}
-                  <td className="p-4 flex items-center gap-3">
-                    <div className="relative h-12 w-12 rounded-lg overflow-hidden bg-gray-100 border border-[#E8E2D5] shrink-0">
-                      <Image
-                        src={product.imageUrl ?? "/placeholder.png"}
-                        alt={product.title ?? "Artwork"}
-                        fill
-                        unoptimized
-                        className="object-cover"
-                      />
-                    </div>
-                    <span className="font-bold text-[#22211B]">
-                      {product.title ?? "Untitled"}
-                    </span>
-                  </td>
+              {products.map((product) => {
+                // Resolves primary image or first item from images array
+                const primaryImage =
+                  product.imageUrl ||
+                  (Array.isArray((product as any).images) && (product as any).images[0]) ||
+                  FALLBACK_IMAGE;
 
-                  {/* Category */}
-                  <td className="p-4 text-xs font-semibold uppercase text-gray-600">
-                    {product.category ?? "General"}
-                  </td>
+                return (
+                  <tr
+                    key={product.id}
+                    className="hover:bg-[#FAF7F0]/40 transition"
+                  >
+                    {/* Thumbnail & Title */}
+                    <td className="p-4 flex items-center gap-3">
+                      <div className="relative h-12 w-12 rounded-lg overflow-hidden bg-gray-100 border border-[#E8E2D5] shrink-0">
+                        <Image
+                          src={primaryImage}
+                          alt={product.title || "Artwork"}
+                          fill
+                          unoptimized
+                          className="object-cover"
+                        />
+                      </div>
+                      <span className="font-bold text-[#22211B]">
+                        {product.title || "Untitled"}
+                      </span>
+                    </td>
 
-                  {/* Price */}
-                  <td className="p-4 font-semibold text-[#4D3024]">
-                    ${(product.price ?? 0).toLocaleString()}
-                  </td>
+                    {/* Category */}
+                    <td className="p-4 text-xs font-semibold uppercase text-gray-600">
+                      {product.category || "General"}
+                    </td>
 
-                  {/* CRUD Actions */}
-                  <td className="p-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      {/* Read / View */}
-                      <Link
-                        href={`/shop/${product.id}`}
-                        className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition"
-                        title="View Product"
-                      >
-                        <FiEye size={16} />
-                      </Link>
+                    {/* Price */}
+                    <td className="p-4 font-semibold text-[#4D3024]">
+                      ${(product.price || 0).toLocaleString()}
+                    </td>
 
-                      {/* Update / Edit */}
-                      <Link
-                        href={`/admin/edit-product/${product.id}`}
-                        className="p-2 rounded-lg hover:bg-amber-50 text-amber-700 transition"
-                        title="Edit Artwork"
-                      >
-                        <FiEdit2 size={16} />
-                      </Link>
-
-                      {/* Delete */}
-                      <form action={deleteProduct} className="inline">
-                        <input type="hidden" name="id" value={product.id} />
-                        <button
-                          type="submit"
-                          className="p-2 rounded-lg hover:bg-rose-50 text-rose-600 transition"
-                          title="Delete Artwork"
+                    {/* CRUD Actions */}
+                    <td className="p-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {/* Read / View */}
+                        <Link
+                          href={`/shop/${product.id}`}
+                          className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition"
+                          title="View Product"
                         >
-                          <FiTrash2 size={16} />
-                        </button>
-                      </form>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                          <FiEye size={16} />
+                        </Link>
+
+                        {/* Update / Edit */}
+                        <Link
+                          href={`/admin/edit-product/${product.id}`}
+                          className="p-2 rounded-lg hover:bg-amber-50 text-amber-700 transition"
+                          title="Edit Artwork"
+                        >
+                          <FiEdit2 size={16} />
+                        </Link>
+
+                        {/* Delete */}
+                        <form action={deleteProduct} className="inline">
+                          <input type="hidden" name="id" value={product.id} />
+                          <button
+                            type="submit"
+                            className="p-2 rounded-lg hover:bg-rose-50 text-rose-600 transition cursor-pointer"
+                            title="Delete Artwork"
+                          >
+                            <FiTrash2 size={16} />
+                          </button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

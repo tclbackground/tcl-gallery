@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { FiArrowLeft } from "react-icons/fi";
-import EditProductForm from "../EditProductForm";
+import EditProductForm from "../EditProductForm"; // 👈 points to app/admin/edit-product/EditProductForm.tsx
 
 export default async function EditProductPage({
   params,
@@ -45,8 +45,8 @@ export default async function EditProductPage({
         </div>
       </div>
 
-      {/* Interactive Form Component */}
-      <EditProductForm product={product} artists={artists} />
+      {/* Interactive Form Component with Instant Live Preview */}
+      <EditProductForm product={product!} artists={artists} />
     </div>
   );
 }
