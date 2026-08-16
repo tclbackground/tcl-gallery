@@ -1,3 +1,4 @@
+// actions/admin.ts
 "use server";
 
 import { prisma } from "@/lib/prisma";
@@ -12,15 +13,16 @@ import { redirect } from "next/navigation";
 
 async function saveFile(file: File): Promise<string> {
   try {
-    const uploadDir = path.join(
-      process.cwd(),
-      "public",
-      "images",
-      "products"
-    );
+    if (!file || file.size === 0 || file.name === "undefined") {
+      return "";
+    }
+
+    const uploadDir = path.join(process.cwd(), "public", "images", "products");
     await mkdir(uploadDir, { recursive: true });
 
-    const fileName = `${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
+    // Clean file name to prevent illegal URL characters
+    const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+    const fileName = `${Date.now()}-${cleanName}`;
     const filePath = path.join(uploadDir, fileName);
 
     const bytes = await file.arrayBuffer();
@@ -42,13 +44,13 @@ async function resolveImageSlot(
   const file = formData.get(fileKey) as File | null;
   const urlInput = (formData.get(urlInputKey) as string)?.trim();
 
-  // 1. Prioritize newly uploaded file
-  if (file && file.size > 0 && file.name !== "undefined") {
+  // 1. Save uploaded file if valid
+  if (file && typeof file === "object" && file.size > 0 && file.name !== "undefined") {
     const savedPath = await saveFile(file);
     if (savedPath) return savedPath;
   }
 
-  // 2. Fall back to manual URL text input if provided
+  // 2. Direct URL fallback
   if (urlInput) {
     return urlInput;
   }
@@ -58,158 +60,7 @@ async function resolveImageSlot(
 }
 
 // ==========================================
-// ARTIST CRUD ACTIONS
-// ==========================================
-
-export async function uploadArtist(formData: FormData) {
-  let shouldRedirect = false;
-
-  try {
-    const name = formData.get("name") as string;
-    const specialty = formData.get("specialty") as string;
-    const bio = formData.get("bio") as string;
-    const image = formData.get("image") as File;
-    const imageUrlInput = formData.get("imageUrlInput") as string;
-
-    if (!name || !specialty) {
-      return {
-        success: false,
-        message: "Name and Specialty are required.",
-      };
-    }
-
-    let imageUrl: string | null = imageUrlInput || null;
-
-    if (image && image.size > 0 && image.name !== "undefined") {
-      const savedPath = await saveFile(image);
-      if (savedPath) imageUrl = savedPath;
-    }
-
-    await (prisma as any).artist.create({
-      data: {
-        name,
-        specialty,
-        bio: bio || null,
-        imageUrl,
-      },
-    });
-
-    revalidatePath("/admin");
-    revalidatePath("/admin/artists");
-    revalidatePath("/admin/artists/add");
-    revalidatePath("/artist");
-    shouldRedirect = true;
-  } catch (error) {
-    console.error("Artist Upload Error:", error);
-    return {
-      success: false,
-      message: "Failed to create artist.",
-    };
-  }
-
-  if (shouldRedirect) {
-    redirect("/admin/artists?created=true");
-  }
-}
-
-export async function updateArtist(formData: FormData) {
-  let shouldRedirect = false;
-
-  try {
-    const id = formData.get("id") as string;
-    const name = formData.get("name") as string;
-    const specialty = formData.get("specialty") as string;
-    const bio = formData.get("bio") as string;
-    const image = formData.get("image") as File;
-    const imageUrlInput = formData.get("imageUrlInput") as string;
-    const existingImageUrl = formData.get("existingImageUrl") as string;
-
-    if (!id || !name || !specialty) {
-      return {
-        success: false,
-        message: "ID, Name, and Specialty are required.",
-      };
-    }
-
-    let imageUrl = imageUrlInput || existingImageUrl || null;
-
-    if (image && image.size > 0 && image.name !== "undefined") {
-      const savedPath = await saveFile(image);
-      if (savedPath) imageUrl = savedPath;
-    }
-
-    await (prisma as any).artist.update({
-      where: { id },
-      data: {
-        name,
-        specialty,
-        bio: bio || null,
-        imageUrl,
-      },
-    });
-
-    revalidatePath("/admin");
-    revalidatePath("/admin/artists");
-    revalidatePath("/artist");
-    revalidatePath(`/artist/${id}`);
-    shouldRedirect = true;
-  } catch (error) {
-    console.error("Artist Update Error:", error);
-    return {
-      success: false,
-      message: "Failed to update artist.",
-    };
-  }
-
-  if (shouldRedirect) {
-    redirect("/admin/artists?updated=true");
-  }
-}
-
-export async function deleteArtist(formData: FormData) {
-  try {
-    const id = formData.get("id") as string;
-
-    if (!id) {
-      return {
-        success: false,
-        message: "Artist ID is required.",
-      };
-    }
-
-    await prisma.product.updateMany({
-      where: {
-        artistId: id,
-      } as any,
-      data: {
-        artistId: null,
-      } as any,
-    });
-
-    await (prisma as any).artist.delete({
-      where: { id },
-    });
-
-    revalidatePath("/admin");
-    revalidatePath("/admin/artists");
-    revalidatePath("/artist");
-    revalidatePath(`/artist/${id}`);
-
-    return {
-      success: true,
-      message: "Artist deleted successfully!",
-    };
-  } catch (error) {
-    console.error("Artist Delete Error:", error);
-    return {
-      success: false,
-      message: "Failed to delete artist.",
-    };
-  }
-}
-
-// ==========================================
-// PRODUCT CRUD ACTIONS (5 IMAGES SUPPORTED)
+// PRODUCT CRUD ACTIONS
 // ==========================================
 
 export async function uploadProduct(formData: FormData) {
@@ -263,6 +114,7 @@ export async function uploadProduct(formData: FormData) {
     });
 
     revalidatePath("/admin");
+    revalidatePath("/admin/artworks");
     revalidatePath("/");
     revalidatePath("/shop");
     revalidatePath(`/shop/${category}`);
@@ -276,7 +128,7 @@ export async function uploadProduct(formData: FormData) {
   }
 
   if (shouldRedirect) {
-    redirect("/admin?created=true");
+    redirect("/admin/artworks?created=true");
   }
 }
 
@@ -298,7 +150,7 @@ export async function updateProduct(formData: FormData) {
       };
     }
 
-    // Parse existing images passed from form
+    // Parse existing images
     const existingImageUrl = (formData.get("existingImageUrl") as string) || "";
     let existingAdditionalImages: string[] = [];
     try {
@@ -308,7 +160,7 @@ export async function updateProduct(formData: FormData) {
       existingAdditionalImages = [];
     }
 
-    // 1. Resolve Main Image (Index 0 / Slot 1)
+    // Resolve Main Image (Slot 1)
     const finalImageUrl = await resolveImageSlot(
       formData,
       "image",
@@ -316,7 +168,7 @@ export async function updateProduct(formData: FormData) {
       existingImageUrl
     );
 
-    // 2. Resolve Additional Images (Index 1-4 / Slots 2-5)
+    // Resolve Additional Images (Slots 2-5)
     const slotKeys = [
       { file: "image2", url: "imageUrlInput2", fallback: existingAdditionalImages[0] || "" },
       { file: "image3", url: "imageUrlInput3", fallback: existingAdditionalImages[1] || "" },
@@ -332,7 +184,6 @@ export async function updateProduct(formData: FormData) {
       }
     }
 
-    // 3. Update Database
     await (prisma as any).product.update({
       where: { id },
       data: {
@@ -347,6 +198,7 @@ export async function updateProduct(formData: FormData) {
     });
 
     revalidatePath("/admin");
+    revalidatePath("/admin/artworks");
     revalidatePath("/");
     revalidatePath("/shop");
     revalidatePath(`/shop/${category}`);
@@ -360,7 +212,7 @@ export async function updateProduct(formData: FormData) {
   }
 
   if (shouldRedirect) {
-    redirect("/admin?updated=true");
+    redirect("/admin/artworks?updated=true");
   }
 }
 
@@ -380,6 +232,7 @@ export async function deleteProduct(formData: FormData) {
     });
 
     revalidatePath("/admin");
+    revalidatePath("/admin/artworks");
     revalidatePath("/");
     revalidatePath("/shop");
 
