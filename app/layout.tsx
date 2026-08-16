@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import LayoutWrapper from "@/components/LayoutWrapper";
 import SessionProviderWrapper from "@/components/SessionProviderWrapper";
+import WhatsAppChat from "@/components/UI/WhatsAppChat";
 
 export const metadata: Metadata = {
   title: "TCL Gallery",
@@ -30,6 +31,7 @@ export default function RootLayout({
       <body className="min-h-screen flex flex-col bg-[#FBF9F0] text-[#22211B]">
         <SessionProviderWrapper>
           <LayoutWrapper>{children}</LayoutWrapper>
+          <WhatsAppChat />
         </SessionProviderWrapper>
       </body>
     </html>
