@@ -2,17 +2,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import path from "path";
+import { existsSync } from "fs";
 
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ filename: string }> }
 ) {
   const { filename } = await context.params;
-  const filePath = path.join(process.cwd(), "public", "images", "products", filename);
+  // Decode URL characters (handles %20, commas, parentheses)
+  const decodedFilename = decodeURIComponent(filename);
+  const filePath = path.join(process.cwd(), "public", "images", "products", decodedFilename);
+
+  if (!existsSync(filePath)) {
+    return new NextResponse("Image Not Found", { status: 404 });
+  }
 
   try {
     const fileBuffer = await readFile(filePath);
-    const ext = path.extname(filename).toLowerCase();
+    const ext = path.extname(decodedFilename).toLowerCase();
     const contentType =
       ext === ".png"
         ? "image/png"
@@ -28,7 +35,7 @@ export async function GET(
         "Cache-Control": "public, max-age=31536000, immutable",
       },
     });
-  } catch {
-    return new NextResponse("Image Not Found", { status: 404 });
+  } catch (error) {
+    return new NextResponse("Error reading file", { status: 500 });
   }
 }
