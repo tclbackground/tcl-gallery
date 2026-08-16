@@ -14,7 +14,6 @@ model Artist {
   products  Product[]
   createdAt DateTime? @default(now())
 }
-
 model Product {
   id          String    @id @default(auto()) @map("_id") @db.ObjectId
   slNo        Int?      @map("SL NO")
@@ -27,8 +26,13 @@ model Product {
   size        String?   @map("SIZE")
   price       Float?    @map("PRICE")
   imageUrl    String?   @map("Photo")
+
+  // Additional product images
+  images      Json?
+
   category    String?   @map("CATEGORY")
   description String?   @map("DESCRIPTION")
+
   createdAt   DateTime? @default(now()) @map("createdAt")
   updatedAt   DateTime? @updatedAt @map("updatedAt")
 

@@ -5,7 +5,7 @@ import ProductDetailsClient from "./ProductDetailsClient";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default async function SingleProductPage({
+export default async function ProductPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -25,11 +25,9 @@ export default async function SingleProductPage({
       include: {
         artist: true,
       },
-    }).catch(async () => {
-      return await prisma.product.findUnique({ where: { id } });
     });
   } catch (error) {
-    console.error("Failed to query single product:", error);
+    console.error("Database query failed:", error);
   }
 
   if (!product) {

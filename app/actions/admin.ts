@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 // ==========================================
-// FILE UPLOAD HELPER (Saves to public/images/products)
+// FILE UPLOAD & RESOLUTION HELPERS
 // ==========================================
 
 async function saveFile(file: File): Promise<string> {
@@ -31,6 +31,30 @@ async function saveFile(file: File): Promise<string> {
     console.error("Local file save error:", error);
     return "";
   }
+}
+
+async function resolveImageSlot(
+  formData: FormData,
+  fileKey: string,
+  urlInputKey: string,
+  fallbackValue: string = ""
+): Promise<string> {
+  const file = formData.get(fileKey) as File | null;
+  const urlInput = (formData.get(urlInputKey) as string)?.trim();
+
+  // 1. Prioritize newly uploaded file
+  if (file && file.size > 0 && file.name !== "undefined") {
+    const savedPath = await saveFile(file);
+    if (savedPath) return savedPath;
+  }
+
+  // 2. Fall back to manual URL text input if provided
+  if (urlInput) {
+    return urlInput;
+  }
+
+  // 3. Keep existing image
+  return fallbackValue;
 }
 
 // ==========================================
@@ -185,7 +209,7 @@ export async function deleteArtist(formData: FormData) {
 }
 
 // ==========================================
-// PRODUCT CRUD ACTIONS
+// PRODUCT CRUD ACTIONS (5 IMAGES SUPPORTED)
 // ==========================================
 
 export async function uploadProduct(formData: FormData) {
@@ -197,8 +221,6 @@ export async function uploadProduct(formData: FormData) {
     const category = formData.get("category") as string;
     const description = formData.get("description") as string;
     const artistId = formData.get("artistId") as string;
-    const image = formData.get("image") as File;
-    const imageUrlInput = formData.get("imageUrlInput") as string;
 
     if (!title || !priceStr || !category) {
       return {
@@ -207,20 +229,35 @@ export async function uploadProduct(formData: FormData) {
       };
     }
 
-    let imageUrl = imageUrlInput || "/images/products/artwork-1.jpg";
+    // Main Image (Slot 1)
+    const finalImageUrl =
+      (await resolveImageSlot(formData, "image", "imageUrlInput")) ||
+      "/images/products/artwork-1.jpg";
 
-    if (image && image.size > 0 && image.name !== "undefined") {
-      const savedPath = await saveFile(image);
-      if (savedPath) imageUrl = savedPath;
+    // Additional Images (Slots 2-5)
+    const slotKeys = [
+      { file: "image2", url: "imageUrlInput2" },
+      { file: "image3", url: "imageUrlInput3" },
+      { file: "image4", url: "imageUrlInput4" },
+      { file: "image5", url: "imageUrlInput5" },
+    ];
+
+    const finalAdditionalImages: string[] = [];
+    for (const slot of slotKeys) {
+      const resolved = await resolveImageSlot(formData, slot.file, slot.url);
+      if (resolved) {
+        finalAdditionalImages.push(resolved);
+      }
     }
 
-    await prisma.product.create({
+    await (prisma as any).product.create({
       data: {
         title,
         price: parseFloat(priceStr),
         category,
         description: description || null,
-        imageUrl,
+        imageUrl: finalImageUrl,
+        images: finalAdditionalImages,
         artistId: artistId ? artistId : null,
       },
     });
@@ -254,11 +291,6 @@ export async function updateProduct(formData: FormData) {
     const description = formData.get("description") as string;
     const artistId = formData.get("artistId") as string;
 
-    // 1. EXTRACT IMAGE INPUTS FIRST
-    const imageUrlInput = formData.get("imageUrlInput") as string;
-    const existingImageUrl = formData.get("existingImageUrl") as string;
-    const imageFile = formData.get("image") as File | null;
-
     if (!id || !title || !priceStr || !category) {
       return {
         success: false,
@@ -266,18 +298,42 @@ export async function updateProduct(formData: FormData) {
       };
     }
 
-    // 2. RESOLVE FINAL IMAGE URL PRIORITY
-    let finalImageUrl = existingImageUrl || "";
-
-    if (imageFile && imageFile.size > 0 && imageFile.name !== "undefined") {
-      const savedPath = await saveFile(imageFile);
-      if (savedPath) finalImageUrl = savedPath;
-    } else if (imageUrlInput && imageUrlInput.trim() !== "") {
-      finalImageUrl = imageUrlInput.trim();
+    // Parse existing images passed from form
+    const existingImageUrl = (formData.get("existingImageUrl") as string) || "";
+    let existingAdditionalImages: string[] = [];
+    try {
+      const raw = formData.get("existingImages") as string;
+      if (raw) existingAdditionalImages = JSON.parse(raw);
+    } catch {
+      existingAdditionalImages = [];
     }
 
-    // 3. UPDATE DATABASE
-    await prisma.product.update({
+    // 1. Resolve Main Image (Index 0 / Slot 1)
+    const finalImageUrl = await resolveImageSlot(
+      formData,
+      "image",
+      "imageUrlInput",
+      existingImageUrl
+    );
+
+    // 2. Resolve Additional Images (Index 1-4 / Slots 2-5)
+    const slotKeys = [
+      { file: "image2", url: "imageUrlInput2", fallback: existingAdditionalImages[0] || "" },
+      { file: "image3", url: "imageUrlInput3", fallback: existingAdditionalImages[1] || "" },
+      { file: "image4", url: "imageUrlInput4", fallback: existingAdditionalImages[2] || "" },
+      { file: "image5", url: "imageUrlInput5", fallback: existingAdditionalImages[3] || "" },
+    ];
+
+    const finalAdditionalImages: string[] = [];
+    for (const slot of slotKeys) {
+      const resolved = await resolveImageSlot(formData, slot.file, slot.url, slot.fallback);
+      if (resolved) {
+        finalAdditionalImages.push(resolved);
+      }
+    }
+
+    // 3. Update Database
+    await (prisma as any).product.update({
       where: { id },
       data: {
         title,
@@ -285,11 +341,11 @@ export async function updateProduct(formData: FormData) {
         category,
         description: description || null,
         imageUrl: finalImageUrl,
+        images: finalAdditionalImages,
         artistId: artistId ? artistId : null,
       },
     });
 
-    // 4. REVALIDATE PATHS
     revalidatePath("/admin");
     revalidatePath("/");
     revalidatePath("/shop");
@@ -303,7 +359,6 @@ export async function updateProduct(formData: FormData) {
     };
   }
 
-  // 5. REDIRECT WITH SUCCESS QUERY PARAM
   if (shouldRedirect) {
     redirect("/admin?updated=true");
   }

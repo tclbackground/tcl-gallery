@@ -2,248 +2,237 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import {
-  FiHeart,
-  FiShare2,
-  FiMinus,
-  FiPlus,
-  FiChevronDown,
-  FiChevronUp,
-  FiCheck,
-  FiTruck,
-  FiPackage,
-  FiClock,
-  FiFileText,
-  FiSliders,
-} from "react-icons/fi";
-import { AiFillStar } from "react-icons/ai";
+import { ChevronLeft, ChevronRight, Star, Heart, Eye } from "lucide-react";
 
 interface ProductDetailsClientProps {
   product: any;
 }
 
-const FALLBACK_IMAGE =
-  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24' fill='none' stroke='%23C4A892' stroke-width='1.5'><rect x='3' y='3' width='18' height='18' rx='2'/><circle cx='8.5' cy='8.5' r='1.5'/><polyline points='21 15 16 10 5 21'/></svg>";
+const FALLBACK_IMAGE = "/images/products/artwork-1.jpg";
 
-const SIZES = [
-  { label: "12x16", multiplier: 1.0 },
-  { label: "18x24", multiplier: 1.4 },
-  { label: "24x32", multiplier: 1.8 },
-  { label: "30x40", multiplier: 2.3 },
-  { label: "36x48", multiplier: 2.9 },
-  { label: "42x56", multiplier: 3.5 },
-];
+export default function ProductDetailsClient({
+  product,
+}: ProductDetailsClientProps) {
+  // 1. Safely extract all 5 images
+  const additionalImages: string[] = Array.isArray(product?.images)
+    ? product.images
+    : typeof product?.images === "string"
+    ? JSON.parse(product.images)
+    : [];
 
-const FRAMES = [
-  "Print Only",
-  "Stretched Canvas",
-  "Dark Brown Frame",
-  "Light Brown Frame",
-  "Black Frame",
-  "Floating Frame",
-  "Italian Wood - Natural",
-  "Italian Wood - Dark",
-  "Metal - Champagne Gold",
-  "Metal - Sterling Silver",
-  "Mahogany Finish",
-  "Dark Walnut Finish",
-  "Metal - Carbon Black",
-];
+  const allImages: string[] = [
+    product?.imageUrl,
+    ...additionalImages,
+  ].filter(Boolean);
 
-export default function ProductDetailsClient({ product }: ProductDetailsClientProps) {
-  // Collect images array (up to 5+ images)
-  const images: string[] =
-    Array.isArray(product.images) && product.images.length > 0
-      ? product.images
-      : product.imageUrl
-      ? [product.imageUrl]
-      : [FALLBACK_IMAGE];
+  const imagesList = allImages.length > 0 ? allImages : [FALLBACK_IMAGE];
 
-  const [activeImage, setActiveImage] = useState<string>(images[0] || FALLBACK_IMAGE);
+  // 2. Active image & selected state
+  const [selectedIndex, setSelectedIndex] = useState<number>(0);
+  const [quantity, setQuantity] = useState<number>(1);
   const [selectedSize, setSelectedSize] = useState<string>("12x16");
   const [selectedMedium, setSelectedMedium] = useState<string>("Museum Grade Canvas");
   const [selectedFrame, setSelectedFrame] = useState<string>("Print Only");
-  const [quantity, setQuantity] = useState<number>(1);
-  const [isWishlisted, setIsWishlisted] = useState<boolean>(false);
 
-  // Accordion open/close states
-  const [highlightsOpen, setHighlightsOpen] = useState<boolean>(false);
-  const [customisationOpen, setCustomisationOpen] = useState<boolean>(false);
+  const activeImage = imagesList[selectedIndex] || FALLBACK_IMAGE;
 
-  // Base and Computed Pricing
-  const basePrice = Number(product.price) || 2399;
-  const sizeMultiplier = SIZES.find((s) => s.label === selectedSize)?.multiplier || 1;
-  const currentPrice = Math.round(basePrice * sizeMultiplier);
-  const originalPrice = Math.round(currentPrice * 1.2);
+  const handlePrev = () => {
+    setSelectedIndex((prev) => (prev === 0 ? imagesList.length - 1 : prev - 1));
+  };
 
-  const title = product.title || "Royal Peacocks - Limited Edition";
-  const mediumDescription =
-    product.medium || "Archival Pigment on Museum Grade Canvas via Giclee Printing";
+  const handleNext = () => {
+    setSelectedIndex((prev) => (prev === imagesList.length - 1 ? 0 : prev + 1));
+  };
 
   return (
-    <div className="min-h-screen bg-[#FBF9F0] text-[#22211B] py-8">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        
-        {/* Breadcrumb Navigation */}
-        <nav className="text-[11px] font-semibold tracking-wider text-gray-500 uppercase mb-8 flex items-center gap-2 flex-wrap">
-          <Link href="/" className="hover:text-[#4D3024] transition">HOME</Link>
-          <span>›</span>
-          <Link href="/shop" className="hover:text-[#4D3024] transition">ART COLLECTIONS</Link>
-          <span>›</span>
-          <Link href={`/shop/${product.category || "fine-art"}`} className="hover:text-[#4D3024] transition">
-            {product.category || "LIMITED EDITION"}
-          </Link>
-          <span>›</span>
-          <span className="text-[#22211B] font-bold">{title}</span>
-        </nav>
-
-        {/* 2-Column Product Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
+    <div className="min-h-screen bg-[#FAF8F5] px-4 py-10 md:px-12 lg:px-20">
+      <div className="mx-auto max-w-7xl">
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
           
-          {/* ================= LEFT: GALLERY ================= */}
-          <div className="lg:col-span-6 space-y-4">
-            {/* Main Stage Image */}
-            <div className="relative aspect-4/5 w-full rounded-2xl overflow-hidden bg-[#EAE6DF] border border-[#E0D8C8] shadow-sm flex items-center justify-center">
+          {/* ========================================== */}
+          {/* LEFT: 5-IMAGE GALLERY SECTION              */}
+          {/* ========================================== */}
+          <div className="lg:col-span-6 flex flex-col items-center">
+            {/* Main Stage Display */}
+            <div className="relative aspect-[4/5] w-full max-w-[500px] overflow-hidden rounded-2xl border border-[#C4A892]/30 bg-[#ECE9E2] shadow-sm">
               <Image
                 src={activeImage}
-                alt={title}
+                alt={product?.title || "Artwork Image"}
                 fill
                 priority
                 unoptimized
                 className="object-contain p-4 transition-all duration-300"
               />
 
-              {/* Wishlist Button */}
+              {/* Action Buttons */}
+              <div className="absolute right-4 top-4 flex flex-col gap-2">
+                <button
+                  type="button"
+                  aria-label="Save to favorites"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm transition hover:bg-white"
+                >
+                  <Heart className="h-4 w-4 text-gray-700" />
+                </button>
+              </div>
+
+              {/* VR Badge */}
+              <div className="absolute bottom-4 left-4">
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 rounded-full border border-gray-300 bg-white/90 px-3 py-1.5 text-xs font-semibold text-gray-800 shadow-sm backdrop-blur transition hover:bg-white"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  View VR Effect
+                </button>
+              </div>
+            </div>
+
+            {/* Thumbnail Strip with Navigation Arrows */}
+            <div className="mt-6 flex w-full max-w-[500px] items-center justify-between gap-2">
               <button
                 type="button"
-                onClick={() => setIsWishlisted(!isWishlisted)}
-                className={`absolute top-4 right-4 p-2.5 rounded-full backdrop-blur-md shadow-md transition cursor-pointer ${
-                  isWishlisted
-                    ? "bg-red-500 text-white"
-                    : "bg-white/80 text-[#22211B] hover:bg-white"
-                }`}
-                aria-label="Wishlist"
+                onClick={handlePrev}
+                disabled={imagesList.length <= 1}
+                aria-label="Previous image"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-[#C4A892]/40 bg-white text-gray-700 transition hover:bg-gray-50 disabled:opacity-30"
               >
-                <FiHeart size={18} fill={isWishlisted ? "currentColor" : "none"} />
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+
+              <div className="flex items-center gap-3 overflow-x-auto py-1">
+                {imagesList.map((img, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setSelectedIndex(idx)}
+                    className={`relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl border-2 bg-white transition ${
+                      selectedIndex === idx
+                        ? "border-[#4D3024] ring-2 ring-[#4D3024]/20"
+                        : "border-gray-200 opacity-60 hover:opacity-100"
+                    }`}
+                  >
+                    <Image
+                      src={img}
+                      alt={`Thumbnail ${idx + 1}`}
+                      fill
+                      unoptimized
+                      className="object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={handleNext}
+                disabled={imagesList.length <= 1}
+                aria-label="Next image"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-[#C4A892]/40 bg-white text-gray-700 transition hover:bg-gray-50 disabled:opacity-30"
+              >
+                <ChevronRight className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Thumbnail Carousel Row */}
-            <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none">
-              {images.map((imgSrc, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => setActiveImage(imgSrc)}
-                  className={`relative h-20 w-20 rounded-xl overflow-hidden shrink-0 border-2 transition cursor-pointer bg-white ${
-                    activeImage === imgSrc
-                      ? "border-[#22211B] scale-95 shadow"
-                      : "border-[#E0D8C8] opacity-70 hover:opacity-100"
-                  }`}
-                >
-                  <Image
-                    src={imgSrc}
-                    alt={`Thumbnail ${index + 1}`}
-                    fill
-                    unoptimized
-                    className="object-cover"
-                  />
-                </button>
-              ))}
-            </div>
+            {/* Pagination Indicator */}
+            <p className="mt-2 text-xs font-medium text-gray-500">
+              {selectedIndex + 1} / {imagesList.length}
+            </p>
           </div>
 
-          {/* ================= RIGHT: BUY BOX & CONFIGURATOR ================= */}
+          {/* ========================================== */}
+          {/* RIGHT: PRODUCT DETAILS & PURCHASE OPTIONS  */}
+          {/* ========================================== */}
           <div className="lg:col-span-6 space-y-6">
-            
-            {/* Title & Reviews */}
             <div>
-              <h1 className="font-serif text-3xl sm:text-4xl font-bold text-[#22211B] leading-tight">
-                {title}
+              <h1 className="font-serif text-3xl md:text-4xl text-[#22211B]">
+                {product?.title || "Untitled Artwork"}
               </h1>
-              <p className="text-xs text-gray-600 mt-1 font-medium">
-                {mediumDescription}
+              <p className="mt-1 text-xs uppercase tracking-wide text-gray-500">
+                {product?.category || "Fine Art"} • {product?.medium || "Digital on Archival Canvas"}
               </p>
 
-              {/* Star Rating */}
-              <div className="flex items-center gap-1.5 mt-2.5 text-xs">
+              {product?.artist && (
+                <p className="mt-2 text-sm text-[#4D3024]">
+                  By <span className="font-semibold">{product.artist.name}</span>
+                </p>
+              )}
+
+              <div className="mt-3 flex items-center gap-2">
                 <div className="flex text-amber-500">
                   {[...Array(5)].map((_, i) => (
-                    <AiFillStar key={i} size={15} />
+                    <Star key={i} className="h-4 w-4 fill-current" />
                   ))}
                 </div>
-                <span className="font-bold text-[#22211B]">5.0</span>
-                <span className="text-gray-500 underline cursor-pointer">503 reviews</span>
+                <span className="text-xs font-semibold text-gray-700">5.0</span>
+                <span className="text-xs text-gray-400">• 503 reviews</span>
               </div>
             </div>
 
-            {/* Quantity & Stock Level */}
+            {/* Quantity */}
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider mb-2">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-gray-600 block mb-2">
                 Quantity
               </label>
               <div className="flex items-center gap-4">
-                <div className="flex items-center border border-[#C4A892]/40 rounded-lg bg-white overflow-hidden shadow-2xs">
+                <div className="flex items-center rounded-xl border border-gray-300 bg-white px-3 py-1.5">
                   <button
                     type="button"
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    className="px-3 py-2 text-gray-600 hover:bg-gray-100 transition"
+                    className="px-2 font-bold text-gray-600 hover:text-black"
                   >
-                    <FiMinus size={14} />
+                    -
                   </button>
-                  <span className="px-4 font-semibold text-sm">{quantity}</span>
+                  <span className="px-4 text-sm font-semibold">{quantity}</span>
                   <button
                     type="button"
                     onClick={() => setQuantity((q) => q + 1)}
-                    className="px-3 py-2 text-gray-600 hover:bg-gray-100 transition"
+                    className="px-2 font-bold text-gray-600 hover:text-black"
                   >
-                    <FiPlus size={14} />
+                    +
                   </button>
                 </div>
-                <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-semibold">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  Only 19 in stock
-                </div>
+                <span className="text-xs font-semibold text-emerald-700">
+                  • Only 19 in stock
+                </span>
               </div>
             </div>
 
-            {/* Pricing Section */}
-            <div className="flex items-baseline gap-3 pt-2">
-              <span className="text-2xl sm:text-3xl font-serif font-bold text-[#22211B]">
-                Rs. {(currentPrice * quantity).toLocaleString()}
+            {/* Price */}
+            <div className="flex items-baseline gap-3">
+              <span className="font-serif text-3xl font-bold text-[#22211B]">
+                Rs. {((product?.price || 0) * quantity).toLocaleString()}
               </span>
-              <span className="text-base text-gray-400 line-through">
-                Rs. {(originalPrice * quantity).toLocaleString()}
+              <span className="text-sm text-gray-400 line-through">
+                Rs. {Math.round((product?.price || 0) * 1.2 * quantity).toLocaleString()}
               </span>
             </div>
 
-            {/* Size Selector */}
+            {/* Size Options */}
             <div>
-              <div className="flex justify-between text-xs font-bold uppercase tracking-wider mb-2">
-                <span>Size (in inches)</span>
-              </div>
+              <label className="text-[11px] font-bold uppercase tracking-wider text-gray-600 block mb-2">
+                Size (In Inches)
+              </label>
               <div className="flex flex-wrap gap-2">
-                {SIZES.map((size) => (
+                {["12x16", "18x24", "24x32", "30x40", "36x48", "42x56"].map((sz) => (
                   <button
-                    key={size.label}
+                    key={sz}
                     type="button"
-                    onClick={() => setSelectedSize(size.label)}
-                    className={`px-4 py-2 rounded-lg text-xs font-semibold border transition cursor-pointer ${
-                      selectedSize === size.label
-                        ? "bg-[#22211B] text-white border-[#22211B] shadow-sm"
-                        : "bg-white text-[#22211B] border-[#C4A892]/40 hover:border-[#22211B]"
+                    onClick={() => setSelectedSize(sz)}
+                    className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+                      selectedSize === sz
+                        ? "bg-[#22211B] text-white"
+                        : "border border-gray-300 bg-white text-gray-700 hover:border-black"
                     }`}
                   >
-                    {size.label}
+                    {sz}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Medium Selector */}
+            {/* Medium Options */}
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider mb-2">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-gray-600 block mb-2">
                 Medium
               </label>
               <div className="flex flex-wrap gap-2">
@@ -252,10 +241,10 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
                     key={med}
                     type="button"
                     onClick={() => setSelectedMedium(med)}
-                    className={`px-4 py-2 rounded-lg text-xs font-semibold border transition cursor-pointer ${
+                    className={`rounded-lg px-4 py-2 text-xs font-semibold transition ${
                       selectedMedium === med
-                        ? "bg-[#22211B] text-white border-[#22211B]"
-                        : "bg-white text-[#22211B] border-[#C4A892]/40 hover:border-[#22211B]"
+                        ? "bg-[#22211B] text-white"
+                        : "border border-gray-300 bg-white text-gray-700 hover:border-black"
                     }`}
                   >
                     {med}
@@ -266,19 +255,33 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
 
             {/* Framing Options */}
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider mb-2">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-gray-600 block mb-2">
                 Framing
               </label>
               <div className="flex flex-wrap gap-2">
-                {FRAMES.map((frame) => (
+                {[
+                  "Print Only",
+                  "Stretched Canvas",
+                  "Dark Brown Frame",
+                  "Light Brown Frame",
+                  "Black Frame",
+                  "Floating Frame",
+                  "Italian Wood - Natural",
+                  "Italian Wood - Dark",
+                  "Metal - Champagne Gold",
+                  "Metal - Sterling Silver",
+                  "Mahogany Finish",
+                  "Dark Walnut Finish",
+                  "Metal - Carbon Black",
+                ].map((frame) => (
                   <button
                     key={frame}
                     type="button"
                     onClick={() => setSelectedFrame(frame)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition cursor-pointer ${
+                    className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
                       selectedFrame === frame
-                        ? "bg-[#22211B] text-white border-[#22211B] shadow-xs"
-                        : "bg-white text-[#22211B] border-[#C4A892]/40 hover:border-[#22211B]"
+                        ? "bg-[#22211B] text-white font-semibold"
+                        : "border border-gray-300 bg-white text-gray-700 hover:border-black"
                     }`}
                   >
                     {frame}
@@ -287,113 +290,38 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
               </div>
             </div>
 
-            {/* Promo Banner */}
-            <div className="p-3 bg-[#EAE3D2]/50 border border-[#C4A892]/30 rounded-xl text-center">
-              <p className="text-[11px] font-bold tracking-wider text-[#4D3024] uppercase">
-                FLAT 10% OFF ON ORDERS ABOVE ₹10,000 — USE CODE: <span className="underline">FLAT10</span>
-              </p>
+            {/* Discount Banner */}
+            <div className="rounded-xl border border-[#C4A892]/40 bg-[#F3F0E8] p-3 text-center text-xs font-semibold text-[#4D3024]">
+              FLAT 10% OFF ON ORDERS ABOVE ₹10,000 — USE CODE: <span className="font-bold">FLAT10</span>
             </div>
 
-            {/* Action Buttons */}
+            {/* Purchase CTA */}
             <div className="space-y-3 pt-2">
               <button
                 type="button"
-                className="w-full bg-white hover:bg-[#FAF7F0] border-2 border-[#22211B] text-[#22211B] py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest transition cursor-pointer shadow-xs"
+                className="w-full rounded-xl border-2 border-[#22211B] bg-white py-3.5 text-sm font-bold text-[#22211B] transition hover:bg-gray-50"
               >
-                Add to cart
+                ADD TO CART
               </button>
               <button
                 type="button"
-                className="w-full bg-[#22211B] hover:bg-[#4D3024] text-white py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest transition cursor-pointer shadow-md"
+                className="w-full rounded-xl bg-[#22211B] py-3.5 text-sm font-bold text-white transition hover:bg-[#4D3024]"
               >
-                Buy it now
+                BUY IT NOW
               </button>
             </div>
 
-            {/* Delivery Timeline Tracker */}
-            <div className="border border-[#C4A892]/30 bg-white rounded-2xl p-5 space-y-3">
-              <div className="flex items-center justify-between text-center relative">
-                {/* Connector Line */}
-                <div className="absolute top-4 left-8 right-8 h-[2px] bg-[#E0D8C8] -z-0"></div>
-
-                <div className="flex flex-col items-center relative z-10 space-y-1">
-                  <div className="h-8 w-8 rounded-full bg-[#22211B] text-white flex items-center justify-center">
-                    <FiPackage size={14} />
-                  </div>
-                  <span className="text-[11px] font-bold text-[#22211B]">Aug 14th</span>
-                  <span className="text-[10px] text-gray-500">Ordered</span>
-                </div>
-
-                <div className="flex flex-col items-center relative z-10 space-y-1">
-                  <div className="h-8 w-8 rounded-full bg-[#EAE3D2] text-[#4D3024] flex items-center justify-center border border-[#C4A892]/40">
-                    <FiTruck size={14} />
-                  </div>
-                  <span className="text-[11px] font-bold text-[#22211B]">Aug 15th - Aug 17th</span>
-                  <span className="text-[10px] text-gray-500">Shipped</span>
-                </div>
-
-                <div className="flex flex-col items-center relative z-10 space-y-1">
-                  <div className="h-8 w-8 rounded-full bg-[#EAE3D2] text-[#4D3024] flex items-center justify-center border border-[#C4A892]/40">
-                    <FiClock size={14} />
-                  </div>
-                  <span className="text-[11px] font-bold text-[#22211B]">Aug 19th - Aug 25th</span>
-                  <span className="text-[10px] text-gray-500">Delivery*</span>
-                </div>
+            {/* Description */}
+            {product?.description && (
+              <div className="border-t border-gray-200 pt-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                  Product Highlights
+                </h3>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {product.description}
+                </p>
               </div>
-            </div>
-
-            {/* Description Narrative */}
-            {product.description && (
-              <p className="text-xs sm:text-sm text-gray-700 leading-relaxed pt-2">
-                {product.description}
-              </p>
             )}
-
-            {/* Accordions */}
-            <div className="divide-y divide-[#C4A892]/30 border-y border-[#C4A892]/30">
-              {/* Product Highlights */}
-              <div className="py-4">
-                <button
-                  type="button"
-                  onClick={() => setHighlightsOpen(!highlightsOpen)}
-                  className="w-full flex items-center justify-between font-bold text-xs uppercase tracking-wider text-[#22211B] text-left cursor-pointer"
-                >
-                  <span className="flex items-center gap-2">
-                    <FiFileText className="text-[#4D3024]" /> Product Highlights
-                  </span>
-                  {highlightsOpen ? <FiChevronUp /> : <FiChevronDown />}
-                </button>
-                {highlightsOpen && (
-                  <div className="mt-3 text-xs text-gray-600 space-y-1.5 pl-6">
-                    <p>• Museum-grade canvas printed using 12-colour archival pigment inks.</p>
-                    <p>• UV-resistant coat protects from fading for 100+ years.</p>
-                    <p>• Handcrafted frames assembled by master guild framers.</p>
-                    <p>• Arrives ready to hang with gallery hardware pre-installed.</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Customisations */}
-              <div className="py-4">
-                <button
-                  type="button"
-                  onClick={() => setCustomisationOpen(!customisationOpen)}
-                  className="w-full flex items-center justify-between font-bold text-xs uppercase tracking-wider text-[#22211B] text-left cursor-pointer"
-                >
-                  <span className="flex items-center gap-2">
-                    <FiSliders className="text-[#4D3024]" /> Customisations
-                  </span>
-                  {customisationOpen ? <FiChevronUp /> : <FiChevronDown />}
-                </button>
-                {customisationOpen && (
-                  <div className="mt-3 text-xs text-gray-600 space-y-1.5 pl-6">
-                    <p>• Custom sizing available on request up to 72 inches width.</p>
-                    <p>• Personalized plaque engraving available at checkout.</p>
-                    <p>• Contact our curators for custom framing mouldings.</p>
-                  </div>
-                )}
-              </div>
-            </div>
 
           </div>
 

@@ -11,6 +11,10 @@ import {
   FiArrowRight,
 } from "react-icons/fi";
 
+// ======================================================
+// PRODUCT INTERFACE
+// ======================================================
+
 interface Product {
   id: string;
   title?: string | null;
@@ -21,7 +25,8 @@ interface Product {
   price?: number | null;
   imageUrl?: string | null;
   referenceNo?: string | null;
-  // Raw mapped keys fallback from Compass/CSV
+
+  // Raw mapped keys fallback from Compass / CSV
   TITLE?: string | null;
   ARTIST?: string | null;
   CATEGORY?: string | null;
@@ -34,6 +39,10 @@ interface Product {
   "REFERENCE NO"?: string | null;
 }
 
+// ======================================================
+// CATEGORIES
+// ======================================================
+
 const categories = [
   "All Artworks",
   "Photography",
@@ -43,6 +52,10 @@ const categories = [
   "Digital Art",
 ];
 
+// ======================================================
+// SORT OPTIONS
+// ======================================================
+
 const sortOptions = [
   "Featured",
   "Price: Low to High",
@@ -50,20 +63,35 @@ const sortOptions = [
   "Newest Arrivals",
 ];
 
+// ======================================================
+// SHOP PAGE
+// ======================================================
+
 export default function ShopPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState("All Artworks");
+
+  const [selectedCategory, setSelectedCategory] =
+    useState("All Artworks");
+
   const [searchQuery, setSearchQuery] = useState("");
+
   const [sortBy, setSortBy] = useState("Featured");
 
-  // Fetch live products from API
+  // ====================================================
+  // FETCH PRODUCTS FROM API
+  // ====================================================
+
   useEffect(() => {
     async function fetchProducts() {
       try {
-        const res = await fetch("/api/products", { cache: "no-store" });
+        const res = await fetch("/api/products", {
+          cache: "no-store",
+        });
+
         if (res.ok) {
           const data = await res.json();
+
           setProducts(data);
         }
       } catch (err) {
@@ -72,10 +100,14 @@ export default function ShopPage() {
         setLoading(false);
       }
     }
+
     fetchProducts();
   }, []);
 
-  // Filter & Sort Logic with lenient fallbacks
+  // ====================================================
+  // FILTER & SORT PRODUCTS
+  // ====================================================
+
   const filteredProducts = products
     .filter((item) => {
       const title = item.title || item.TITLE || "";
@@ -83,87 +115,231 @@ export default function ShopPage() {
       const category = item.category || item.CATEGORY || "";
       const medium = item.medium || item.MEDIUM || "";
 
-      // Allow "All Artworks" or empty categories to display, or match category substring flexible check
+      // -----------------------------------------------
+      // CATEGORY FILTER
+      // -----------------------------------------------
+
       const matchesCategory =
         selectedCategory === "All Artworks" ||
         category === "" ||
-        category.toLowerCase().includes(selectedCategory.toLowerCase()) ||
-        medium.toLowerCase().includes(selectedCategory.toLowerCase());
+        category
+          .toLowerCase()
+          .includes(selectedCategory.toLowerCase()) ||
+        medium
+          .toLowerCase()
+          .includes(selectedCategory.toLowerCase());
+
+      // -----------------------------------------------
+      // SEARCH FILTER
+      // -----------------------------------------------
 
       const matchesSearch =
-        title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        medium.toLowerCase().includes(searchQuery.toLowerCase());
+        title
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        artist
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        medium
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase());
 
       return matchesCategory && matchesSearch;
     })
     .sort((a, b) => {
       const priceA = a.price || a.PRICE || 0;
       const priceB = b.price || b.PRICE || 0;
-      if (sortBy === "Price: Low to High") return priceA - priceB;
-      if (sortBy === "Price: High to Low") return priceB - priceA;
+
+      if (sortBy === "Price: Low to High") {
+        return priceA - priceB;
+      }
+
+      if (sortBy === "Price: High to Low") {
+        return priceB - priceA;
+      }
+
       return 0;
     });
 
+  // ====================================================
+  // RENDER
+  // ====================================================
+
   return (
     <main className="min-h-screen bg-[#FDFBF7] text-[#22211B]">
-      {/* ================= HERO HEADER ================= */}
-      <section className="bg-[#FAF8F5] py-16 lg:py-20 border-b border-[#EAE3D2]">
-        <div className="mx-auto max-w-4xl px-4 text-center space-y-3">
+
+      {/* ==================================================
+          HERO HEADER
+      ================================================== */}
+
+      <section className="border-b border-[#EAE3D2] bg-[#FAF8F5] py-16 lg:py-20">
+        <div className="mx-auto max-w-4xl space-y-3 px-4 text-center">
+
           <span className="text-xs font-bold uppercase tracking-widest text-[#7B8F50]">
             TCL Fine Art & Fine-Art Photography
           </span>
-          <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-normal text-[#22211B]">
+
+          <h1 className="font-serif text-4xl font-normal text-[#22211B] sm:text-5xl lg:text-6xl">
             The Gallery Shop
           </h1>
-          <p className="text-base sm:text-lg text-[#55534E] font-light leading-relaxed max-w-2xl mx-auto">
-            Acquire fine-art photography, museum-grade archival framed prints, original oil paintings, and curated sculptures.
+
+          <p className="mx-auto max-w-2xl text-base font-light leading-relaxed text-[#55534E] sm:text-lg">
+            Acquire fine-art photography, museum-grade archival framed
+            prints, original oil paintings, and curated sculptures.
           </p>
+
         </div>
       </section>
 
-      {/* ================= FILTER & SEARCH TOOLBAR ================= */}
-      <section className="bg-white border-b border-[#EAE3D2] py-4 shadow-sm">
-        <div className="mx-auto max-w-[1700px] px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row items-center justify-between gap-4">
-          
-          {/* Category Filter Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto w-full lg:w-auto pb-2 lg:pb-0 scrollbar-none">
+      {/* ==================================================
+          FILTER & SEARCH TOOLBAR
+      ================================================== */}
+
+      <section className="border-b border-[#EAE3D2] bg-white py-4 shadow-sm">
+
+        <div
+          className="
+            mx-auto
+            flex
+            max-w-[1700px]
+            flex-col
+            items-center
+            justify-between
+            gap-4
+            px-4
+            sm:px-6
+            lg:flex-row
+            lg:px-8
+          "
+        >
+
+          {/* ==================================================
+              CATEGORY FILTER
+          ================================================== */}
+
+          <div
+            className="
+              scrollbar-none
+              flex
+              w-full
+              items-center
+              gap-2
+              overflow-x-auto
+              pb-2
+              lg:w-auto
+              lg:pb-0
+            "
+          >
+
             {categories.map((cat) => (
               <button
                 key={cat}
+                type="button"
                 onClick={() => setSelectedCategory(cat)}
-                className={`whitespace-nowrap rounded-full px-5 py-2 text-xs font-semibold transition cursor-pointer ${
-                  selectedCategory === cat
-                    ? "bg-[#7B8F50] text-white shadow-sm"
-                    : "bg-[#EFECE6] text-[#555] hover:bg-[#E2DDD3]"
-                }`}
+                className={`
+                  cursor-pointer
+                  whitespace-nowrap
+                  rounded-full
+                  px-5
+                  py-2
+                  text-xs
+                  font-semibold
+                  transition
+                  ${
+                    selectedCategory === cat
+                      ? "bg-[#7B8F50] text-white shadow-sm"
+                      : "bg-[#EFECE6] text-[#555] hover:bg-[#E2DDD3]"
+                  }
+                `}
               >
                 {cat}
               </button>
             ))}
+
           </div>
 
-          {/* Controls: Search & Sort */}
-          <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto justify-between lg:justify-end">
-            <div className="flex items-center rounded-full bg-[#FAF8F5] border border-[#E0D8C8] px-4 py-2 w-full sm:w-64 focus-within:border-[#7B8F50]">
+          {/* ==================================================
+              SEARCH & SORT
+          ================================================== */}
+
+          <div
+            className="
+              flex
+              w-full
+              flex-wrap
+              items-center
+              justify-between
+              gap-4
+              lg:w-auto
+              lg:justify-end
+            "
+          >
+
+            {/* Search */}
+
+            <div
+              className="
+                flex
+                w-full
+                items-center
+                rounded-full
+                border
+                border-[#E0D8C8]
+                bg-[#FAF8F5]
+                px-4
+                py-2
+                focus-within:border-[#7B8F50]
+                sm:w-64
+              "
+            >
+
               <input
                 type="text"
                 placeholder="Search artwork, artist, or medium..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent text-xs text-[#22211B] placeholder-[#88847C] outline-none"
+                onChange={(e) =>
+                  setSearchQuery(e.target.value)
+                }
+                className="
+                  w-full
+                  bg-transparent
+                  text-xs
+                  text-[#22211B]
+                  outline-none
+                  placeholder-[#88847C]
+                "
               />
-              <FiSearch className="text-[#7B8F50] text-base shrink-0" />
+
+              <FiSearch className="shrink-0 text-base text-[#7B8F50]" />
+
             </div>
 
+            {/* Sort */}
+
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-[#88847C] uppercase">
+
+              <span className="text-xs font-semibold uppercase text-[#88847C]">
                 Sort:
               </span>
+
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="rounded-lg border border-[#E0D8C8] bg-white px-3 py-2 text-xs font-medium text-[#22211B] outline-none focus:border-[#7B8F50]"
+                onChange={(e) =>
+                  setSortBy(e.target.value)
+                }
+                className="
+                  rounded-lg
+                  border
+                  border-[#E0D8C8]
+                  bg-white
+                  px-3
+                  py-2
+                  text-xs
+                  font-medium
+                  text-[#22211B]
+                  outline-none
+                  focus:border-[#7B8F50]
+                "
               >
                 {sortOptions.map((opt) => (
                   <option key={opt} value={opt}>
@@ -171,45 +347,124 @@ export default function ShopPage() {
                   </option>
                 ))}
               </select>
+
             </div>
+
           </div>
+
         </div>
+
       </section>
 
-      {/* ================= PRODUCT GRID ================= */}
+      {/* ==================================================
+          PRODUCT GRID
+      ================================================== */}
+
       <section className="py-16">
+
         <div className="mx-auto max-w-[1700px] px-4 sm:px-6 lg:px-8">
-          
+
+          {/* ==================================================
+              LOADING
+          ================================================== */}
+
           {loading ? (
+
             <div className="py-20 text-center">
-              <p className="font-serif text-xl text-[#88847C]">Loading artworks...</p>
+
+              <p className="font-serif text-xl text-[#88847C]">
+                Loading artworks...
+              </p>
+
             </div>
+
           ) : filteredProducts.length === 0 ? (
-            <div className="py-20 text-center space-y-4">
+
+            /* ==================================================
+                NO PRODUCTS
+            ================================================== */
+
+            <div className="space-y-4 py-20 text-center">
+
               <p className="font-serif text-2xl text-[#22211B]">
                 No artworks found matching your criteria.
               </p>
+
               <button
+                type="button"
                 onClick={() => {
                   setSelectedCategory("All Artworks");
                   setSearchQuery("");
                 }}
-                className="text-sm font-semibold text-[#7B8F50] underline cursor-pointer"
+                className="
+                  cursor-pointer
+                  text-sm
+                  font-semibold
+                  text-[#7B8F50]
+                  underline
+                "
               >
                 Clear All Filters
               </button>
+
             </div>
+
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+
+            /* ==================================================
+                PRODUCTS
+            ================================================== */
+
+            <div
+              className="
+                grid
+                grid-cols-1
+                gap-8
+                sm:grid-cols-2
+                lg:grid-cols-3
+              "
+            >
+
               {filteredProducts.map((art) => {
-                const title = art.title || art.TITLE || "Untitled Artwork";
-                const artist = art.artistName || art.ARTIST || "Joan Karle";
-                const category = art.category || art.CATEGORY || "Fine Art";
-                const size = art.size || art.SIZE || "Standard Size";
-                const refNo = art.referenceNo || art["REFERENCE NO"] || "";
-                const price = art.price || art.PRICE || 0;
-                
-                // 1. DYNAMICALLY RESOLVE IMAGE FROM ALL MAPPED CSV / DB KEYS
+
+                // --------------------------------------------
+                // PRODUCT DATA
+                // --------------------------------------------
+
+                const title =
+                  art.title ||
+                  art.TITLE ||
+                  "Untitled Artwork";
+
+                const artist =
+                  art.artistName ||
+                  art.ARTIST ||
+                  "Joan Karle";
+
+                const category =
+                  art.category ||
+                  art.CATEGORY ||
+                  "Fine Art";
+
+                const size =
+                  art.size ||
+                  art.SIZE ||
+                  "Standard Size";
+
+                const refNo =
+                  art.referenceNo ||
+                  art["REFERENCE NO"] ||
+                  "";
+
+                const price =
+                  art.price ||
+                  art.PRICE ||
+                  0;
+
+                // --------------------------------------------
+                // IMAGE RESOLUTION
+                // --------------------------------------------
+
                 const rawImage =
                   art.imageUrl ||
                   art.Photo ||
@@ -217,117 +472,421 @@ export default function ShopPage() {
                   art.photo ||
                   "";
 
-                // 2. FALLBACK ONLY IF FIELD IS EMPTY IN DB
+                // --------------------------------------------
+                // IMAGE FALLBACK
+                // --------------------------------------------
+
                 const imageSrc =
-                  rawImage && rawImage.trim() !== ""
+                  rawImage &&
+                  rawImage.trim() !== ""
                     ? rawImage.trim()
                     : "/placeholder.png";
 
                 return (
+
                   <Link
                     key={String(art.id)}
                     href={`/shop/${art.id}`}
-                    className="group rounded-3xl border border-[#EAE3D2] bg-white overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between cursor-pointer"
+                    className="
+                      group
+                      flex
+                      cursor-pointer
+                      flex-col
+                      justify-between
+                      overflow-hidden
+                      rounded-3xl
+                      border
+                      border-[#EAE3D2]
+                      bg-white
+                      shadow-sm
+                      transition-all
+                      duration-300
+                      hover:shadow-xl
+                    "
                   >
+
+                    {/* ==================================================
+                        CARD CONTENT
+                    ================================================== */}
+
                     <div>
-                      {/* Artwork Visual Container */}
-                      <div className="relative h-80 bg-[#ECE9E2] overflow-hidden flex items-center justify-center">
+
+                      {/* ==================================================
+                          ARTWORK IMAGE
+                      ================================================== */}
+
+                      <div
+                        className="
+                          relative
+                          aspect-[29/20]
+                          w-full
+                          overflow-hidden
+                          bg-[#ECE9E2]
+                        "
+                      >
+
                         <Image
                           src={imageSrc}
                           alt={title}
                           fill
                           unoptimized
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                          className="object-cover group-hover:scale-105 transition-transform duration-500"
+                          sizes="
+                            (max-width: 640px) 100vw,
+                            (max-width: 1024px) 50vw,
+                            33vw
+                          "
+                          className="
+                            object-cover
+                            transition-transform
+                            duration-500
+                            group-hover:scale-105
+                          "
                         />
 
-                        {/* Category Badge */}
-                        <div className="absolute top-4 left-4 z-10 flex flex-col gap-1.5">
-                          <span className="rounded-full bg-white/90 backdrop-blur-md px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#7B8F50]">
+                        {/* ==============================================
+                            CATEGORY BADGE
+                        ============================================== */}
+
+                        <div className="absolute left-4 top-4 z-10 flex flex-col gap-1.5">
+
+                          <span
+                            className="
+                              rounded-full
+                              bg-white/90
+                              px-3
+                              py-1
+                              text-[10px]
+                              font-bold
+                              uppercase
+                              tracking-wider
+                              text-[#7B8F50]
+                              backdrop-blur-md
+                            "
+                          >
                             {category}
                           </span>
+
                         </div>
 
-                        {/* Quick Actions */}
-                        <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition duration-300">
+                        {/* ==============================================
+                            QUICK ACTIONS
+                        ============================================== */}
+
+                        <div
+                          className="
+                            absolute
+                            right-4
+                            top-4
+                            z-10
+                            flex
+                            flex-col
+                            gap-2
+                            opacity-0
+                            transition
+                            duration-300
+                            group-hover:opacity-100
+                          "
+                        >
+
+                          {/* Heart */}
+
                           <button
-                            onClick={(e) => e.preventDefault()}
-                            className="rounded-full bg-white/90 p-2 text-[#22211B] shadow-md hover:bg-[#7B8F50] hover:text-white transition cursor-pointer"
+                            type="button"
+                            aria-label="Add to wishlist"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                            className="
+                              cursor-pointer
+                              rounded-full
+                              bg-white/90
+                              p-2
+                              text-[#22211B]
+                              shadow-md
+                              transition
+                              hover:bg-[#7B8F50]
+                              hover:text-white
+                            "
                           >
                             <FiHeart className="text-sm" />
                           </button>
+
+                          {/* View */}
+
                           <button
-                            onClick={(e) => e.preventDefault()}
-                            className="rounded-full bg-white/90 p-2 text-[#22211B] shadow-md hover:bg-[#7B8F50] hover:text-white transition cursor-pointer"
+                            type="button"
+                            aria-label="Quick view"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                            className="
+                              cursor-pointer
+                              rounded-full
+                              bg-white/90
+                              p-2
+                              text-[#22211B]
+                              shadow-md
+                              transition
+                              hover:bg-[#7B8F50]
+                              hover:text-white
+                            "
                           >
                             <FiEye className="text-sm" />
                           </button>
+
                         </div>
+
                       </div>
 
-                      {/* Artwork Details */}
-                      <div className="p-6 space-y-3">
-                        <div className="flex items-center justify-between text-xs font-semibold text-[#88847C]">
-                          <span>{size}</span>
-                          <span className="text-[#7B8F50] font-medium">{refNo}</span>
+                      {/* ==================================================
+                          ARTWORK DETAILS
+                      ================================================== */}
+
+                      <div className="space-y-3 p-6">
+
+                        {/* Size + Reference */}
+
+                        <div
+                          className="
+                            flex
+                            items-center
+                            justify-between
+                            text-xs
+                            font-semibold
+                            text-[#88847C]
+                          "
+                        >
+
+                          <span>
+                            {size}
+                          </span>
+
+                          <span className="font-medium text-[#7B8F50]">
+                            {refNo}
+                          </span>
+
                         </div>
 
-                        <h3 className="font-serif text-2xl font-bold text-[#22211B] group-hover:text-[#7B8F50] transition-colors leading-tight">
+                        {/* Title */}
+
+                        <h3
+                          className="
+                            font-serif
+                            text-2xl
+                            font-bold
+                            leading-tight
+                            text-[#22211B]
+                            transition-colors
+                            group-hover:text-[#7B8F50]
+                          "
+                        >
                           {title}
                         </h3>
 
-                        <p className="text-xs font-bold text-[#7B8F50] uppercase tracking-wider">
+                        {/* Artist */}
+
+                        <p
+                          className="
+                            text-xs
+                            font-bold
+                            uppercase
+                            tracking-wider
+                            text-[#7B8F50]
+                          "
+                        >
                           By {artist}
                         </p>
+
                       </div>
+
                     </div>
 
-                    {/* Card Action Footer */}
-                    <div className="p-6 pt-0 border-t border-gray-100 mt-4 flex items-center justify-between">
+                    {/* ==================================================
+                        CARD FOOTER
+                    ================================================== */}
+
+                    <div
+                      className="
+                        mt-4
+                        flex
+                        items-center
+                        justify-between
+                        border-t
+                        border-gray-100
+                        p-6
+                        pt-5
+                      "
+                    >
+
+                      {/* Price */}
+
                       <div>
-                        <span className="text-[10px] text-[#88847C] uppercase tracking-widest block font-bold">
+
+                        <span
+                          className="
+                            block
+                            text-[10px]
+                            font-bold
+                            uppercase
+                            tracking-widest
+                            text-[#88847C]
+                          "
+                        >
                           Investment
                         </span>
-                        <span className="font-serif text-xl font-bold text-[#22211B]">
-                          {price > 0 ? `$${price.toLocaleString()}` : "Price on Request"}
+
+                        <span
+                          className="
+                            font-serif
+                            text-xl
+                            font-bold
+                            text-[#22211B]
+                          "
+                        >
+                          {price > 0
+                            ? `₹${price.toLocaleString("en-IN")}`
+                            : "Price on Request"}
                         </span>
+
                       </div>
 
-                      <span className="inline-flex items-center gap-2 rounded-full bg-[#F8F6F0] px-5 py-2.5 text-xs font-semibold text-[#22211B] group-hover:bg-[#7B8F50] group-hover:text-white transition-all shadow-sm">
-                        <FiShoppingCart /> View Artwork
+                      {/* View Artwork */}
+
+                      <span
+                        className="
+                          inline-flex
+                          items-center
+                          gap-2
+                          rounded-full
+                          bg-[#F8F6F0]
+                          px-5
+                          py-2.5
+                          text-xs
+                          font-semibold
+                          text-[#22211B]
+                          shadow-sm
+                          transition-all
+                          group-hover:bg-[#7B8F50]
+                          group-hover:text-white
+                        "
+                      >
+                        <FiShoppingCart />
+
+                        View Artwork
                       </span>
+
                     </div>
+
                   </Link>
+
                 );
               })}
+
             </div>
+
           )}
 
         </div>
+
       </section>
 
-      {/* ================= CURATION BANNER ================= */}
-      <section className="bg-[#22211B] text-white py-16 border-t border-[#EAE3D2]">
-        <div className="mx-auto max-w-3xl px-4 text-center space-y-4">
-          <span className="text-xs font-bold uppercase tracking-widest text-[#7B8F50]">
+      {/* ==================================================
+          CURATION BANNER
+      ================================================== */}
+
+      <section
+        className="
+          border-t
+          border-[#EAE3D2]
+          bg-[#22211B]
+          py-16
+          text-white
+        "
+      >
+
+        <div
+          className="
+            mx-auto
+            max-w-3xl
+            space-y-4
+            px-4
+            text-center
+          "
+        >
+
+          <span
+            className="
+              text-xs
+              font-bold
+              uppercase
+              tracking-widest
+              text-[#7B8F50]
+            "
+          >
             Bespoke Art Advisory
           </span>
-          <h2 className="font-serif text-3xl sm:text-4xl font-normal">
+
+          <h2
+            className="
+              font-serif
+              text-3xl
+              font-normal
+              sm:text-4xl
+            "
+          >
             Need Guidance Framing or Selecting Photography?
           </h2>
-          <p className="text-[#B0AAA0] text-sm sm:text-base font-light leading-relaxed">
-            Our advisors provide complimentary 3D room placement rendering, custom archival framing consultations, and art acquisition services.
+
+          <p
+            className="
+              text-sm
+              font-light
+              leading-relaxed
+              text-[#B0AAA0]
+              sm:text-base
+            "
+          >
+            Our advisors provide complimentary 3D room placement
+            rendering, custom archival framing consultations, and
+            art acquisition services.
           </p>
+
           <div className="pt-2">
+
             <Link
               href="/contact"
-              className="inline-flex items-center gap-2 rounded-full bg-[#7B8F50] px-8 py-3.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-[#687a41] transition shadow-md"
+              className="
+                inline-flex
+                items-center
+                gap-2
+                rounded-full
+                bg-[#7B8F50]
+                px-8
+                py-3.5
+                text-xs
+                font-bold
+                uppercase
+                tracking-wider
+                text-white
+                shadow-md
+                transition
+                hover:bg-[#687a41]
+              "
             >
-              Consult an Advisor <FiArrowRight />
+              Consult an Advisor
+
+              <FiArrowRight />
+
             </Link>
+
           </div>
+
         </div>
+
       </section>
+
     </main>
   );
 }
