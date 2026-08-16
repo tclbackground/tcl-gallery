@@ -8,33 +8,50 @@ interface ProductDetailsClientProps {
   product: any;
 }
 
-const FALLBACK_IMAGE = "/images/products/artwork-1.jpg";
+const DEFAULT_FALLBACK_IMAGE = "/images/products/artwork-1.jpg";
 
 export default function ProductDetailsClient({
   product,
 }: ProductDetailsClientProps) {
-  // 1. Safely extract all 5 images
-  const additionalImages: string[] = Array.isArray(product?.images)
+  // 1. Safely extract all additional images from JSON/Array
+  const rawAdditional: string[] = Array.isArray(product?.images)
     ? product.images
     : typeof product?.images === "string"
-    ? JSON.parse(product.images)
+    ? (() => {
+        try {
+          return JSON.parse(product.images);
+        } catch {
+          return [];
+        }
+      })()
     : [];
 
-  const allImages: string[] = [
+  // Combine primary image and additional images, filtering out null/empty strings
+  const initialImages: string[] = [
     product?.imageUrl,
-    ...additionalImages,
-  ].filter(Boolean);
+    ...rawAdditional,
+  ].filter((src): src is string => Boolean(src && typeof src === "string" && src.trim() !== ""));
 
-  const imagesList = allImages.length > 0 ? allImages : [FALLBACK_IMAGE];
+  const validImagesList = initialImages.length > 0 ? initialImages : [DEFAULT_FALLBACK_IMAGE];
 
-  // 2. Active image & selected state
+  // 2. Active image & gallery state
+  const [imagesList, setImagesList] = useState<string[]>(validImagesList);
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
   const [quantity, setQuantity] = useState<number>(1);
   const [selectedSize, setSelectedSize] = useState<string>("12x16");
   const [selectedMedium, setSelectedMedium] = useState<string>("Museum Grade Canvas");
   const [selectedFrame, setSelectedFrame] = useState<string>("Print Only");
 
-  const activeImage = imagesList[selectedIndex] || FALLBACK_IMAGE;
+  const activeImage = imagesList[selectedIndex] || DEFAULT_FALLBACK_IMAGE;
+
+  // Handle broken / 404 image URLs seamlessly
+  const handleImageError = (index: number) => {
+    setImagesList((prev) => {
+      const updated = [...prev];
+      updated[index] = DEFAULT_FALLBACK_IMAGE;
+      return updated;
+    });
+  };
 
   const handlePrev = () => {
     setSelectedIndex((prev) => (prev === 0 ? imagesList.length - 1 : prev - 1));
@@ -61,6 +78,7 @@ export default function ProductDetailsClient({
                 fill
                 priority
                 unoptimized
+                onError={() => handleImageError(selectedIndex)}
                 className="object-contain p-4 transition-all duration-300"
               />
 
@@ -116,6 +134,7 @@ export default function ProductDetailsClient({
                       alt={`Thumbnail ${idx + 1}`}
                       fill
                       unoptimized
+                      onError={() => handleImageError(idx)}
                       className="object-cover"
                     />
                   </button>
