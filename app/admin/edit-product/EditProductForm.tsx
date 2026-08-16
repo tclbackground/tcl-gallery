@@ -76,7 +76,7 @@ export default function EditProductForm({
 
     if (!file.type.startsWith("image/")) {
       setMessage({
-        text: `${imageLabels[index].title} must be a valid image file.`,
+        text: `${imageLabels[index].title} must be an image.`,
         type: "error",
       });
       return;
@@ -99,9 +99,9 @@ export default function EditProductForm({
     try {
       const response = await updateProduct(formData);
 
-      if (response && response.success === false) {
+      if (!response?.success) {
         setMessage({
-          text: response.message || "Failed to update artwork.",
+          text: response?.message || "Failed to update artwork.",
           type: "error",
         });
         setLoading(false);
@@ -109,10 +109,11 @@ export default function EditProductForm({
       }
 
       setMessage({
-        text: "Artwork and images updated successfully! Redirecting...",
+        text: "Artwork updated successfully! Redirecting...",
         type: "success",
       });
 
+      router.push("/admin/artworks");
       router.refresh();
     } catch (error: any) {
       console.error("Update error:", error);
@@ -204,7 +205,6 @@ export default function EditProductForm({
         </select>
       </div>
 
-      {/* Five Image Upload Grid */}
       <section>
         <div className="mb-5 flex items-center justify-between">
           <div>
@@ -258,7 +258,7 @@ export default function EditProductForm({
               <div className="p-4 space-y-3">
                 <div>
                   <label className="mb-1 block text-[10px] font-bold uppercase text-[#4D3024]">
-                    Upload New File
+                    Upload File
                   </label>
                   <input
                     type="file"
@@ -303,7 +303,7 @@ export default function EditProductForm({
         disabled={loading}
         className="w-full cursor-pointer rounded-full bg-[#22211B] py-4 text-xs font-bold uppercase tracking-wider text-white transition hover:bg-[#4D3024] disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {loading ? "Saving Changes..." : "Save & Update Artwork"}
+        {loading ? "Updating Artwork & Images..." : "Save & Update Artwork"}
       </button>
     </form>
   );
