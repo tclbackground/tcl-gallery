@@ -20,6 +20,55 @@ function getAdditionalImages(product: any): string[] {
   return [];
 }
 
+// Client-side helper: compress high-res images to max 1920px & WebP
+async function compressImageFile(file: File, maxWidth = 1920, quality = 0.85): Promise<File> {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith("image/")) {
+      return resolve(file);
+    }
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (e) => {
+      const img = new window.Image();
+      img.src = e.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let { width, height } = img;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(file);
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) return resolve(file);
+            const cleanBase = file.name.replace(/[^a-zA-Z0-9.-]/g, "_").replace(/\.[^/.]+$/, "");
+            const compressedFile = new File([blob], `${cleanBase}.webp`, {
+              type: "image/webp",
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          },
+          "image/webp",
+          quality
+        );
+      };
+      img.onerror = () => resolve(file);
+    };
+    reader.onerror = () => resolve(file);
+  });
+}
+
 export default function EditProductForm({
   product,
   artists,
@@ -41,6 +90,14 @@ export default function EditProductForm({
     existingAdditionalImages[1] || "",
     existingAdditionalImages[2] || "",
     existingAdditionalImages[3] || "",
+  ]);
+
+  const [selectedFiles, setSelectedFiles] = useState<(File | null)[]>([
+    null,
+    null,
+    null,
+    null,
+    null,
   ]);
 
   const [loading, setLoading] = useState(false);
@@ -76,11 +133,15 @@ export default function EditProductForm({
 
     if (!file.type.startsWith("image/")) {
       setMessage({
-        text: `${imageLabels[index].title} must be an image.`,
+        text: `${imageLabels[index].title} must be a valid image file.`,
         type: "error",
       });
       return;
     }
+
+    const updatedFiles = [...selectedFiles];
+    updatedFiles[index] = file;
+    setSelectedFiles(updatedFiles);
 
     const objectUrl = URL.createObjectURL(file);
     const updatedPreviews = [...previews];
@@ -94,9 +155,21 @@ export default function EditProductForm({
     setLoading(true);
     setMessage(null);
 
-    const formData = new FormData(e.currentTarget);
-
     try {
+      const formEl = e.currentTarget;
+      const formData = new FormData(formEl);
+
+      // Compress and assign all uploaded images to prevent payload limits
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const fileKey = i === 0 ? "image" : `image${i + 1}`;
+        const rawFile = selectedFiles[i];
+
+        if (rawFile && rawFile.size > 0) {
+          const compressed = await compressImageFile(rawFile);
+          formData.set(fileKey, compressed);
+        }
+      }
+
       const response = await updateProduct(formData);
 
       if (!response?.success) {
@@ -116,6 +189,13 @@ export default function EditProductForm({
       router.push("/admin/artworks");
       router.refresh();
     } catch (error: any) {
+      if (
+        error?.message === "NEXT_REDIRECT" ||
+        error?.digest?.includes("NEXT_REDIRECT")
+      ) {
+        return;
+      }
+
       console.error("Update error:", error);
       setMessage({
         text: error.message || "Something went wrong while updating the artwork.",
@@ -152,7 +232,7 @@ export default function EditProductForm({
       )}
 
       <div>
-        <label className="mb-2 block text-xs font-bold uppercase">Title</label>
+        <label className="mb-2 block text-xs font-bold uppercase text-[#4D3024]">Title</label>
         <input
           name="title"
           defaultValue={product?.title ?? ""}
@@ -163,7 +243,7 @@ export default function EditProductForm({
 
       <div className="grid gap-4 md:grid-cols-2">
         <div>
-          <label className="mb-2 block text-xs font-bold uppercase">Price</label>
+          <label className="mb-2 block text-xs font-bold uppercase text-[#4D3024]">Price</label>
           <input
             name="price"
             type="number"
@@ -175,7 +255,7 @@ export default function EditProductForm({
         </div>
 
         <div>
-          <label className="mb-2 block text-xs font-bold uppercase">Category</label>
+          <label className="mb-2 block text-xs font-bold uppercase text-[#4D3024]">Category</label>
           <select
             name="category"
             defaultValue={product?.category ?? "fine-art"}
@@ -190,7 +270,7 @@ export default function EditProductForm({
       </div>
 
       <div>
-        <label className="mb-2 block text-xs font-bold uppercase">Artist</label>
+        <label className="mb-2 block text-xs font-bold uppercase text-[#4D3024]">Artist</label>
         <select
           name="artistId"
           defaultValue={product?.artistId ?? ""}
@@ -205,6 +285,7 @@ export default function EditProductForm({
         </select>
       </div>
 
+      {/* 5 IMAGE UPLOAD SLOTS */}
       <section>
         <div className="mb-5 flex items-center justify-between">
           <div>
@@ -212,7 +293,7 @@ export default function EditProductForm({
               Artwork Images
             </h2>
             <p className="mt-1 text-xs text-gray-500">
-              Upload local files or enter remote URLs.
+              Upload local files or enter direct image URLs.
             </p>
           </div>
           <span className="rounded-full bg-[#F3F0E8] px-4 py-1.5 text-[10px] font-bold uppercase text-[#7B8F50]">
@@ -262,7 +343,6 @@ export default function EditProductForm({
                   </label>
                   <input
                     type="file"
-                    name={index === 0 ? "image" : `image${index + 1}`}
                     accept="image/*"
                     onChange={(e) => handleFileChange(index, e)}
                     className="w-full cursor-pointer text-xs"
@@ -289,7 +369,7 @@ export default function EditProductForm({
       </section>
 
       <div>
-        <label className="mb-2 block text-xs font-bold uppercase">Description</label>
+        <label className="mb-2 block text-xs font-bold uppercase text-[#4D3024]">Description</label>
         <textarea
           name="description"
           rows={4}
@@ -303,7 +383,7 @@ export default function EditProductForm({
         disabled={loading}
         className="w-full cursor-pointer rounded-full bg-[#22211B] py-4 text-xs font-bold uppercase tracking-wider text-white transition hover:bg-[#4D3024] disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {loading ? "Updating Artwork & Images..." : "Save & Update Artwork"}
+        {loading ? "Compressing & Updating Artwork..." : "Save & Update Artwork"}
       </button>
     </form>
   );
