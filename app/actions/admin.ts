@@ -1,3 +1,5 @@
+// app/actions/admin.ts
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -5,12 +7,217 @@ import {
   writeFile,
   mkdir,
 } from "fs/promises";
-import {
-  existsSync,
-} from "fs";
+import { existsSync } from "fs";
 import path from "path";
 
 import { prisma } from "@/lib/prisma";
+
+// ==========================================================
+// COMMON UPLOAD DIRECTORY
+// ==========================================================
+
+function getProductsUploadDir() {
+  return path.join(
+    process.cwd(),
+    "public",
+    "images",
+    "products"
+  );
+}
+
+function getArtistsUploadDir() {
+  return path.join(
+    process.cwd(),
+    "public",
+    "images",
+    "Artist"
+  );
+}
+
+// ==========================================================
+// ENSURE DIRECTORY EXISTS
+// ==========================================================
+
+async function ensureDirectory(
+  directory: string
+) {
+  if (!existsSync(directory)) {
+    await mkdir(directory, {
+      recursive: true,
+    });
+  }
+}
+
+// ==========================================================
+// CREATE SAFE FILE NAME
+// ==========================================================
+
+function createSafeFileName(
+  fileName: string
+) {
+  return fileName.replace(
+    /[^a-zA-Z0-9.-]/g,
+    "_"
+  );
+}
+
+// ==========================================================
+// UPLOAD ARTIST
+// ==========================================================
+
+export async function uploadArtist(
+  formData: FormData
+) {
+  try {
+    // ======================================================
+    // GET ARTIST DATA
+    // ======================================================
+
+    const name = String(
+      formData.get("name") || ""
+    ).trim();
+
+    const bio = String(
+      formData.get("bio") || ""
+    ).trim();
+
+    if (!name) {
+      return {
+        success: false,
+        message:
+          "Artist name is required.",
+      };
+    }
+
+    // ======================================================
+    // ARTIST IMAGE DIRECTORY
+    // ======================================================
+
+    const uploadDir =
+      getArtistsUploadDir();
+
+    await ensureDirectory(
+      uploadDir
+    );
+
+    // ======================================================
+    // ARTIST IMAGE
+    // ======================================================
+
+    let imageUrl = String(
+      formData.get("imageUrl") || ""
+    ).trim();
+
+    const imageFile =
+      formData.get("image");
+
+    if (
+      imageFile instanceof File &&
+      imageFile.size > 0
+    ) {
+      const buffer = Buffer.from(
+        await imageFile.arrayBuffer()
+      );
+
+      const safeFileName =
+        createSafeFileName(
+          imageFile.name
+        );
+
+      const uniqueFileName =
+        `${Date.now()}-${safeFileName}`;
+
+      const filePath = path.join(
+        uploadDir,
+        uniqueFileName
+      );
+
+      await writeFile(
+        filePath,
+        buffer
+      );
+
+      // Verify file was actually saved
+      if (!existsSync(filePath)) {
+        throw new Error(
+          `Artist image was not saved: ${filePath}`
+        );
+      }
+
+      imageUrl =
+        `/images/Artist/${uniqueFileName}`;
+
+      console.log(
+        "Artist image saved:",
+        filePath
+      );
+    }
+
+    // ======================================================
+    // CREATE ARTIST
+    // ======================================================
+
+    const artist =
+      await (prisma as any).artist.create(
+        {
+          data: {
+            name,
+            bio,
+            imageUrl,
+          },
+        }
+      );
+
+    // ======================================================
+    // REVALIDATE
+    // ======================================================
+
+    revalidatePath(
+      "/admin/artists"
+    );
+
+    revalidatePath(
+      "/admin/artists/add"
+    );
+
+    revalidatePath(
+      "/admin/edit-product"
+    );
+
+    // ======================================================
+    // SUCCESS
+    // ======================================================
+
+    return {
+      success: true,
+      message:
+        "Artist added successfully.",
+      artist,
+    };
+  } catch (error) {
+    console.error(
+      "========================================"
+    );
+
+    console.error(
+      "UPLOAD ARTIST ERROR"
+    );
+
+    console.error(error);
+
+    console.error(
+      "========================================"
+    );
+
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to add artist.",
+    };
+  }
+}
 
 // ==========================================================
 // UPDATE PRODUCT
@@ -21,12 +228,29 @@ export async function updateProduct(
 ) {
   try {
     // ======================================================
-    // BASIC DATA
+    // GET PRODUCT ID
     // ======================================================
 
     const id = String(
       formData.get("id") || ""
     ).trim();
+
+    console.log(
+      "========================================"
+    );
+
+    console.log(
+      "UPDATE PRODUCT START"
+    );
+
+    console.log(
+      "Product ID:",
+      id
+    );
+
+    // ======================================================
+    // VALIDATE ID
+    // ======================================================
 
     if (!id) {
       return {
@@ -35,6 +259,10 @@ export async function updateProduct(
           "Artwork ID is missing.",
       };
     }
+
+    // ======================================================
+    // BASIC PRODUCT DATA
+    // ======================================================
 
     const title = String(
       formData.get("title") || ""
@@ -51,9 +279,10 @@ export async function updateProduct(
       formData.get("category") || ""
     ).trim();
 
-    const artistIdValue = String(
-      formData.get("artistId") || ""
-    ).trim();
+    const artistIdValue =
+      String(
+        formData.get("artistId") || ""
+      ).trim();
 
     const artistId =
       artistIdValue || null;
@@ -94,21 +323,20 @@ export async function updateProduct(
     }
 
     // ======================================================
-    // UPLOAD DIRECTORY
+    // PRODUCT UPLOAD DIRECTORY
     // ======================================================
 
-    const uploadDir = path.join(
-      process.cwd(),
-      "public",
-      "images",
-      "products"
+    const uploadDir =
+      getProductsUploadDir();
+
+    await ensureDirectory(
+      uploadDir
     );
 
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, {
-        recursive: true,
-      });
-    }
+    console.log(
+      "Product upload directory:",
+      uploadDir
+    );
 
     // ======================================================
     // MAIN IMAGE
@@ -121,7 +349,7 @@ export async function updateProduct(
         ) || ""
       ).trim();
 
-    // Existing main image fallback
+    // Existing main image
     if (!finalMainImageUrl) {
       finalMainImageUrl =
         String(
@@ -134,6 +362,10 @@ export async function updateProduct(
     const mainFile =
       formData.get("image");
 
+    // ======================================================
+    // NEW MAIN IMAGE
+    // ======================================================
+
     if (
       mainFile instanceof File &&
       mainFile.size > 0
@@ -143,29 +375,51 @@ export async function updateProduct(
       );
 
       const safeFileName =
-        mainFile.name.replace(
-          /[^a-zA-Z0-9.-]/g,
-          "_"
+        createSafeFileName(
+          mainFile.name
         );
 
       const uniqueFileName =
         `${Date.now()}-${safeFileName}`;
 
+      const filePath = path.join(
+        uploadDir,
+        uniqueFileName
+      );
+
+      console.log(
+        "Saving main artwork image:",
+        filePath
+      );
+
       await writeFile(
-        path.join(
-          uploadDir,
-          uniqueFileName
-        ),
+        filePath,
         buffer
       );
 
+      // Verify physical file
+      if (!existsSync(filePath)) {
+        throw new Error(
+          `Main artwork image was not saved: ${filePath}`
+        );
+      }
+
       finalMainImageUrl =
         `/images/products/${uniqueFileName}`;
+
+      console.log(
+        "Main artwork image saved:",
+        finalMainImageUrl
+      );
     }
 
     // ======================================================
     // ADDITIONAL IMAGES
-    // SLOTS 2 - 5
+    //
+    // image2
+    // image3
+    // image4
+    // image5
     // ======================================================
 
     const additionalImages: string[] =
@@ -176,20 +430,25 @@ export async function updateProduct(
       slot <= 5;
       slot++
     ) {
-      let imageUrl = String(
-        formData.get(
-          `imageUrlInput${slot}`
-        ) || ""
-      ).trim();
+      // ----------------------------------------------------
+      // Existing URL
+      // ----------------------------------------------------
+
+      let imageUrl =
+        String(
+          formData.get(
+            `imageUrlInput${slot}`
+          ) || ""
+        ).trim();
+
+      // ----------------------------------------------------
+      // New image file
+      // ----------------------------------------------------
 
       const imageFile =
         formData.get(
           `image${slot}`
         );
-
-      // ----------------------------------------------
-      // New uploaded image
-      // ----------------------------------------------
 
       if (
         imageFile instanceof File &&
@@ -200,49 +459,62 @@ export async function updateProduct(
         );
 
         const safeFileName =
-          imageFile.name.replace(
-            /[^a-zA-Z0-9.-]/g,
-            "_"
+          createSafeFileName(
+            imageFile.name
           );
 
         const uniqueFileName =
           `${Date.now()}-${slot}-${safeFileName}`;
 
+        const filePath = path.join(
+          uploadDir,
+          uniqueFileName
+        );
+
+        console.log(
+          `Saving artwork image ${slot}:`,
+          filePath
+        );
+
         await writeFile(
-          path.join(
-            uploadDir,
-            uniqueFileName
-          ),
+          filePath,
           buffer
         );
 
+        // Verify physical file
+        if (!existsSync(filePath)) {
+          throw new Error(
+            `Artwork image ${slot} was not saved: ${filePath}`
+          );
+        }
+
         imageUrl =
           `/images/products/${uniqueFileName}`;
+
+        console.log(
+          `Artwork image ${slot} saved:`,
+          imageUrl
+        );
       }
 
-      // ----------------------------------------------
-      // Keep only non-empty URLs
-      // ----------------------------------------------
+      // ----------------------------------------------------
+      // Preserve URL if present
+      // ----------------------------------------------------
 
-      additionalImages.push(
-        imageUrl
-      );
+      if (imageUrl) {
+        additionalImages.push(
+          imageUrl
+        );
+      }
     }
-
-    // ======================================================
-    // REMOVE EMPTY SLOTS
-    // ======================================================
-
-    const finalAdditionalImages =
-      additionalImages.filter(
-        (image) =>
-          image &&
-          image.trim()
-      );
 
     // ======================================================
     // UPDATE DATABASE
     // ======================================================
+
+    console.log(
+      "Updating product database..."
+    );
 
     await (prisma as any).product.update(
       {
@@ -261,13 +533,17 @@ export async function updateProduct(
             finalMainImageUrl,
 
           images:
-            finalAdditionalImages,
+            additionalImages,
         },
       }
     );
 
+    console.log(
+      "Product database updated successfully."
+    );
+
     // ======================================================
-    // CACHE REVALIDATION
+    // REVALIDATE
     // ======================================================
 
     revalidatePath(
@@ -290,6 +566,14 @@ export async function updateProduct(
     // SUCCESS
     // ======================================================
 
+    console.log(
+      "UPDATE PRODUCT SUCCESS"
+    );
+
+    console.log(
+      "========================================"
+    );
+
     return {
       success: true,
       message:
@@ -297,19 +581,17 @@ export async function updateProduct(
     };
   } catch (error) {
     console.error(
-      "================================"
+      "========================================"
     );
 
     console.error(
       "UPDATE PRODUCT SERVER ERROR"
     );
 
-    console.error(
-      error
-    );
+    console.error(error);
 
     console.error(
-      "================================"
+      "========================================"
     );
 
     return {
