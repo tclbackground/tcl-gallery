@@ -10,6 +10,24 @@ export const revalidate = 0;
 const FALLBACK_IMAGE =
   "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24' fill='none' stroke='%23C4A892' stroke-width='1.5'><rect x='3' y='3' width='18' height='18' rx='2'/><circle cx='8.5' cy='8.5' r='1.5'/><polyline points='21 15 16 10 5 21'/></svg>";
 
+// Normalizes image path so bare filenames resolve to /images/products/
+function normalizeImageUrl(url?: string | null): string {
+  if (!url || typeof url !== "string" || !url.trim()) return FALLBACK_IMAGE;
+  const trimmed = url.trim();
+  if (
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://") ||
+    trimmed.startsWith("data:") ||
+    trimmed.startsWith("/images/")
+  ) {
+    return trimmed;
+  }
+  if (trimmed.startsWith("/")) {
+    return trimmed;
+  }
+  return `/images/products/${trimmed}`;
+}
+
 async function deleteProduct(formData: FormData) {
   "use server";
   const id = formData.get("id") as string;
@@ -59,11 +77,12 @@ export default async function AdminArtworksPage() {
             </thead>
             <tbody className="divide-y divide-[#E8E2D5]">
               {products.map((product) => {
-                // Resolves primary image or first item from images array
-                const primaryImage =
+                const rawImage =
                   product.imageUrl ||
                   (Array.isArray((product as any).images) && (product as any).images[0]) ||
-                  FALLBACK_IMAGE;
+                  null;
+
+                const primaryImage = normalizeImageUrl(rawImage);
 
                 return (
                   <tr

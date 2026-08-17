@@ -1,16 +1,15 @@
+// middleware.ts
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 
 export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token;
-    const isAuth = !!token;
     const isDbAdminRoute = req.nextUrl.pathname.startsWith("/admin");
 
-    // Optional Role Check: If user is logged in but not an ADMIN, send to homepage
+    // Enforce ADMIN role check
     if (isDbAdminRoute && token?.role !== "ADMIN" && token?.role !== "admin") {
-      // If you want all logged-in users to access /admin regardless of role, 
-      // comment out the line below:
+      // Uncomment to redirect non-admin users to homepage:
       // return NextResponse.redirect(new URL("/", req.url));
     }
 
@@ -18,17 +17,24 @@ export default withAuth(
   },
   {
     callbacks: {
-      // Grant access if token exists
-      authorized: ({ token }) => !!token,
+      authorized: ({ token, req }) => {
+        // Always allow public image streaming and static files
+        if (req.nextUrl.pathname.startsWith("/images")) {
+          return true;
+        }
+        return !!token;
+      },
     },
     pages: {
-      // Unauthenticated users trying to access /admin will go to /login
       signIn: "/login",
     },
   }
 );
 
-// Matcher configuration to protect both /admin and /admin/* exact subpaths
+// Matcher protects /admin routes while ignoring images and Next.js internals
 export const config = {
-  matcher: ["/admin", "/admin/:path*"],
+  matcher: [
+    "/admin/:path*",
+    "/admin",
+  ],
 };
