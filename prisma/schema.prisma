@@ -8,36 +8,58 @@ datasource db {
 }
 
 model Artist {
-  id        String    @id @default(auto()) @map("_id") @db.ObjectId
-  name      String?
-  imageUrl  String?
-  products  Product[]
-  createdAt DateTime? @default(now())
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  name     String?
+  imageUrl String?
+
+  products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
+
 model Product {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  slNo        Int?      @map("SL NO")
-  title       String?   @map("TITLE")
-  artistName  String?   @map("ARTIST")
-  referenceNo String?   @map("REFERENCE NO")
-  location    String?   @map("LOCATION")
-  year        Int?      @map("YEAR")
-  medium      String?   @map("MEDIUM")
-  size        String?   @map("SIZE")
-  price       Float?    @map("PRICE")
-  imageUrl    String?   @map("Photo")
+  id String @id @default(auto()) @map("_id") @db.ObjectId
 
-  // Additional product images
-  images      Json?
+  // Basic artwork information
+  slNo  Int?    @map("SL NO")
+  title String? @map("TITLE")
 
-  category    String?   @map("CATEGORY")
-  description String?   @map("DESCRIPTION")
+  // Main image
+  imageUrl String? @map("IMAGE URL")
 
-  createdAt   DateTime? @default(now()) @map("createdAt")
-  updatedAt   DateTime? @updatedAt @map("updatedAt")
+  // Additional images
+  image2 String? @map("IMAGE 2")
+  image3 String? @map("IMAGE 3")
+  image4 String? @map("IMAGE 4")
+  image5 String? @map("IMAGE 5")
 
-  artistId    String?   @db.ObjectId
-  artist      Artist?   @relation(fields: [artistId], references: [id])
+  // Artwork information
+  referenceNo String? @map("REFERENCE NO")
+  location    String? @map("LOCATION")
+  year        Int?    @map("YEAR")
+  medium      String? @map("MEDIUM")
+  size        String? @map("SIZE")
+
+  // Size-based prices
+  price12x18 Float? @map("12X18 PRICE")
+  price18x24 Float? @map("18X24 PRICE")
+  price24x33 Float? @map("24X33 PRICE")
+
+  // Website information
+  category    String?
+  description String?
+
+  // Artist relationship
+  artistId String? @db.ObjectId
+  artist   Artist? @relation(fields: [artistId], references: [id])
+
+  // Order items containing this product
+  orderItems OrderItem[]
+  cartItems CartItem[]
+
+  createdAt DateTime?
+  updatedAt DateTime?
 }
 
 enum Role {
@@ -46,12 +68,132 @@ enum Role {
 }
 
 model User {
-  id            String    @id @default(auto()) @map("_id") @db.ObjectId
-  name          String?
-  email         String?   @unique
-  password      String?
-  role          Role      @default(USER)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  name     String?
+  email    String @unique
+  password String?
+
+  role Role @default(USER)
+
+  orders Order[]
+
+  wishlists Wishlist[]
+
+  cartItems CartItem[]
+}
+enum OrderStatus {
+  ORDER_PLACED
+  PAYMENT_CONFIRMED
+  ARTWORK_PREPARATION
+  FRAMING
+  QUALITY_CHECK
+  PACKED
+  SHIPPED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
 }
 
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  RAZORPAY
+  UPI
+  CARD
+  NETBANKING
+  COD
+}
+
+model Order {
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  orderNumber String @unique
+
+  // Logged-in user
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+
+  // Customer details
+  customerName    String
+  customerEmail   String
+  customerPhone   String
+  shippingAddress String
+  city            String
+  state           String
+  postalCode      String
+
+  // Pricing
+  totalAmount Float
+  currency    String @default("INR")
+
+  // Payment
+  paymentMethod PaymentMethod @default(RAZORPAY)
+  paymentStatus PaymentStatus @default(PENDING)
+
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+
+  // Order tracking
+  status         OrderStatus @default(ORDER_PLACED)
+  courier        String?
+  trackingNumber String?
+
+  // Order products
+  items OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OrderItem {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  // Order relationship
+  orderId String @db.ObjectId
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // Product relationship
+  productId String?  @db.ObjectId
+  product   Product? @relation(fields: [productId], references: [id])
+
+  title    String
+  price    Float
+  quantity Int
+
+  size     String?
+  frame    String?
+  imageUrl String?
+}
+
+model FrameOption {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  name     String @unique
+  imageUrl String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CartItem {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  productId String @db.ObjectId
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  size String?
+  frame String?
+
+  price Float
+  quantity Int @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
