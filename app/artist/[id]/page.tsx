@@ -157,9 +157,26 @@ export default async function ArtistDetailPage({
   } else {
     try {
       artist = await prisma.artist.findUnique({
-        where: { id },
-        include: { products: true },
-      });
+  where: { id },
+
+  select: {
+    id: true,
+    name: true,
+    imageUrl: true,
+
+    products: {
+      select: {
+        id: true,
+        title: true,
+        category: true,
+        price12x18: true,
+        price18x24: true,
+        price24x33: true,
+        imageUrl: true,
+      },
+    },
+  },
+});
     } catch (error) {
       console.error("Error fetching artist details:", error);
       notFound();

@@ -1,32 +1,121 @@
 "use client";
 
 import Link from "next/link";
-import { FiArrowRight, FiShoppingBag } from "react-icons/fi";
+import {
+  FiArrowRight,
+  FiShoppingBag,
+} from "react-icons/fi";
+
+type Product = {
+  id: string;
+  title: string;
+  image: string;
+  collection: string;
+  price: number;
+};
 
 const designStoreCategories = [
   {
-    title: "Jeweltree",
+    title: "Jewel Tree",
+    slug: "jewel-tree",
     description:
-      "Discover thoughtfully designed jewellery that brings together creativity, individuality and timeless elegance.",
-    href: "/design-store/jeweltree",
+      "Discover thoughtfully designed pieces inspired by nature, creativity and timeless beauty.",
+    href: "/design-store/jewel-tree",
     image:
-      "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=1200&q=85",
-  },
-  {
-    title: "Bags",
-    description:
-      "Explore distinctive bags created for everyday living, travel and effortless style.",
-    href: "/design-store/bags",
-    image:
-      "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=1200&q=85",
+      "images/products/6.png",
   },
   {
     title: "Living Legacy",
+    slug: "living-legacy",
     description:
-      "A curated selection of meaningful objects and lifestyle pieces designed to become part of your story.",
+      "Explore meaningful creations designed to become part of your home, life and story.",
     href: "/design-store/living-legacy",
     image:
       "https://images.unsplash.com/photo-1618220179428-22790b461013?auto=format&fit=crop&w=1200&q=85",
+  },
+  {
+    title: "Nature Window",
+    slug: "nature-window",
+    description:
+      "Discover creations inspired by the beauty and character of nature.",
+    href: "/design-store/nature-window",
+    image:
+      "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1200&q=85",
+  },
+];
+
+const products: Product[] = [
+  {
+    id: "1",
+    title: "Golden Tree",
+    image:
+      "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=1000&q=85",
+    collection: "jewel-tree",
+    price: 4500,
+  },
+  {
+    id: "2",
+    title: "Tree of Life",
+    image:
+      "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=1000&q=85",
+    collection: "jewel-tree",
+    price: 5200,
+  },
+  {
+    id: "3",
+    title: "Nature Inspired",
+    image:
+      "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=1000&q=85",
+    collection: "jewel-tree",
+    price: 6800,
+  },
+  {
+    id: "4",
+    title: "Legacy Vase",
+    image:
+      "https://images.unsplash.com/photo-1618220179428-22790b461013?auto=format&fit=crop&w=1000&q=85",
+    collection: "living-legacy",
+    price: 3500,
+  },
+  {
+    id: "5",
+    title: "Living Object",
+    image:
+      "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1000&q=85",
+    collection: "living-legacy",
+    price: 7200,
+  },
+  {
+    id: "6",
+    title: "Timeless Living",
+    image:
+      "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1000&q=85",
+    collection: "living-legacy",
+    price: 8500,
+  },
+  {
+    id: "7",
+    title: "Forest Window",
+    image:
+      "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1000&q=85",
+    collection: "nature-window",
+    price: 5500,
+  },
+  {
+    id: "8",
+    title: "Mountain View",
+    image:
+      "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1000&q=85",
+    collection: "nature-window",
+    price: 6500,
+  },
+  {
+    id: "9",
+    title: "Green Escape",
+    image:
+      "https://images.unsplash.com/photo-1473445361085-b9a07f55608b?auto=format&fit=crop&w=1000&q=85",
+    collection: "nature-window",
+    price: 7200,
   },
 ];
 
@@ -34,100 +123,58 @@ export default function DesignStorePage() {
   return (
     <main className="min-h-screen bg-white text-[#2f2f2f]">
 
-      {/* =====================================================
-          HERO SECTION
-      ===================================================== */}
+      {/* HERO */}
 
-      <section className="relative overflow-hidden bg-[#f7f6f2]">
-        <div className="mx-auto grid min-h-[520px] max-w-[1800px] items-center lg:grid-cols-2">
+      <section className="bg-[#f7f6f2]">
+        <div className="mx-auto grid min-h-[520px] max-w-[1800px] lg:grid-cols-2">
 
-          {/* Hero Content */}
+          <div className="flex items-center px-6 py-20 sm:px-10 lg:px-16 xl:px-24">
 
-          <div className="px-6 py-20 sm:px-10 lg:px-16 xl:px-24">
+            <div>
 
-            <p className="mb-5 font-serif text-sm uppercase tracking-[0.3em] text-[#7B8F50]">
-              TCL Gallery
-            </p>
+              <p className="mb-5 font-serif text-sm uppercase tracking-[0.3em] text-[#7B8F50]">
+                TCL Gallery
+              </p>
 
-            <h1 className="max-w-2xl font-serif text-5xl leading-[1.05] text-[#2f2f2f] sm:text-6xl lg:text-7xl">
-              Design Store
-            </h1>
+              <h1 className="font-serif text-5xl sm:text-6xl lg:text-7xl">
+                Design Store
+              </h1>
 
-            <div className="mt-7 h-[2px] w-16 bg-[#7B8F50]" />
+              <div className="mt-7 h-[2px] w-16 bg-[#7B8F50]" />
 
-            <p className="mt-7 max-w-xl text-base leading-8 text-gray-600 sm:text-lg">
-              A carefully curated world of design, craftsmanship and
-              meaningful objects. Discover pieces created to complement
-              the way you live, travel and celebrate life.
-            </p>
+              <p className="mt-7 max-w-xl text-base leading-8 text-gray-600 sm:text-lg">
+                Art inspired by life, crafted with heart and soul.
+                Every piece is made to bring creativity and meaning
+                into everyday spaces.
+              </p>
 
-            <Link
-              href="#collections"
-              className="
-                mt-9
-                inline-flex
-                items-center
-                gap-3
-                border
-                border-[#2f2f2f]
-                px-7
-                py-3.5
-                font-serif
-                text-sm
-                uppercase
-                tracking-[0.12em]
-                text-[#2f2f2f]
-                transition
-                duration-300
-                hover:bg-[#2f2f2f]
-                hover:text-white
-              "
-            >
-              Explore the Store
-              <FiArrowRight />
-            </Link>
+              <Link
+                href="#collections"
+                className="mt-9 inline-flex items-center gap-3 border border-[#2f2f2f] px-7 py-3.5 text-sm uppercase tracking-[0.12em] transition hover:bg-[#2f2f2f] hover:text-white"
+              >
+                Explore Collections
+                <FiArrowRight />
+              </Link>
+
+            </div>
+
           </div>
 
-          {/* Hero Image */}
-
           <div className="relative min-h-[420px] lg:min-h-[520px]">
+
             <img
-              src="https://images.unsplash.com/photo-1523170335258-f5ed11844a49?auto=format&fit=crop&w=1800&q=85"
-              alt="TCL Gallery Design Store"
+              src="\images\products\6.png"
+              alt="Design Store"
               className="absolute inset-0 h-full w-full object-cover"
             />
 
-            <div className="absolute inset-0 bg-black/10" />
           </div>
 
         </div>
       </section>
 
-      {/* =====================================================
-          INTRODUCTION
-      ===================================================== */}
 
-      <section className="mx-auto max-w-4xl px-6 py-20 text-center sm:py-24">
-
-        <p className="font-serif text-sm uppercase tracking-[0.25em] text-[#7B8F50]">
-          Curated With Purpose
-        </p>
-
-        <h2 className="mt-4 font-serif text-3xl leading-tight text-[#2f2f2f] sm:text-4xl">
-          Objects that celebrate everyday life
-        </h2>
-
-        <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-gray-600">
-          The TCL Gallery Design Store brings together carefully selected
-          pieces that reflect creativity, craftsmanship and the joy of
-          living beautifully.
-        </p>
-
-      </section>
-
-      {/* =====================================================
-          COLLECTIONS
-      ===================================================== */}
+      {/* COLLECTION CARDS */}
 
       <section
         id="collections"
@@ -136,9 +183,7 @@ export default function DesignStorePage() {
 
         <div className="mx-auto max-w-[1500px]">
 
-          {/* Section Heading */}
-
-          <div className="mb-12 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+          <div className="mb-12 flex items-end justify-between">
 
             <div>
 
@@ -146,82 +191,46 @@ export default function DesignStorePage() {
                 Explore
               </p>
 
-              <h2 className="mt-3 font-serif text-3xl text-[#2f2f2f] sm:text-4xl">
+              <h2 className="mt-3 font-serif text-3xl sm:text-4xl">
                 Design Store Collections
               </h2>
 
             </div>
 
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <FiShoppingBag />
-              <span>Discover the collection</span>
-            </div>
+            <FiShoppingBag className="text-xl text-[#7B8F50]" />
 
           </div>
 
-          {/* Category Cards */}
 
           <div className="grid gap-7 md:grid-cols-3">
 
             {designStoreCategories.map((category) => (
+
               <Link
-                key={category.title}
-                href={category.href}
-                className="
-                  group
-                  overflow-hidden
-                  bg-white
-                  shadow-sm
-                  transition-all
-                  duration-500
-                  hover:-translate-y-1
-                  hover:shadow-xl
-                "
+                key={category.slug}
+                href={`#${category.slug}`}
+                className="group overflow-hidden bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
               >
 
-                {/* Image */}
-
-                <div className="relative h-[360px] overflow-hidden sm:h-[420px]">
+                <div className="relative h-[360px] overflow-hidden">
 
                   <img
                     src={category.image}
                     alt={category.title}
-                    className="
-                      h-full
-                      w-full
-                      object-cover
-                      transition-transform
-                      duration-700
-                      group-hover:scale-105
-                    "
+                    className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
                   />
 
-                  <div
-                    className="
-                      absolute
-                      inset-0
-                      bg-gradient-to-t
-                      from-black/60
-                      via-black/10
-                      to-transparent
-                    "
-                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
 
-                  {/* Image Title */}
+                  <div className="absolute bottom-0 p-7">
 
-                  <div className="absolute bottom-0 left-0 right-0 p-7">
-
-                    <p className="font-serif text-2xl text-white sm:text-3xl">
+                    <h3 className="font-serif text-3xl text-white">
                       {category.title}
-                    </p>
-
-                    <div className="mt-3 h-[1px] w-10 bg-white transition-all duration-300 group-hover:w-16" />
+                    </h3>
 
                   </div>
 
                 </div>
-
-                {/* Card Content */}
 
                 <div className="p-7">
 
@@ -229,32 +238,15 @@ export default function DesignStorePage() {
                     {category.description}
                   </p>
 
-                  <div
-                    className="
-                      mt-6
-                      flex
-                      items-center
-                      gap-2
-                      font-serif
-                      text-sm
-                      uppercase
-                      tracking-[0.1em]
-                      text-[#7B8F50]
-                    "
-                  >
-                    Explore
-                    <FiArrowRight
-                      className="
-                        transition-transform
-                        duration-300
-                        group-hover:translate-x-1
-                      "
-                    />
+                  <div className="mt-6 flex items-center gap-2 text-sm uppercase tracking-[0.1em] text-[#7B8F50]">
+                    View Products
+                    <FiArrowRight />
                   </div>
 
                 </div>
 
               </Link>
+
             ))}
 
           </div>
@@ -263,73 +255,126 @@ export default function DesignStorePage() {
 
       </section>
 
+
       {/* =====================================================
-          PHILOSOPHY SECTION
+          ALL PRODUCTS BY COLLECTION
       ===================================================== */}
 
       <section className="px-6 py-24 sm:px-10 lg:px-16">
 
-        <div className="mx-auto max-w-4xl text-center">
+        <div className="mx-auto max-w-[1500px]">
 
-          <div className="mx-auto mb-7 h-[1px] w-12 bg-[#7B8F50]" />
+          <div className="mb-16 text-center">
 
-          <blockquote className="font-serif text-3xl leading-relaxed text-[#2f2f2f] sm:text-4xl">
-            “Every object carries a story. Choose pieces that become
-            part of yours.”
-          </blockquote>
+            <p className="font-serif text-sm uppercase tracking-[0.25em] text-[#7B8F50]">
+              The Collection
+            </p>
 
-          <p className="mt-7 text-sm uppercase tracking-[0.25em] text-gray-400">
-            Today • Celebrate Life
-          </p>
+            <h2 className="mt-4 font-serif text-4xl">
+              Explore All Products
+            </h2>
+
+          </div>
+
+
+          {/* LOOP THROUGH COLLECTIONS */}
+
+          {designStoreCategories.map((category) => {
+
+            const collectionProducts = products.filter(
+              (product) =>
+                product.collection === category.slug
+            );
+
+            return (
+
+              <section
+                key={category.slug}
+                id={category.slug}
+                className="mb-24 scroll-mt-24"
+              >
+
+                {/* COLLECTION HEADING */}
+
+                <div className="mb-10 flex flex-col justify-between gap-4 border-b border-gray-200 pb-6 sm:flex-row sm:items-end">
+
+                  <div>
+
+                    <p className="text-sm uppercase tracking-[0.2em] text-[#7B8F50]">
+                      Collection
+                    </p>
+
+                    <h2 className="mt-2 font-serif text-3xl sm:text-4xl">
+                      {category.title}
+                    </h2>
+
+                  </div>
+
+                  <Link
+                    href={category.href}
+                    className="flex items-center gap-2 text-sm uppercase tracking-wider text-[#7B8F50]"
+                  >
+                    View All
+                    <FiArrowRight />
+                  </Link>
+
+                </div>
+
+
+                {/* PRODUCTS */}
+
+                <div className="grid grid-cols-1 gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+
+                  {collectionProducts.map((product) => (
+
+                    <Link
+                      key={product.id}
+                      href={`/shop/${product.id}`}
+                      className="group block"
+                    >
+
+                      {/* PRODUCT IMAGE */}
+
+                      <div className="relative aspect-[4/5] overflow-hidden bg-[#f5f5f5]">
+
+                        <img
+                          src={product.image}
+                          alt={product.title}
+                          className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                        />
+
+                        <div className="absolute inset-x-4 bottom-4 translate-y-12 bg-white py-3 text-center text-sm opacity-0 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                          View Product
+                        </div>
+
+                      </div>
+
+
+                      {/* PRODUCT INFO */}
+
+                      <div className="pt-5">
+
+                        <h3 className="font-serif text-xl">
+                          {product.title}
+                        </h3>
+
+                        <p className="mt-2 text-sm font-medium">
+                          ₹{product.price.toLocaleString("en-IN")}
+                        </p>
+
+                      </div>
+
+                    </Link>
+
+                  ))}
+
+                </div>
+
+              </section>
+            );
+          })}
 
         </div>
-
-      </section>
-
-      {/* =====================================================
-          CTA SECTION
-      ===================================================== */}
-
-      <section className="bg-[#2f2f2f] px-6 py-20 text-center sm:px-10">
-
-        <p className="font-serif text-sm uppercase tracking-[0.3em] text-[#b6c58f]">
-          TCL Gallery
-        </p>
-
-        <h2 className="mx-auto mt-4 max-w-2xl font-serif text-3xl leading-tight text-white sm:text-4xl">
-          Discover something made for your world
-        </h2>
-
-        <p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-gray-300">
-          Explore our curated design collections and find pieces that
-          bring character, creativity and meaning into everyday life.
-        </p>
-
-        <Link
-          href="/design-store"
-          className="
-            mt-8
-            inline-flex
-            items-center
-            gap-3
-            border
-            border-white
-            px-7
-            py-3.5
-            font-serif
-            text-sm
-            uppercase
-            tracking-[0.12em]
-            text-white
-            transition
-            duration-300
-            hover:bg-white
-            hover:text-[#2f2f2f]
-          "
-        >
-          Explore Design Store
-          <FiArrowRight />
-        </Link>
 
       </section>
 

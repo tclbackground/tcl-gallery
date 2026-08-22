@@ -20,7 +20,7 @@ export default function Home() {
       <WhyChooseUs />
       <TestimonialSection />
       <Newletter />
-      <Footer />
+    
 
       {/* Modern Discount Popup */}
       {/* <DiscountPopup /> */}

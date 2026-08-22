@@ -83,9 +83,6 @@ h6 {
 h1 {
   font-size: clamp(1.5rem, 3.5vw, 3rem);
 }
-html {
-  scroll-behavior: smooth;
-}
 
 h2 {
   font-size: clamp(1.3rem, 5vw, 4rem);

@@ -14,8 +14,9 @@ model Artist {
 
   products Product[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // Existing MongoDB documents may have null values
+  createdAt DateTime?
+  updatedAt DateTime?
 }
 
 model Product {
@@ -56,7 +57,8 @@ model Product {
 
   // Order items containing this product
   orderItems OrderItem[]
-  cartItems CartItem[]
+  cartItems  CartItem[]
+  wishlists  Wishlist[]
 
   createdAt DateTime?
   updatedAt DateTime?
@@ -68,19 +70,18 @@ enum Role {
 }
 
 model User {
-  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
   name     String?
-  email    String @unique
+  email    String  @unique
   password String?
 
   role Role @default(USER)
 
-  orders Order[]
-
+  orders    Order[]
   wishlists Wishlist[]
-
   cartItems CartItem[]
 }
+
 enum OrderStatus {
   ORDER_PLACED
   PAYMENT_CONFIRMED
@@ -113,11 +114,9 @@ model Order {
   id          String @id @default(auto()) @map("_id") @db.ObjectId
   orderNumber String @unique
 
-  // Logged-in user
   userId String @db.ObjectId
   user   User   @relation(fields: [userId], references: [id])
 
-  // Customer details
   customerName    String
   customerEmail   String
   customerPhone   String
@@ -126,23 +125,19 @@ model Order {
   state           String
   postalCode      String
 
-  // Pricing
   totalAmount Float
   currency    String @default("INR")
 
-  // Payment
   paymentMethod PaymentMethod @default(RAZORPAY)
   paymentStatus PaymentStatus @default(PENDING)
 
   razorpayOrderId   String?
   razorpayPaymentId String?
 
-  // Order tracking
   status         OrderStatus @default(ORDER_PLACED)
   courier        String?
   trackingNumber String?
 
-  // Order products
   items OrderItem[]
 
   createdAt DateTime @default(now())
@@ -152,11 +147,9 @@ model Order {
 model OrderItem {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
-  // Order relationship
   orderId String @db.ObjectId
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  // Product relationship
   productId String?  @db.ObjectId
   product   Product? @relation(fields: [productId], references: [id])
 
@@ -185,14 +178,74 @@ model CartItem {
   userId String @db.ObjectId
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  productId String @db.ObjectId
+  productId String  @db.ObjectId
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  size String?
+  size  String?
   frame String?
 
-  price Float
-  quantity Int @default(1)
+  price    Float
+  quantity Int   @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FineArt {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  slNo Int? @map("Sl No")
+
+  category String? @map("Category")
+
+  artistName String? @map("Artist Name")
+
+  itemRefNo String? @map("Item Ref No")
+
+  year Int? @map("Year")
+
+  image1 String? @map("Image 1")
+  image2 String? @map("Image 2")
+  image3 String? @map("Image 3")
+
+  titleOfArt String? @map("Title of the Art")
+
+  widthCms  String? @map("Width (CMS)")
+  withFrame String? @map("With Frame")
+
+  photo String? @map("Photo")
+
+  paintingType String? @map("Painting Type")
+
+  productCategory String? @map("Product Category")
+
+  createdAt DateTime?
+  updatedAt DateTime?
+}
+
+model Wishlist {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+
+  productId String  @db.ObjectId
+  product   Product @relation(fields: [productId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model Enquiry {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  firstName   String
+  lastName    String
+  email       String
+  phone       String?
+  inquiryType String
+  message     String
+
+  status String @default("NEW")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

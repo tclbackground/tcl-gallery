@@ -3,6 +3,9 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { Heart } from "lucide-react";
+import { useWishlist } from "@/components/WishlistProvider";
+
 import {
   FiSearch,
   FiShoppingCart,
@@ -12,6 +15,7 @@ import {
 } from "react-icons/fi";
 
 import logoImg from "@/public/images/Logo.jpg";
+import { WishlistProvider } from "../WishlistProvider";
 
 // ======================================================
 // TCL GALLERY NAVIGATION
