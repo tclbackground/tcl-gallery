@@ -31,7 +31,7 @@ const designStoreCategories = [
       "Explore meaningful creations designed to become part of your home, life and story.",
     href: "/design-store/living-legacy",
     image:
-      "https://images.unsplash.com/photo-1618220179428-22790b461013?auto=format&fit=crop&w=1200&q=85",
+      "/images/livinglegacy/living-legacy.jpeg",
   },
   {
     title: "Nature Window",
@@ -40,7 +40,7 @@ const designStoreCategories = [
       "Discover creations inspired by the beauty and character of nature.",
     href: "/design-store/nature-window",
     image:
-      "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1200&q=85",
+      "/images/nature-window/forest-canopy.jpeg",
   },
 ];
 
@@ -49,7 +49,7 @@ const products: Product[] = [
     id: "1",
     title: "Golden Tree",
     image:
-      "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=1000&q=85",
+      "images/products/6.png",
     collection: "jewel-tree",
     price: 4500,
   },
@@ -57,7 +57,7 @@ const products: Product[] = [
     id: "2",
     title: "Tree of Life",
     image:
-      "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=1000&q=85",
+      "/images/jeweltree/jewel-tree-1.jpeg",
     collection: "jewel-tree",
     price: 5200,
   },
@@ -65,7 +65,7 @@ const products: Product[] = [
     id: "3",
     title: "Nature Inspired",
     image:
-      "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=1000&q=85",
+      "/images/jeweltree/jewel-tree-2.jpeg",
     collection: "jewel-tree",
     price: 6800,
   },
@@ -73,7 +73,7 @@ const products: Product[] = [
     id: "4",
     title: "Legacy Vase",
     image:
-      "https://images.unsplash.com/photo-1618220179428-22790b461013?auto=format&fit=crop&w=1000&q=85",
+      "/images/jeweltree/jewel-tree-3.jpeg",
     collection: "living-legacy",
     price: 3500,
   },
@@ -81,7 +81,7 @@ const products: Product[] = [
     id: "5",
     title: "Living Object",
     image:
-      "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1000&q=85",
+      "/images/livinglegacy/living-legacy.jpeg",
     collection: "living-legacy",
     price: 7200,
   },
@@ -89,7 +89,7 @@ const products: Product[] = [
     id: "6",
     title: "Timeless Living",
     image:
-      "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1000&q=85",
+      "/images/livinglegacy/living-legacy.jpeg",
     collection: "living-legacy",
     price: 8500,
   },
@@ -97,7 +97,7 @@ const products: Product[] = [
     id: "7",
     title: "Forest Window",
     image:
-      "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1000&q=85",
+      "/images/nature-window/forest-canopy.jpeg",
     collection: "nature-window",
     price: 5500,
   },
@@ -105,7 +105,7 @@ const products: Product[] = [
     id: "8",
     title: "Mountain View",
     image:
-      "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1000&q=85",
+      "/images/nature-window/forest-canopy-2.jpeg",
     collection: "nature-window",
     price: 6500,
   },
@@ -113,7 +113,7 @@ const products: Product[] = [
     id: "9",
     title: "Green Escape",
     image:
-      "https://images.unsplash.com/photo-1473445361085-b9a07f55608b?auto=format&fit=crop&w=1000&q=85",
+      "/images/nature-window/forest-canopy-2.jpeg",
     collection: "nature-window",
     price: 7200,
   },

@@ -419,7 +419,7 @@ export default function ShopPage() {
               className="
                 grid
                 grid-cols-1
-                gap-8
+                gap-5
                 sm:grid-cols-2
                 lg:grid-cols-3
               "
@@ -709,48 +709,16 @@ export default function ShopPage() {
 
                     <div
                       className="
-                        mt-4
+                        mt-3
                         flex
                         items-center
-                        justify-between
+                        justify-end
                         border-t
                         border-gray-100
-                        p-6
-                        pt-5
+                        px-4
+                        py-3
                       "
                     >
-
-                      {/* Price */}
-
-                      <div>
-
-                        <span
-                          className="
-                            block
-                            text-[10px]
-                            font-bold
-                            uppercase
-                            tracking-widest
-                            text-[#88847C]
-                          "
-                        >
-                          Investment
-                        </span>
-
-                        <span
-                          className="
-                            font-serif
-                            text-xl
-                            font-bold
-                            text-[#22211B]
-                          "
-                        >
-                          {price > 0
-                            ? `₹${price.toLocaleString("en-IN")}`
-                            : "Price on Request"}
-                        </span>
-
-                      </div>
 
                       {/* View Artwork */}
 
@@ -761,9 +729,9 @@ export default function ShopPage() {
                           gap-2
                           rounded-full
                           bg-[#F8F6F0]
-                          px-5
-                          py-2.5
-                          text-xs
+                          px-4
+                          py-2
+                          text-[11px]
                           font-semibold
                           text-[#22211B]
                           shadow-sm

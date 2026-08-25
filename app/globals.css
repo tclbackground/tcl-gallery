@@ -193,3 +193,42 @@ a:hover {
   background: #5FA8FF;
   color: #FFFFFF;
 }
+/* ==========================================
+   HERO BACKGROUND COLOR ANIMATION
+========================================== */
+
+.hero-background {
+  background: linear-gradient(
+    120deg,
+    #f7f4ef,
+    #e8edf3,
+    #dfe7f0,
+    #f2eee8,
+    #e6edf5
+  );
+
+  background-size: 400% 400%;
+  animation: backgroundShift 12s ease infinite;
+}
+
+@keyframes backgroundShift {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  25% {
+    background-position: 50% 0%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  75% {
+    background-position: 50% 100%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}

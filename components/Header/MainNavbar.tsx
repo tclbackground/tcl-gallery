@@ -69,57 +69,57 @@ const navigationItems = [
     title: "Collections",
     href: "/",
     isMega: true,
-    categories: [
-      {
-        title: "Explore Collections",
-        links: [
-          {
-            label: "Nature & Landscapes",
-            href: "/collections/nature-landscapes",
-          },
-          {
-            label: "Travel & Places",
-            href: "/collections/travel-places",
-          },
-          {
-            label: "People & Portraits",
-            href: "/collections/people-portraits",
-          },
-          {
-            label: "Abstract & Contemporary",
-            href: "/collections/abstract-contemporary",
-          },
-          {
-            label: "Black & White",
-            href: "/collections/black-white",
-          },
-          {
-            label: "Architecture & Interiors",
-            href: "/collections/architecture-interiors",
-          },
-          {
-            label: "Moments & Stories",
-            href: "/collections/moments-stories",
-          },
-          {
-            label: "Indian Heritage & Culture",
-            href: "/collections/indian-heritage-culture",
-          },
-          {
-            label: "Curated for Interiors",
-            href: "/collections/curated-for-interiors",
-          },
-          {
-            label: "Limited Editions",
-            href: "/collections/limited-editions",
-          },
-          {
-            label: "View All Collections",
-            href: "/collections",
-          },
-        ],
-      },
-    ],
+    // categories: [
+    //   {
+    //     title: "Explore Collections",
+    //     links: [
+    //       {
+    //         label: "Nature & Landscapes",
+    //         href: "/collections/nature-landscapes",
+    //       },
+    //       {
+    //         label: "Travel & Places",
+    //         href: "/collections/travel-places",
+    //       },
+    //       {
+    //         label: "People & Portraits",
+    //         href: "/collections/people-portraits",
+    //       },
+    //       {
+    //         label: "Abstract & Contemporary",
+    //         href: "/collections/abstract-contemporary",
+    //       },
+    //       {
+    //         label: "Black & White",
+    //         href: "/collections/black-white",
+    //       },
+    //       {
+    //         label: "Architecture & Interiors",
+    //         href: "/collections/architecture-interiors",
+    //       },
+    //       {
+    //         label: "Moments & Stories",
+    //         href: "/collections/moments-stories",
+    //       },
+    //       {
+    //         label: "Indian Heritage & Culture",
+    //         href: "/collections/indian-heritage-culture",
+    //       },
+    //       {
+    //         label: "Curated for Interiors",
+    //         href: "/collections/curated-for-interiors",
+    //       },
+    //       {
+    //         label: "Limited Editions",
+    //         href: "/collections/limited-editions",
+    //       },
+    //       {
+    //         label: "View All Collections",
+    //         href: "/collections",
+    //       },
+    //     ],
+    //   },
+    // ],
   },
 
   // ====================================================

@@ -250,3 +250,25 @@ model Enquiry {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model Artwork {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  slNo Int @map("Sl No")
+
+  artistName String? @map("Artist Name")
+
+  itemRefNo String? @map("Item Ref No")
+
+  year Int?
+
+  image1 String? @map("Image 1")
+
+  titleOfTheArt String @map("Title of the Art")
+
+  widthFrame String? @map("Width Frame")
+
+  paintingType String? @map("Painting Type")
+
+  productCategory String @map("Product Category")
+}
