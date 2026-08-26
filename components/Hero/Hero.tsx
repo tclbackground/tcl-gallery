@@ -72,14 +72,12 @@ const features = [
 export default function Home() {
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#0e2029]">
-
       {/* ===================================================== */}
       {/* MOBILE + TABLET HERO */}
       {/* CENTERED PHOTOFRAME FIRST → TEXT → BUTTONS */}
       {/* ===================================================== */}
 
       <section className="relative w-full overflow-hidden bg-[#071923] lg:hidden">
-
         {/* PHOTOFRAME AREA */}
         <div className="relative h-[340px] w-full overflow-hidden bg-[#071923] sm:h-[440px] md:h-[540px]">
           <img
@@ -103,9 +101,7 @@ export default function Home() {
 
         {/* TEXT BELOW PHOTOFRAME */}
         <div className="relative z-10 w-full bg-[#071923] px-5 pb-12 pt-9 sm:px-8 sm:pb-14 sm:pt-11 md:px-12 md:pb-16 md:pt-12">
-
           <div className="mx-auto w-full max-w-[760px]">
-
             {/* TAGLINE */}
             <p className="mb-4 text-[10px] font-bold tracking-[0.16em] text-[#d3972d] sm:text-[11px] md:text-sm">
               CAPTURE. PRESERVE. INSPIRE.
@@ -125,7 +121,6 @@ export default function Home() {
 
             {/* BUTTONS */}
             <div className="mt-8 flex flex-col gap-3 sm:mt-9 sm:flex-row sm:gap-4">
-
               {/* EXPLORE COLLECTIONS */}
               <Link
                 href="/fine-art"
@@ -148,6 +143,7 @@ export default function Home() {
                   duration-300
                   hover:-translate-y-1
                   hover:bg-[#eca62a]
+                  hover:text-white
                   hover:shadow-xl
                   sm:min-w-[230px]
                   sm:w-auto
@@ -156,12 +152,15 @@ export default function Home() {
                   md:min-w-[250px]
                 "
               >
-                EXPLORE COLLECTIONS
+                <span className="text-white">
+                  EXPLORE COLLECTIONS
+                </span>
 
                 <ArrowRight
                   size={18}
                   className="
                     shrink-0
+                    text-white
                     transition-transform
                     duration-300
                     group-hover:translate-x-1
@@ -187,7 +186,7 @@ export default function Home() {
                   text-[11px]
                   font-bold
                   tracking-wide
-                  text-[#df9d2e]
+                  text-white
                   transition-all
                   duration-300
                   hover:-translate-y-1
@@ -199,24 +198,25 @@ export default function Home() {
                   sm:text-xs
                 "
               >
-                SHOP NOW
+                <span className="text-white">
+                  SHOP NOW
+                </span>
 
                 <ArrowRight
                   size={18}
                   className="
                     shrink-0
+                    text-white
                     transition-transform
                     duration-300
                     group-hover:translate-x-1
                   "
                 />
               </Link>
-
             </div>
           </div>
         </div>
       </section>
-
 
       {/* ===================================================== */}
       {/* DESKTOP HERO */}
@@ -240,7 +240,6 @@ export default function Home() {
             2xl:min-h-[760px]
           "
         >
-
           {/* BACKGROUND IMAGE */}
           <img
             src="/images/banners/banner-1.png"
@@ -306,7 +305,6 @@ export default function Home() {
                 2xl:px-28
               "
             >
-
               {/* HERO TEXT */}
               <div
                 className="
@@ -318,7 +316,6 @@ export default function Home() {
                   2xl:-translate-y-24
                 "
               >
-
                 {/* TAGLINE */}
                 <p
                   className="
@@ -373,7 +370,6 @@ export default function Home() {
                     gap-4
                   "
                 >
-
                   {/* EXPLORE COLLECTIONS */}
                   <Link
                     href="/collections"
@@ -396,15 +392,19 @@ export default function Home() {
                       duration-300
                       hover:-translate-y-1
                       hover:bg-[#eca62a]
+                      hover:text-white
                       hover:shadow-xl
                     "
                   >
-                    EXPLORE COLLECTIONS
+                    <span className="text-white">
+                      EXPLORE COLLECTIONS
+                    </span>
 
                     <ArrowRight
                       size={18}
                       className="
                         shrink-0
+                        text-white
                         transition-transform
                         duration-300
                         group-hover:translate-x-1
@@ -430,7 +430,7 @@ export default function Home() {
                       text-sm
                       font-bold
                       tracking-wide
-                      text-[#df9d2e]
+                      text-white
                       backdrop-blur-sm
                       transition-all
                       duration-300
@@ -439,19 +439,21 @@ export default function Home() {
                       hover:text-white
                     "
                   >
-                    SHOP NOW
+                    <span className="text-white">
+                      SHOP NOW
+                    </span>
 
                     <ArrowRight
                       size={18}
                       className="
                         shrink-0
+                        text-white
                         transition-transform
                         duration-300
                         group-hover:translate-x-1
                       "
                     />
                   </Link>
-
                 </div>
               </div>
             </div>
@@ -459,13 +461,11 @@ export default function Home() {
         </div>
       </section>
 
-
       {/* ===================================================== */}
       {/* FEATURES SECTION */}
       {/* ===================================================== */}
 
       <section className="relative z-20 w-full bg-[#eeece7] text-[#34414e]">
-
         <div
           className="
             mx-auto
@@ -481,7 +481,6 @@ export default function Home() {
             lg:grid-cols-5
           "
         >
-
           {features.map((feature, index) => {
             const Icon = feature.icon;
             const isLast = index === features.length - 1;
@@ -524,7 +523,6 @@ export default function Home() {
                   xl:px-8
                 `}
               >
-
                 {/* FEATURE ICON */}
                 <div className="flex shrink-0 items-center justify-center">
                   <Icon
@@ -543,7 +541,6 @@ export default function Home() {
 
                 {/* FEATURE TEXT */}
                 <div className="max-w-[210px] text-center">
-
                   <h3
                     className="
                       mb-1
@@ -571,15 +568,12 @@ export default function Home() {
                   >
                     {feature.text}
                   </p>
-
                 </div>
               </div>
             );
           })}
-
         </div>
       </section>
-
     </main>
   );
 }
