@@ -70,16 +70,77 @@ const features = [
 export default function Home() {
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#0e2029]">
-      {/* ================= HERO SECTION ================= */}
+      {/* ===================================================== */}
+      {/* MOBILE + TABLET HERO */}
+      {/* CENTERED PHOTOFRAME FIRST → TEXT → BUTTONS */}
+      <section className="relative w-full overflow-hidden bg-[#071923] lg:hidden">
+        {/* PHOTOFRAME AREA */}
+        <div className="relative h-[340px] w-full overflow-hidden bg-[#071923] sm:h-[440px] md:h-[540px]">
+          <img
+            src="/images/banners/banner-1.png"
+            alt="TCL Gallery Fine Art"
+            className="absolute inset-0 h-full w-full object-cover object-[70%_34%] scale-[1.30] sm:scale-[1.22] md:scale-[1.15]"
+          />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#071923]/80" />
+        </div>
 
-      <section className="relative w-full overflow-hidden bg-[#071923]">
+        {/* TEXT BELOW PHOTOFRAME */}
+        <div className="relative z-10 w-full bg-[#071923] px-5 pb-12 pt-9 sm:px-8 sm:pb-14 sm:pt-11 md:px-12 md:pb-16 md:pt-12">
+          <div className="mx-auto w-full max-w-[760px]">
+            <p className="mb-4 text-[10px] font-bold tracking-[0.16em] text-[#d3972d] sm:text-[11px] md:text-sm">
+              CAPTURE. PRESERVE. INSPIRE.
+            </p>
+
+            <h1 className="font-serif text-[42px] leading-[0.92] tracking-tight text-[#f5f2eb] sm:text-[56px] md:text-[68px]">
+              <span className="block">Art That</span>
+              <span className="block italic text-[#d49427]">Moves Life</span>
+            </h1>
+
+            <div className="mt-5 h-px w-14 bg-[#dedbd3] sm:mt-6 sm:w-16 md:w-20" />
+
+            <div className="mt-8 flex flex-col gap-3 sm:mt-9 sm:flex-row sm:gap-4">
+              <button
+                className="group flex w-full items-center justify-center gap-2 bg-[#df981c] px-5 py-4 text-[11px] font-bold tracking-wide text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:bg-[#eca62a] hover:shadow-xl sm:min-w-[230px] sm:w-auto sm:px-6 sm:text-xs md:min-w-[250px]"
+              >
+                EXPLORE COLLECTIONS
+                <ArrowRight
+                  size={18}
+                  className="shrink-0 transition-transform duration-300 group-hover:translate-x-1"
+                />
+              </button>
+
+              <button
+                className="group flex w-full items-center justify-center gap-2 border border-[#c98c23] bg-[#0b1c25]/40 px-5 py-4 text-[11px] font-bold tracking-wide text-[#df9d2e] transition-all duration-300 hover:-translate-y-1 hover:bg-[#d58f1d] hover:text-white sm:min-w-[180px] sm:w-auto sm:px-6 sm:text-xs"
+              >
+                SHOP NOW
+                <ArrowRight
+                  size={18}
+                  className="shrink-0 transition-transform duration-300 group-hover:translate-x-1"
+                />
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* DESKTOP HERO */}
+      {/* ORIGINAL FULL BANNER LAYOUT */}
+      {/* ===================================================== */}
+
+      <section
+        className="
+          relative
+          hidden
+          w-full
+          overflow-hidden
+          bg-[#071923]
+
+          lg:block
+        "
+      >
         <div
           className="
             relative
-            min-h-[580px]
-
-            sm:min-h-[620px]
-            md:min-h-[680px]
 
             lg:min-h-[620px]
 
@@ -96,18 +157,12 @@ export default function Home() {
             className="
               absolute
               inset-0
+
               h-full
               w-full
+
               object-cover
-
-              object-[58%_center]
-
-              sm:object-[60%_center]
-              md:object-[62%_center]
-
-              lg:object-center
-              xl:object-center
-              2xl:object-center
+              object-center
             "
           />
 
@@ -117,25 +172,15 @@ export default function Home() {
             className="
               absolute
               inset-0
+
               bg-gradient-to-r
 
-              from-[#06141d]/95
-              via-[#06141d]/70
-              to-[#06141d]/25
-
-              sm:from-[#06141d]/88
-              sm:via-[#06141d]/55
-
-              md:from-[#06141d]/78
-              md:via-[#06141d]/40
-
-              lg:from-[#06141d]/62
-              lg:via-[#06141d]/22
-              lg:to-transparent
+              from-[#06141d]/62
+              via-[#06141d]/22
+              to-transparent
 
               xl:from-[#06141d]/55
               xl:via-[#06141d]/15
-              xl:to-transparent
             "
           />
 
@@ -144,18 +189,19 @@ export default function Home() {
           <div
             className="
               pointer-events-none
+
               absolute
               inset-x-0
               bottom-0
 
-              h-40
+              h-28
 
               bg-gradient-to-t
+
               from-[#06141d]/80
               via-[#06141d]/30
               to-transparent
 
-              lg:h-28
               xl:h-24
             "
           />
@@ -166,13 +212,10 @@ export default function Home() {
             className="
               relative
               z-10
+
               flex
-              min-h-[580px]
               w-full
               items-center
-
-              sm:min-h-[620px]
-              md:min-h-[680px]
 
               lg:min-h-[620px]
 
@@ -185,19 +228,10 @@ export default function Home() {
               className="
                 w-full
 
-                px-5
-                py-12
-
-                sm:px-8
-                sm:py-14
-
-                md:px-12
-                md:py-16
-
                 lg:px-16
-                lg:py-0
 
                 xl:px-20
+
                 2xl:px-28
               "
             >
@@ -205,17 +239,16 @@ export default function Home() {
 
               <div
                 className="
-                  max-w-[285px]
-
-                  sm:max-w-[370px]
-                  md:max-w-[450px]
-
                   lg:max-w-[500px]
+
                   xl:max-w-[540px]
+
                   2xl:max-w-[620px]
 
                   lg:-translate-y-16
+
                   xl:-translate-y-20
+
                   2xl:-translate-y-24
                 "
               >
@@ -224,79 +257,67 @@ export default function Home() {
                 <p
                   className="
                     mb-4
-                    text-[9px]
+
+                    text-base
                     font-bold
                     tracking-[0.1em]
+
                     text-[#d3972d]
-
-                    sm:text-[11px]
-
-                    md:mb-5
-                    md:text-sm
-
-                    lg:text-base
                   "
                 >
                   CAPTURE. PRESERVE. INSPIRE.
                 </p>
 
-                {/* ================= MAIN HEADING ================= */}
+                {/* MAIN HEADING */}
 
                 <h1
                   className="
                     font-serif
-                    text-[38px]
+
+                    text-[76px]
                     leading-[0.92]
                     tracking-tight
+
                     text-[#f5f2eb]
 
-                    sm:text-[50px]
-                    md:text-[62px]
-
-                    lg:text-[76px]
                     xl:text-[92px]
+
                     2xl:text-[108px]
                   "
                 >
-                  <span className="block">Art That</span>
+                  <span className="block">
+                    Art That
+                  </span>
 
                   <span className="block italic text-[#d49427]">
                     Moves Life
                   </span>
                 </h1>
 
-                {/* ================= DIVIDER ================= */}
+                {/* DIVIDER */}
 
                 <div
                   className="
-                    mt-5
+                    mt-8
+
                     h-px
-                    w-12
+                    w-20
+
                     bg-[#dedbd3]
-
-                    sm:mt-6
-                    sm:w-16
-
-                    lg:mt-8
-                    lg:w-20
                   "
                 />
 
-                {/* ================= HERO BUTTONS ================= */}
+                {/* BUTTONS */}
 
                 <div
                   className="
-                    mt-7
+                    mt-12
+
                     flex
-                    flex-row
                     flex-wrap
                     items-center
-                    gap-2.5
 
-                    sm:mt-9
-                    sm:gap-4
-
-                    lg:mt-12
+                    gap-4
                   "
                 >
                   {/* EXPLORE COLLECTIONS */}
@@ -304,54 +325,48 @@ export default function Home() {
                   <button
                     className="
                       group
+
                       flex
-                      w-auto
+
+                      min-w-[230px]
+
                       items-center
                       justify-center
+
                       gap-2
 
                       bg-[#df981c]
 
-                      px-4
-                      py-2.5
+                      px-7
+                      py-4
 
-                      text-[9px]
+                      text-sm
                       font-bold
                       tracking-wide
+
                       text-white
 
                       shadow-lg
+
                       transition-all
                       duration-300
 
                       hover:-translate-y-1
                       hover:bg-[#eca62a]
                       hover:shadow-xl
-
-                      sm:min-w-[210px]
-                      sm:px-5
-                      sm:py-3.5
-                      sm:text-[10px]
-
-                      md:min-w-[230px]
-
-                      lg:px-7
-                      lg:py-4
-                      lg:text-sm
                     "
                   >
                     EXPLORE COLLECTIONS
 
                     <ArrowRight
-                      size={15}
+                      size={18}
                       className="
                         shrink-0
+
                         transition-transform
                         duration-300
-                        group-hover:translate-x-1
 
-                        sm:h-[17px]
-                        sm:w-[17px]
+                        group-hover:translate-x-1
                       "
                     />
                   </button>
@@ -361,10 +376,14 @@ export default function Home() {
                   <button
                     className="
                       group
+
                       flex
-                      w-auto
+
+                      min-w-[170px]
+
                       items-center
                       justify-center
+
                       gap-2
 
                       border
@@ -372,12 +391,13 @@ export default function Home() {
 
                       bg-[#0b1c25]/40
 
-                      px-4
-                      py-2.5
+                      px-7
+                      py-4
 
-                      text-[9px]
+                      text-sm
                       font-bold
                       tracking-wide
+
                       text-[#df9d2e]
 
                       backdrop-blur-sm
@@ -388,29 +408,19 @@ export default function Home() {
                       hover:-translate-y-1
                       hover:bg-[#d58f1d]
                       hover:text-white
-
-                      sm:min-w-[160px]
-                      sm:px-5
-                      sm:py-3.5
-                      sm:text-[10px]
-
-                      lg:px-7
-                      lg:py-4
-                      lg:text-sm
                     "
                   >
                     SHOP NOW
 
                     <ArrowRight
-                      size={15}
+                      size={18}
                       className="
                         shrink-0
+
                         transition-transform
                         duration-300
-                        group-hover:translate-x-1
 
-                        sm:h-[17px]
-                        sm:w-[17px]
+                        group-hover:translate-x-1
                       "
                     />
                   </button>
@@ -421,7 +431,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= FEATURES SECTION ================= */}
+      {/* ===================================================== */}
+      {/* FEATURES SECTION */}
+      {/* ===================================================== */}
 
       <section className="relative z-20 w-full bg-[#eeece7] text-[#34414e]">
         <div
@@ -432,6 +444,7 @@ export default function Home() {
             max-w-[1800px]
 
             grid-cols-1
+
             divide-y
             divide-[#d6d2cb]
 
@@ -451,15 +464,19 @@ export default function Home() {
                 key={feature.title}
                 className={`
                   group
+
                   flex
                   min-h-[125px]
+
                   flex-col
                   items-center
                   justify-center
+
                   gap-3
 
                   px-5
                   py-6
+
                   text-center
 
                   transition-all
@@ -495,6 +512,7 @@ export default function Home() {
                     className="
                       h-8
                       w-8
+
                       text-[#a87520]
 
                       sm:h-9
@@ -512,9 +530,11 @@ export default function Home() {
                   <h3
                     className="
                       mb-1
+
                       text-[11px]
                       font-bold
                       tracking-wide
+
                       text-[#34414e]
 
                       sm:text-xs
@@ -530,6 +550,7 @@ export default function Home() {
                     className="
                       text-[11px]
                       leading-5
+
                       text-[#3d4854]
 
                       sm:text-xs
