@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-
 import {
   ArrowRight,
   Frame,
@@ -72,44 +71,109 @@ const features = [
 export default function Home() {
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#0e2029]">
+
       {/* ===================================================== */}
       {/* MOBILE + TABLET HERO */}
-      {/* CENTERED PHOTOFRAME FIRST → TEXT → BUTTONS */}
+      {/* TEXT LEFT + ARTWORK RIGHT */}
       {/* ===================================================== */}
 
-      <section className="relative w-full overflow-hidden bg-[#071923] lg:hidden">
-        {/* PHOTOFRAME AREA */}
-        <div className="relative h-[340px] w-full overflow-hidden bg-[#071923] sm:h-[440px] md:h-[540px]">
-          <img
-            src="/images/banners/banner-1.png"
-            alt="TCL Gallery Fine Art"
+      <section className="relative h-[680px] w-full overflow-hidden bg-[#071923] lg:hidden">
+
+        {/* BACKGROUND IMAGE */}
+        <img
+          src="/images/banners/banner-1.png"
+          alt="TCL Gallery Fine Art"
+          className="
+            absolute
+            inset-0
+            h-full
+            w-full
+            object-cover
+            object-[68%_center]
+            sm:object-[65%_center]
+            md:object-[68%_center]
+          "
+        />
+
+        {/* DARK LEFT OVERLAY */}
+        <div
+          className="
+            absolute
+            inset-0
+            bg-gradient-to-r
+            from-[#071923]
+            via-[#071923]/90
+            to-transparent
+          "
+        />
+
+        {/* BOTTOM OVERLAY */}
+        <div
+          className="
+            absolute
+            inset-x-0
+            bottom-0
+            h-56
+            bg-gradient-to-t
+            from-[#071923]
+            via-[#071923]/40
+            to-transparent
+          "
+        />
+
+        {/* MOBILE CONTENT */}
+        <div
+          className="
+            relative
+            z-10
+            flex
+            h-full
+            w-full
+            items-center
+            px-5
+            sm:px-8
+            md:px-12
+          "
+        >
+          <div
             className="
-              absolute
-              inset-0
-              h-full
               w-full
-              object-cover
-              object-[70%_34%]
-              scale-[1.30]
-              sm:scale-[1.22]
-              md:scale-[1.15]
+              max-w-[310px]
+              sm:max-w-[390px]
+              md:max-w-[460px]
+              -translate-y-2
             "
-          />
-
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#071923]/80" />
-        </div>
-
-        {/* TEXT BELOW PHOTOFRAME */}
-        <div className="relative z-10 w-full bg-[#071923] px-5 pb-12 pt-9 sm:px-8 sm:pb-14 sm:pt-11 md:px-12 md:pb-16 md:pt-12">
-          <div className="mx-auto w-full max-w-[760px]">
+          >
             {/* TAGLINE */}
-            <p className="mb-4 text-[10px] font-bold tracking-[0.16em] text-[#d3972d] sm:text-[11px] md:text-sm">
+            <p
+              className="
+                mb-4
+                text-[10px]
+                font-bold
+                tracking-[0.16em]
+                text-[#d3972d]
+                sm:text-xs
+                md:text-sm
+              "
+            >
               CAPTURE. PRESERVE. INSPIRE.
             </p>
 
             {/* HEADING */}
-            <h1 className="font-serif text-[42px] leading-[0.92] tracking-tight text-[#f5f2eb] sm:text-[56px] md:text-[68px]">
-              <span className="block">Art That</span>
+            <h1
+              className="
+                font-serif
+                text-[42px]
+                leading-[0.92]
+                tracking-tight
+                text-[#f5f2eb]
+                sm:text-[58px]
+                md:text-[72px]
+              "
+            >
+              <span className="block">
+                Art That
+              </span>
 
               <span className="block italic text-[#d49427]">
                 Moves Life
@@ -117,13 +181,33 @@ export default function Home() {
             </h1>
 
             {/* DIVIDER */}
-            <div className="mt-5 h-px w-14 bg-[#dedbd3] sm:mt-6 sm:w-16 md:w-20" />
+            <div
+              className="
+                mt-5
+                h-px
+                w-14
+                bg-[#dedbd3]
+                sm:mt-7
+                sm:w-16
+                md:w-20
+              "
+            />
 
             {/* BUTTONS */}
-            <div className="mt-8 flex flex-col gap-3 sm:mt-9 sm:flex-row sm:gap-4">
+            <div
+              className="
+                mt-8
+                flex
+                flex-col
+                items-start
+                gap-3
+                sm:flex-row
+                sm:gap-4
+              "
+            >
               {/* EXPLORE COLLECTIONS */}
               <Link
-                href="/fine-art"
+                href="/collections"
                 className="
                   group
                   flex
@@ -145,11 +229,10 @@ export default function Home() {
                   hover:bg-[#eca62a]
                   hover:text-white
                   hover:shadow-xl
-                  sm:min-w-[230px]
                   sm:w-auto
+                  sm:min-w-[220px]
                   sm:px-6
                   sm:text-xs
-                  md:min-w-[250px]
                 "
               >
                 <span className="text-white">
@@ -180,20 +263,21 @@ export default function Home() {
                   gap-2
                   border
                   border-[#c98c23]
-                  bg-[#0b1c25]/40
+                  bg-[#071923]/50
                   px-5
                   py-4
                   text-[11px]
                   font-bold
                   tracking-wide
                   text-white
+                  backdrop-blur-sm
                   transition-all
                   duration-300
                   hover:-translate-y-1
                   hover:bg-[#d58f1d]
                   hover:text-white
-                  sm:min-w-[180px]
                   sm:w-auto
+                  sm:min-w-[170px]
                   sm:px-6
                   sm:text-xs
                 "
@@ -222,16 +306,7 @@ export default function Home() {
       {/* DESKTOP HERO */}
       {/* ===================================================== */}
 
-      <section
-        className="
-          relative
-          hidden
-          w-full
-          overflow-hidden
-          bg-[#071923]
-          lg:block
-        "
-      >
+      <section className="relative hidden w-full overflow-hidden bg-[#071923] lg:block">
         <div
           className="
             relative
@@ -305,7 +380,6 @@ export default function Home() {
                 2xl:px-28
               "
             >
-              {/* HERO TEXT */}
               <div
                 className="
                   lg:max-w-[500px]
@@ -329,7 +403,7 @@ export default function Home() {
                   CAPTURE. PRESERVE. INSPIRE.
                 </p>
 
-                {/* MAIN HEADING */}
+                {/* HEADING */}
                 <h1
                   className="
                     font-serif
@@ -523,7 +597,6 @@ export default function Home() {
                   xl:px-8
                 `}
               >
-                {/* FEATURE ICON */}
                 <div className="flex shrink-0 items-center justify-center">
                   <Icon
                     strokeWidth={1.5}
@@ -539,7 +612,6 @@ export default function Home() {
                   />
                 </div>
 
-                {/* FEATURE TEXT */}
                 <div className="max-w-[210px] text-center">
                   <h3
                     className="
