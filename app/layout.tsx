@@ -17,10 +17,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
+    <html
+      lang="en"
+      className="h-full w-full overflow-x-hidden antialiased"
+    >
       <head>
-        {/* Google Fonts */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.googleapis.com"
+        />
 
         <link
           rel="preconnect"
@@ -33,7 +38,6 @@ export default function RootLayout({
           rel="stylesheet"
         />
 
-        {/* Google Analytics */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-ZDRPBH901N"
           strategy="afterInteractive"
@@ -57,9 +61,26 @@ export default function RootLayout({
         </Script>
       </head>
 
-      <body className="min-h-screen flex flex-col bg-[#FBF9F0] text-[#22211B]">
+      <body
+        className="
+          m-0
+          flex
+          min-h-screen
+          w-full
+          min-w-0
+          flex-col
+          overflow-x-hidden
+          bg-[#FBF9F0]
+          p-0
+          text-[#22211B]
+        "
+      >
         <SessionProviderWrapper>
-          <LayoutWrapper>{children}</LayoutWrapper>
+          <div className="w-full min-w-0 max-w-none">
+            <LayoutWrapper>
+              {children}
+            </LayoutWrapper>
+          </div>
 
           <WhatsAppChat />
         </SessionProviderWrapper>
