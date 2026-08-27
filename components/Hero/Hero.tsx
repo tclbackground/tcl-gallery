@@ -70,14 +70,13 @@ const features = [
 
 export default function Home() {
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-[#0e2029]">
+    <main className="relative min-h-screen w-screen max-w-[100vw] overflow-x-hidden bg-[#0e2029]">
 
       {/* ===================================================== */}
       {/* MOBILE + TABLET HERO */}
-      {/* TEXT LEFT + ARTWORK RIGHT */}
       {/* ===================================================== */}
 
-      <section className="relative h-[680px] w-full overflow-hidden bg-[#071923] lg:hidden">
+      <section className="relative h-[680px] w-screen max-w-[100vw] overflow-hidden bg-[#071923] lg:hidden">
 
         {/* BACKGROUND IMAGE */}
         <img
@@ -88,6 +87,7 @@ export default function Home() {
             inset-0
             h-full
             w-full
+            max-w-none
             object-cover
             object-[68%_center]
             sm:object-[65%_center]
@@ -98,6 +98,7 @@ export default function Home() {
         {/* DARK LEFT OVERLAY */}
         <div
           className="
+            pointer-events-none
             absolute
             inset-0
             bg-gradient-to-r
@@ -110,10 +111,12 @@ export default function Home() {
         {/* BOTTOM OVERLAY */}
         <div
           className="
+            pointer-events-none
             absolute
             inset-x-0
             bottom-0
             h-56
+            w-full
             bg-gradient-to-t
             from-[#071923]
             via-[#071923]/40
@@ -129,6 +132,7 @@ export default function Home() {
             flex
             h-full
             w-full
+            min-w-0
             items-center
             px-5
             sm:px-8
@@ -138,12 +142,14 @@ export default function Home() {
           <div
             className="
               w-full
+              min-w-0
               max-w-[310px]
+              -translate-y-2
               sm:max-w-[390px]
               md:max-w-[460px]
-              -translate-y-2
             "
           >
+
             {/* TAGLINE */}
             <p
               className="
@@ -198,13 +204,16 @@ export default function Home() {
               className="
                 mt-8
                 flex
+                w-full
                 flex-col
-                items-start
+                items-stretch
                 gap-3
                 sm:flex-row
+                sm:items-start
                 sm:gap-4
               "
             >
+
               {/* EXPLORE COLLECTIONS */}
               <Link
                 href="/collections"
@@ -212,6 +221,7 @@ export default function Home() {
                   group
                   flex
                   w-full
+                  min-w-0
                   items-center
                   justify-center
                   gap-2
@@ -235,7 +245,7 @@ export default function Home() {
                   sm:text-xs
                 "
               >
-                <span className="text-white">
+                <span className="whitespace-nowrap text-white">
                   EXPLORE COLLECTIONS
                 </span>
 
@@ -258,6 +268,7 @@ export default function Home() {
                   group
                   flex
                   w-full
+                  min-w-0
                   items-center
                   justify-center
                   gap-2
@@ -282,7 +293,7 @@ export default function Home() {
                   sm:text-xs
                 "
               >
-                <span className="text-white">
+                <span className="whitespace-nowrap text-white">
                   SHOP NOW
                 </span>
 
@@ -297,24 +308,30 @@ export default function Home() {
                   "
                 />
               </Link>
+
             </div>
           </div>
         </div>
       </section>
 
+
       {/* ===================================================== */}
       {/* DESKTOP HERO */}
       {/* ===================================================== */}
 
-      <section className="relative hidden w-full overflow-hidden bg-[#071923] lg:block">
+      <section className="relative hidden w-full max-w-none overflow-hidden bg-[#071923] lg:block">
+
         <div
           className="
             relative
+            w-full
+            min-w-0
             lg:min-h-[620px]
             xl:min-h-[680px]
             2xl:min-h-[760px]
           "
         >
+
           {/* BACKGROUND IMAGE */}
           <img
             src="/images/banners/banner-1.png"
@@ -324,6 +341,7 @@ export default function Home() {
               inset-0
               h-full
               w-full
+              max-w-none
               object-cover
               object-center
             "
@@ -332,6 +350,7 @@ export default function Home() {
           {/* DARK OVERLAY */}
           <div
             className="
+              pointer-events-none
               absolute
               inset-0
               bg-gradient-to-r
@@ -351,6 +370,7 @@ export default function Home() {
               inset-x-0
               bottom-0
               h-28
+              w-full
               bg-gradient-to-t
               from-[#06141d]/80
               via-[#06141d]/30
@@ -366,22 +386,27 @@ export default function Home() {
               z-10
               flex
               w-full
+              min-w-0
               items-center
               lg:min-h-[620px]
               xl:min-h-[680px]
               2xl:min-h-[760px]
             "
           >
+
             <div
               className="
                 w-full
+                min-w-0
                 lg:px-16
                 xl:px-20
                 2xl:px-28
               "
             >
+
               <div
                 className="
+                  w-full
                   lg:max-w-[500px]
                   xl:max-w-[540px]
                   2xl:max-w-[620px]
@@ -390,6 +415,7 @@ export default function Home() {
                   2xl:-translate-y-24
                 "
               >
+
                 {/* TAGLINE */}
                 <p
                   className="
@@ -444,6 +470,7 @@ export default function Home() {
                     gap-4
                   "
                 >
+
                   {/* EXPLORE COLLECTIONS */}
                   <Link
                     href="/collections"
@@ -485,6 +512,7 @@ export default function Home() {
                       "
                     />
                   </Link>
+
 
                   {/* SHOP NOW */}
                   <Link
@@ -528,6 +556,7 @@ export default function Home() {
                       "
                     />
                   </Link>
+
                 </div>
               </div>
             </div>
@@ -535,11 +564,13 @@ export default function Home() {
         </div>
       </section>
 
+
       {/* ===================================================== */}
       {/* FEATURES SECTION */}
       {/* ===================================================== */}
 
-      <section className="relative z-20 w-full bg-[#eeece7] text-[#34414e]">
+      <section className="relative z-20 w-screen max-w-[100vw] overflow-hidden bg-[#eeece7] text-[#34414e]">
+
         <div
           className="
             mx-auto
@@ -555,6 +586,7 @@ export default function Home() {
             lg:grid-cols-5
           "
         >
+
           {features.map((feature, index) => {
             const Icon = feature.icon;
             const isLast = index === features.length - 1;
@@ -566,6 +598,7 @@ export default function Home() {
                   group
                   flex
                   min-h-[125px]
+                  min-w-0
                   flex-col
                   items-center
                   justify-center
@@ -597,7 +630,9 @@ export default function Home() {
                   xl:px-8
                 `}
               >
+
                 <div className="flex shrink-0 items-center justify-center">
+
                   <Icon
                     strokeWidth={1.5}
                     className="
@@ -610,9 +645,12 @@ export default function Home() {
                       lg:w-10
                     "
                   />
+
                 </div>
 
+
                 <div className="max-w-[210px] text-center">
+
                   <h3
                     className="
                       mb-1
@@ -628,6 +666,7 @@ export default function Home() {
                     {feature.title}
                   </h3>
 
+
                   <p
                     className="
                       text-[11px]
@@ -640,12 +679,16 @@ export default function Home() {
                   >
                     {feature.text}
                   </p>
+
                 </div>
+
               </div>
             );
           })}
+
         </div>
       </section>
+
     </main>
   );
 }
