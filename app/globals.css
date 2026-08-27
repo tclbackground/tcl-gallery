@@ -3,7 +3,32 @@
 /* ==========================================
    TCL GALLERY DESIGN SYSTEM - BLUE PALETTE
 ========================================== */
+@import "tailwindcss";
 
+html,
+body {
+  width: 100%;
+  min-width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+body {
+  position: relative;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+#__next {
+  width: 100%;
+  max-width: 100%;
+}
 :root {
   /* Backgrounds */
   --background: #F7FAFC;
