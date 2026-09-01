@@ -232,22 +232,7 @@ export default function MainNavbar() {
                 CART
             ================================================== */}
 
-            <Link
-              href="/cart"
-              className="
-                relative
-                flex
-                items-center
-                justify-center
-                p-2
-                text-gray-700
-                transition
-                hover:text-[#68745A]
-              "
-              aria-label="Shopping Cart"
-            >
-              <FiShoppingCart className="text-[23px]" />
-            </Link>
+            
 
             {/* ==================================================
                 MOBILE MENU BUTTON
