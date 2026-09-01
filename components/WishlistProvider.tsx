@@ -6,6 +6,8 @@ import {
   useState,
 } from "react";
 
+import type { ReactNode } from "react";
+
 import WishlistModal from "./WishlistModal";
 
 type WishlistContextType = {
@@ -19,17 +21,17 @@ const WishlistContext =
 export function WishlistProvider({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
-  function openWishlist() {
+  const openWishlist = () => {
     setIsOpen(true);
-  }
+  };
 
-  function closeWishlist() {
+  const closeWishlist = () => {
     setIsOpen(false);
-  }
+  };
 
   return (
     <WishlistContext.Provider
