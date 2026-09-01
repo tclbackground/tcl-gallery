@@ -1,155 +1,455 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSession, signIn } from "next-auth/react";
+import {
+  FiHeart,
+  FiTrash2,
+  FiArrowRight,
+} from "react-icons/fi";
 
-export default async function WishlistPage() {
-  const session = await getServerSession(authOptions);
+type Product = {
+  id: string;
+  title: string | null;
+  imageUrl: string | null;
+  location: string | null;
+  medium: string | null;
+};
 
-  const userId = (session?.user as any)?.id;
+type WishlistItem = {
+  id: string;
+  product: Product;
+};
 
-  const wishlistItems = userId
-    ? await prisma.wishlist.findMany({
-        where: {
-          userId,
-        },
-        include: {
-          product: true,
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      })
-    : [];
+export default function WishlistPage() {
+  const {
+    data: session,
+    status,
+  } = useSession();
 
-  return (
-    <div className="min-h-screen bg-stone-50">
-      {/* TOP BAR */}
-      <div className="flex items-center justify-between bg-stone-900 px-6 py-4">
-        <h1 className="font-serif text-2xl text-white">
-          My Wishlist
-        </h1>
+  const [items, setItems] =
+    useState<WishlistItem[]>([]);
 
-        {!session?.user ? (
-          <Link
-            href="/login"
-            className="text-sm uppercase tracking-wider text-white hover:text-amber-400"
-          >
-            Login
-          </Link>
-        ) : (
-          <span className="text-sm text-stone-300">
-            {session.user.email}
-          </span>
-        )}
-      </div>
+  const [loading, setLoading] =
+    useState(true);
 
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        {/* NOT LOGGED IN */}
-        {!session?.user && (
-          <div className="mb-8 rounded-xl border border-amber-200 bg-amber-50 p-5">
-            <h2 className="font-serif text-lg text-stone-900">
-              Save artworks to your wishlist
-            </h2>
+  const [removing, setRemoving] =
+    useState<string | null>(null);
 
-            <p className="mt-1 text-sm text-stone-600">
-              Please login to save and access your favourite artworks.
+  // ==========================================================
+  // LOAD WISHLIST
+  // ==========================================================
+
+  async function loadWishlist() {
+    if (status !== "authenticated") {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response = await fetch(
+        "/api/wishlist",
+        {
+          method: "GET",
+          cache: "no-store",
+        }
+      );
+
+      const data = await response.json();
+
+      console.log(
+        "Wishlist page:",
+        data
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            "Unable to load wishlist"
+        );
+      }
+
+      setItems(data.wishlist || []);
+    } catch (error) {
+      console.error(
+        "Wishlist loading error:",
+        error
+      );
+
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ==========================================================
+  // INITIAL LOAD
+  // ==========================================================
+
+  useEffect(() => {
+    loadWishlist();
+  }, [status]);
+
+  // ==========================================================
+  // LISTEN FOR WISHLIST UPDATE
+  // ==========================================================
+
+  useEffect(() => {
+    function handleUpdate() {
+      loadWishlist();
+    }
+
+    window.addEventListener(
+      "wishlist-updated",
+      handleUpdate
+    );
+
+    return () => {
+      window.removeEventListener(
+        "wishlist-updated",
+        handleUpdate
+      );
+    };
+  }, [status]);
+
+  // ==========================================================
+  // REMOVE
+  // ==========================================================
+
+  async function removeItem(
+    wishlistId: string
+  ) {
+    if (removing) return;
+
+    try {
+      setRemoving(wishlistId);
+
+      const response = await fetch(
+        `/api/wishlist?id=${wishlistId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            "Unable to remove artwork"
+        );
+      }
+
+      // Remove from screen immediately
+
+      setItems((current) =>
+        current.filter(
+          (item) =>
+            item.id !== wishlistId
+        )
+      );
+
+      // Update TopBar
+
+      window.dispatchEvent(
+        new CustomEvent(
+          "wishlist-updated"
+        )
+      );
+    } catch (error) {
+      console.error(
+        "Remove wishlist error:",
+        error
+      );
+
+      alert(
+        "Unable to remove artwork."
+      );
+    } finally {
+      setRemoving(null);
+    }
+  }
+
+  // ==========================================================
+  // LOADING
+  // ==========================================================
+
+  if (
+    status === "loading" ||
+    loading
+  ) {
+    return (
+      <main className="min-h-[70vh] bg-[#FBF9F0] px-4 py-16">
+
+        <div className="mx-auto max-w-7xl">
+
+          <div className="flex min-h-[400px] items-center justify-center">
+
+            <div className="text-center">
+
+              <FiHeart
+                size={40}
+                className="mx-auto mb-4 animate-pulse text-[#4D3024]"
+              />
+
+              <p className="text-sm text-[#22211B]/60">
+                Loading your wishlist...
+              </p>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </main>
+    );
+  }
+
+  // ==========================================================
+  // LOGIN REQUIRED
+  // ==========================================================
+
+  if (!session?.user) {
+    return (
+      <main className="min-h-[70vh] bg-[#FBF9F0] px-4 py-16">
+
+        <div className="mx-auto max-w-7xl">
+
+          <div className="flex min-h-[500px] flex-col items-center justify-center rounded-2xl border border-[#C4A892]/30 bg-white text-center">
+
+            <FiHeart
+              size={50}
+              strokeWidth={1.2}
+              className="mb-6 text-[#C4A892]"
+            />
+
+            <h1 className="font-serif text-4xl text-[#22211B]">
+              My Wishlist
+            </h1>
+
+            <p className="mt-4 max-w-md text-sm text-[#22211B]/60">
+              Login to save your favourite
+              artworks and access your
+              wishlist anytime.
             </p>
 
-            <Link
-              href="/login?callbackUrl=/wishlist"
-              className="mt-4 inline-block rounded-lg bg-amber-700 px-5 py-3 text-sm font-medium uppercase tracking-wider text-white transition hover:bg-amber-800"
+            <button
+              onClick={() =>
+                signIn(undefined, {
+                  callbackUrl:
+                    "/wishlist",
+                })
+              }
+              className="mt-8 rounded-full bg-[#4D3024] px-8 py-3 text-sm font-semibold uppercase tracking-wider text-white transition hover:bg-[#22211B]"
             >
               Login to Continue
-            </Link>
-          </div>
-        )}
+            </button>
 
-        {/* LOGGED-IN USER */}
-        {session?.user && wishlistItems.length === 0 && (
-          <div className="rounded-2xl border border-stone-200 bg-white py-20 text-center">
-            <h2 className="text-2xl font-serif text-stone-900">
+          </div>
+
+        </div>
+
+      </main>
+    );
+  }
+
+  // ==========================================================
+  // EMPTY
+  // ==========================================================
+
+  if (items.length === 0) {
+    return (
+      <main className="min-h-[70vh] bg-[#FBF9F0] px-4 py-16">
+
+        <div className="mx-auto max-w-7xl">
+
+          <div className="flex min-h-[500px] flex-col items-center justify-center rounded-2xl border border-[#C4A892]/30 bg-white text-center">
+
+            <FiHeart
+              size={50}
+              strokeWidth={1.2}
+              className="mb-6 text-[#C4A892]"
+            />
+
+            <h1 className="font-serif text-5xl text-[#22211B]">
               Your wishlist is empty
-            </h2>
+            </h1>
 
-            <p className="mt-3 text-sm text-stone-500">
-              Explore our collection and save the artworks you love.
+            <p className="mt-4 text-sm text-[#22211B]/60">
+              Explore our collection and
+              save the artworks you love.
             </p>
 
             <Link
               href="/shop"
-              className="mt-6 inline-block rounded-lg bg-amber-700 px-6 py-3 text-sm font-medium uppercase tracking-wider text-white transition hover:bg-amber-800"
+              className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#4D3024] px-8 py-3 text-sm font-semibold uppercase tracking-wider text-white transition hover:bg-[#22211B]"
             >
               Explore Collection
+              <FiArrowRight />
             </Link>
+
           </div>
-        )}
 
-        {/* NOT LOGGED-IN EMPTY STATE */}
-        {!session?.user && (
-          <div className="rounded-2xl border border-stone-200 bg-white py-20 text-center">
-            <h2 className="text-2xl font-serif text-stone-900">
-              Your wishlist is waiting
-            </h2>
+        </div>
 
-            <p className="mt-3 text-sm text-stone-500">
-              Login to start saving your favourite artworks.
-            </p>
+      </main>
+    );
+  }
 
-            <Link
-              href="/shop"
-              className="mt-6 inline-block rounded-lg border border-stone-300 px-6 py-3 text-sm font-medium uppercase tracking-wider text-stone-800 transition hover:border-amber-700 hover:text-amber-700"
-            >
-              Explore Collection
-            </Link>
+  // ==========================================================
+  // WISHLIST
+  // ==========================================================
+
+  return (
+    <main className="min-h-[70vh] bg-[#FBF9F0] px-4 py-10 sm:px-6 lg:px-8">
+
+      <div className="mx-auto max-w-7xl">
+
+        {/* HEADER */}
+
+        <div className="mb-8 flex items-end justify-between border-b border-[#C4A892]/30 pb-6">
+
+          <div>
+
+            <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#4D3024]">
+              <FiHeart size={14} />
+              Saved Artworks
+            </div>
+
+            <h1 className="font-serif text-4xl text-[#22211B] sm:text-5xl">
+              My Wishlist
+            </h1>
+
           </div>
-        )}
 
-        {/* WISHLIST PRODUCTS */}
-        {session?.user && wishlistItems.length > 0 && (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {wishlistItems.map((item) => (
-              <Link
+          <div className="text-sm text-[#22211B]/60">
+            {items.length}{" "}
+            {items.length === 1
+              ? "artwork"
+              : "artworks"}{" "}
+            saved
+          </div>
+
+        </div>
+
+        {/* PRODUCTS */}
+
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+
+          {items.map((item) => {
+
+            const product =
+              item.product;
+
+            return (
+              <div
                 key={item.id}
-                href={`/shop/${item.product.id}`}
-                className="group overflow-hidden rounded-xl border border-stone-200 bg-white"
+                className="group overflow-hidden rounded-xl border border-[#C4A892]/30 bg-white shadow-sm transition hover:shadow-lg"
               >
-                <div className="relative aspect-[4/5] overflow-hidden bg-stone-100">
-                  {item.product.imageUrl ? (
-                    <Image
-                      src={item.product.imageUrl}
-                      alt={item.product.title || "Artwork"}
-                      fill
-                      className="object-cover transition duration-500 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-sm text-stone-400">
-                      No image
-                    </div>
-                  )}
-                </div>
+
+                {/* IMAGE */}
+
+                <Link
+                  href={`/shop/${product.id}`}
+                >
+                  <div className="relative aspect-[4/5] overflow-hidden bg-[#E8DBCA]/30">
+
+                    {product.imageUrl ? (
+                      <Image
+                        src={
+                          product.imageUrl
+                        }
+                        alt={
+                          product.title ||
+                          "Artwork"
+                        }
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                        className="object-cover transition duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-sm text-[#22211B]/40">
+                        No Image
+                      </div>
+                    )}
+
+                  </div>
+                </Link>
+
+                {/* DETAILS */}
 
                 <div className="p-5">
-                  <h2 className="font-serif text-lg text-stone-900">
-                    {item.product.title || "Untitled"}
+
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#4D3024]">
+                    Fine Art
+                  </p>
+
+                  <h2 className="mt-2 line-clamp-2 font-serif text-xl text-[#22211B]">
+                    {product.title ||
+                      "Untitled Artwork"}
                   </h2>
 
-                  {item.product.location && (
-                    <p className="mt-1 text-sm text-stone-500">
-                      {item.product.location}
+                  {product.location && (
+                    <p className="mt-2 text-sm text-[#22211B]/60">
+                      {product.location}
                     </p>
                   )}
 
-                  <p className="mt-3 text-xs uppercase tracking-wider text-amber-700">
-                    View Artwork
-                  </p>
+                  {product.medium && (
+                    <p className="mt-1 text-xs text-[#22211B]/40">
+                      {product.medium}
+                    </p>
+                  )}
+
+                  {/* ACTIONS */}
+
+                  <div className="mt-5 flex gap-2">
+
+                    <Link
+                      href={`/shop/${product.id}`}
+                      className="flex-1 rounded-lg bg-[#4D3024] px-3 py-3 text-center text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-[#22211B]"
+                    >
+                      View Artwork
+                    </Link>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        removeItem(
+                          item.id
+                        )
+                      }
+                      disabled={
+                        removing ===
+                        item.id
+                      }
+                      className="flex h-11 w-11 items-center justify-center rounded-lg border border-[#C4A892]/40 text-[#4D3024] transition hover:border-red-300 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                      aria-label="Remove from wishlist"
+                      title="Remove from wishlist"
+                    >
+                      <FiTrash2
+                        size={16}
+                      />
+                    </button>
+
+                  </div>
+
                 </div>
-              </Link>
-            ))}
-          </div>
-        )}
+
+              </div>
+            );
+          })}
+
+        </div>
+
       </div>
-    </div>
+
+    </main>
   );
 }

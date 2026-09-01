@@ -5,6 +5,7 @@ import "./globals.css";
 import LayoutWrapper from "@/components/LayoutWrapper";
 import SessionProviderWrapper from "@/components/SessionProviderWrapper";
 import WhatsAppChat from "@/components/UI/WhatsAppChat";
+import { Analytics } from "@vercel/analytics/next"
 
 export const metadata: Metadata = {
   title: "TCL Gallery",

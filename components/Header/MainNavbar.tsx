@@ -3,180 +3,49 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Heart } from "lucide-react";
-import { useWishlist } from "@/components/WishlistProvider";
 
 import {
   FiSearch,
   FiShoppingCart,
   FiMenu,
   FiX,
-  FiChevronDown,
 } from "react-icons/fi";
 
 import logoImg from "@/public/images/Logo.jpg";
-import { WishlistProvider } from "../WishlistProvider";
 
 // ======================================================
 // TCL GALLERY NAVIGATION
 // ======================================================
 
 const navigationItems = [
-  // ====================================================
-  // HOME
-  // ====================================================
   {
     title: "Home",
     href: "/",
   },
-
-  // ====================================================
-  // SHOP
-  // ====================================================
   {
     title: "Shop",
     href: "/shop",
-    isMega: true,
-    categories: [
-      {
-        title: "Categories",
-        links: [
-          {
-            label: "Paintings",
-            href: "/category/painting",
-          },
-          {
-            label: "Sculptures",
-            href: "/category/sculpture",
-          },
-          {
-            label: "Photography",
-            href: "/category/photography",
-          },
-          {
-            label: "All Artworks",
-            href: "/shop",
-          },
-        ],
-      },
-    ],
   },
-
-  // ====================================================
-  // COLLECTIONS
-  // ====================================================
   {
     title: "Collections",
-    href: "/",
-    isMega: true,
-    // categories: [
-    //   {
-    //     title: "Explore Collections",
-    //     links: [
-    //       {
-    //         label: "Nature & Landscapes",
-    //         href: "/collections/nature-landscapes",
-    //       },
-    //       {
-    //         label: "Travel & Places",
-    //         href: "/collections/travel-places",
-    //       },
-    //       {
-    //         label: "People & Portraits",
-    //         href: "/collections/people-portraits",
-    //       },
-    //       {
-    //         label: "Abstract & Contemporary",
-    //         href: "/collections/abstract-contemporary",
-    //       },
-    //       {
-    //         label: "Black & White",
-    //         href: "/collections/black-white",
-    //       },
-    //       {
-    //         label: "Architecture & Interiors",
-    //         href: "/collections/architecture-interiors",
-    //       },
-    //       {
-    //         label: "Moments & Stories",
-    //         href: "/collections/moments-stories",
-    //       },
-    //       {
-    //         label: "Indian Heritage & Culture",
-    //         href: "/collections/indian-heritage-culture",
-    //       },
-    //       {
-    //         label: "Curated for Interiors",
-    //         href: "/collections/curated-for-interiors",
-    //       },
-    //       {
-    //         label: "Limited Editions",
-    //         href: "/collections/limited-editions",
-    //       },
-    //       {
-    //         label: "View All Collections",
-    //         href: "/collections",
-    //       },
-    //     ],
-    //   },
-    // ],
+    href: "/collections",
   },
-
-  // ====================================================
-  // ARTISTS
-  // ====================================================
   {
     title: "Artists",
     href: "/artist",
   },
-
-  // ====================================================
-  // DESIGN STORE
-  // ====================================================
   {
     title: "Design Store",
     href: "/design-store",
-    isMega: true,
-    categories: [
-      {
-        title: "Design Store",
-        links: [
-          {
-            label: "Jewel Tree",
-            href: "/design-store/jeweltree",
-          },
-          {
-            label: "Bags",
-            href: "/design-store/bags",
-          },
-          {
-            label: "Living Legacy",
-            href: "/design-store/living-legacy",
-          },
-        ],
-      },
-    ],
   },
-
-  // ====================================================
-  // BLOG
-  // ====================================================
   {
     title: "Blog",
     href: "/blog",
   },
-
-  // ====================================================
-  // ABOUT US
-  // ====================================================
   {
     title: "About Us",
     href: "/about",
   },
-
-  // ====================================================
-  // CONTACT
-  // ====================================================
   {
     title: "Contact",
     href: "/contact",
@@ -190,27 +59,17 @@ const navigationItems = [
 export default function MainNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const [activeMobileSubmenu, setActiveMobileSubmenu] =
-    useState<string | null>(null);
-
-  // ====================================================
-  // MOBILE SUBMENU TOGGLE
-  // ====================================================
-
-  const toggleMobileSubmenu = (title: string) => {
-    setActiveMobileSubmenu((prev) =>
-      prev === title ? null : title
-    );
-  };
-
   // ====================================================
   // CLOSE MOBILE MENU
   // ====================================================
 
   const closeMobileMenu = () => {
     setMobileOpen(false);
-    setActiveMobileSubmenu(null);
   };
+
+  // ====================================================
+  // RETURN
+  // ====================================================
 
   return (
     <>
@@ -236,7 +95,11 @@ export default function MainNavbar() {
               LOGO
           ================================================== */}
 
-          <Link href="/" onClick={closeMobileMenu}>
+          <Link
+            href="/"
+            onClick={closeMobileMenu}
+            className="flex-shrink-0"
+          >
             <Image
               src={logoImg}
               alt="TCL Gallery Logo"
@@ -256,55 +119,32 @@ export default function MainNavbar() {
               DESKTOP NAVIGATION
           ================================================== */}
 
-          <nav className="hidden flex-1 justify-center xl:flex h-full">
-            <ul className="flex items-center gap-8 h-full">
+          <nav className="hidden h-full flex-1 justify-center xl:flex">
+            <ul className="flex h-full items-center gap-8">
               {navigationItems.map((item) => (
                 <li
                   key={item.title}
-                  className="
-                    group
-                    relative
-                    flex
-                    items-center
-                    h-full
-                  "
+                  className="flex h-full items-center"
                 >
-                  {/* ==================================================
-                      MAIN NAVIGATION LINK
-                  ================================================== */}
-
                   <Link
                     href={item.href}
                     className="
                       relative
                       flex
                       items-center
-                      gap-1
                       py-2
                       font-serif
                       text-[16px]
                       font-medium
                       text-[#2f2f2f]
                       transition
-                      hover:text-[#7B8F50]
+                      duration-200
+                      hover:text-[#68745A]
                     "
                   >
                     {item.title}
 
-                    {/* Dropdown Arrow */}
-
-                    {item.isMega && (
-                      <FiChevronDown
-                        className="
-                          text-xs
-                          transition-transform
-                          duration-200
-                          group-hover:rotate-180
-                        "
-                      />
-                    )}
-
-                    {/* Hover Underline */}
+                    {/* HOVER UNDERLINE */}
 
                     <span
                       className="
@@ -313,101 +153,24 @@ export default function MainNavbar() {
                         left-0
                         h-[2px]
                         w-0
-                        bg-[#7B8F50]
+                        bg-[#68745A]
                         transition-all
                         duration-300
                         group-hover:w-full
                       "
                     />
                   </Link>
-
-                  {/* ==================================================
-                      DESKTOP DROPDOWN
-                  ================================================== */}
-
-                  {item.isMega && (
-                    <div
-                      className="
-                        absolute
-                        left-1/2
-                        top-full
-                        w-[380px]
-                        -translate-x-1/2
-                        rounded-b-lg
-                        border
-                        border-gray-200
-                        bg-white
-                        p-6
-                        shadow-xl
-                        opacity-0
-                        invisible
-                        transition-all
-                        duration-200
-                        ease-in-out
-                        group-hover:visible
-                        group-hover:opacity-100
-                        z-50
-                      "
-                    >
-                      {item.categories?.map((cat) => (
-                        <div
-                          key={cat.title}
-                          className="space-y-4"
-                        >
-                          {/* Dropdown Heading */}
-
-                          <h3
-                            className="
-                              border-b
-                              border-gray-200
-                              pb-3
-                              font-serif
-                              text-sm
-                              font-semibold
-                              uppercase
-                              tracking-[0.15em]
-                              text-[#7B8F50]
-                            "
-                          >
-                            {cat.title}
-                          </h3>
-
-                          {/* Dropdown Links */}
-
-                          <ul className="space-y-3">
-                            {cat.links.map((link) => (
-                              <li key={link.label}>
-                                <Link
-                                  href={link.href}
-                                  className="
-                                    block
-                                    text-[15px]
-                                    text-gray-600
-                                    transition-all
-                                    duration-200
-                                    hover:translate-x-1
-                                    hover:text-[#7B8F50]
-                                  "
-                                >
-                                  {link.label}
-                                </Link>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </li>
               ))}
             </ul>
           </nav>
 
           {/* ==================================================
-              RIGHT SIDE ICONS
+              RIGHT SIDE
           ================================================== */}
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+
             {/* ==================================================
                 DESKTOP SEARCH
             ================================================== */}
@@ -415,8 +178,8 @@ export default function MainNavbar() {
             <div
               className="
                 hidden
-                h-[48px]
-                w-[270px]
+                h-[44px]
+                w-[250px]
                 items-center
                 rounded-full
                 bg-[#f6f6f6]
@@ -431,11 +194,20 @@ export default function MainNavbar() {
                   flex-1
                   bg-transparent
                   text-sm
+                  text-gray-800
                   outline-none
+                  placeholder:text-gray-400
                 "
               />
 
-              <FiSearch className="text-xl text-gray-500" />
+              <FiSearch
+                className="
+                  text-xl
+                  text-gray-500
+                  transition
+                  hover:text-[#68745A]
+                "
+              />
             </div>
 
             {/* ==================================================
@@ -444,10 +216,16 @@ export default function MainNavbar() {
 
             <button
               type="button"
-              className="p-2 text-gray-700 xl:hidden"
+              className="
+                p-2
+                text-gray-700
+                transition
+                hover:text-[#68745A]
+                xl:hidden
+              "
               aria-label="Search"
             >
-              <FiSearch className="text-[24px]" />
+              <FiSearch className="text-[23px]" />
             </button>
 
             {/* ==================================================
@@ -456,30 +234,19 @@ export default function MainNavbar() {
 
             <Link
               href="/cart"
-              className="relative p-2 text-gray-700"
+              className="
+                relative
+                flex
+                items-center
+                justify-center
+                p-2
+                text-gray-700
+                transition
+                hover:text-[#68745A]
+              "
               aria-label="Shopping Cart"
             >
-              <FiShoppingCart className="text-[26px]" />
-
-              <span
-                className="
-                  absolute
-                  right-0
-                  top-0
-                  flex
-                  h-5
-                  w-5
-                  items-center
-                  justify-center
-                  rounded-full
-                  bg-[#7B8F50]
-                  text-[10px]
-                  font-bold
-                  text-white
-                "
-              >
-                0
-              </span>
+              <FiShoppingCart className="text-[23px]" />
             </Link>
 
             {/* ==================================================
@@ -489,10 +256,17 @@ export default function MainNavbar() {
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
-              className="p-2 text-gray-700 xl:hidden"
+              className="
+                p-2
+                text-gray-700
+                transition
+                hover:text-[#68745A]
+                xl:hidden
+              "
               aria-label="Open Menu"
+              aria-expanded={mobileOpen}
             >
-              <FiMenu className="text-[30px]" />
+              <FiMenu className="text-[29px]" />
             </button>
           </div>
         </div>
@@ -500,7 +274,7 @@ export default function MainNavbar() {
 
       {/* ======================================================
           MOBILE OVERLAY
-      ====================================================== */}
+      ======================================================= */}
 
       <div
         onClick={closeMobileMenu}
@@ -522,7 +296,7 @@ export default function MainNavbar() {
 
       {/* ======================================================
           MOBILE SIDEBAR
-      ====================================================== */}
+      ======================================================= */}
 
       <aside
         className={`
@@ -546,6 +320,7 @@ export default function MainNavbar() {
               : "-translate-x-full"
           }
         `}
+        aria-hidden={!mobileOpen}
       >
         {/* ==================================================
             MOBILE HEADER
@@ -557,13 +332,17 @@ export default function MainNavbar() {
             items-center
             justify-between
             border-b
+            border-[#68745A]/20
             px-5
             py-4
           "
         >
-          {/* Logo */}
+          {/* LOGO */}
 
-          <Link href="/" onClick={closeMobileMenu}>
+          <Link
+            href="/"
+            onClick={closeMobileMenu}
+          >
             <Image
               src={logoImg}
               alt="TCL Gallery Logo"
@@ -573,21 +352,19 @@ export default function MainNavbar() {
             />
           </Link>
 
-          {/* Close */}
+          {/* CLOSE */}
 
           <button
             type="button"
             onClick={closeMobileMenu}
             aria-label="Close Menu"
+            className="
+              text-gray-700
+              transition
+              hover:text-[#68745A]
+            "
           >
-            <FiX
-              className="
-                text-3xl
-                text-gray-700
-                transition
-                hover:text-red-500
-              "
-            />
+            <FiX className="text-3xl" />
           </button>
         </div>
 
@@ -595,13 +372,19 @@ export default function MainNavbar() {
             MOBILE SEARCH
         ================================================== */}
 
-        <div className="border-b border-gray-100 p-4">
+        <div
+          className="
+            border-b
+            border-[#68745A]/10
+            p-4
+          "
+        >
           <div
             className="
               flex
               items-center
               rounded-full
-              bg-gray-100
+              bg-[#F3F5EF]
               px-4
               py-2.5
             "
@@ -615,10 +398,16 @@ export default function MainNavbar() {
                 text-sm
                 text-gray-800
                 outline-none
+                placeholder:text-gray-400
               "
             />
 
-            <FiSearch className="text-lg text-gray-500" />
+            <FiSearch
+              className="
+                text-lg
+                text-[#68745A]
+              "
+            />
           </div>
         </div>
 
@@ -627,129 +416,66 @@ export default function MainNavbar() {
         ================================================== */}
 
         <nav className="flex-1 overflow-y-auto px-4 py-2">
-          <ul className="space-y-1">
+          <ul className="space-y-0">
+
             {navigationItems.map((item) => (
               <li
                 key={item.title}
                 className="
                   border-b
-                  border-gray-100
+                  border-[#68745A]/10
                   last:border-none
                 "
               >
-                {/* ==================================================
-                    DROPDOWN MENU
-                ================================================== */}
-
-                {item.isMega ? (
-                  <div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        toggleMobileSubmenu(item.title)
-                      }
-                      className="
-                        flex
-                        w-full
-                        items-center
-                        justify-between
-                        py-3.5
-                        text-left
-                        text-lg
-                        font-medium
-                        text-gray-800
-                      "
-                    >
-                      <span>{item.title}</span>
-
-                      <FiChevronDown
-                        className={`
-                          transition-transform
-                          duration-200
-                          ${
-                            activeMobileSubmenu ===
-                            item.title
-                              ? "rotate-180 text-[#7B8F50]"
-                              : ""
-                          }
-                        `}
-                      />
-                    </button>
-
-                    {/* ==================================================
-                        MOBILE ACCORDION
-                    ================================================== */}
-
-                    {activeMobileSubmenu === item.title && (
-                      <div className="space-y-4 pb-3 pl-4">
-                        {item.categories?.map((cat) => (
-                          <div
-                            key={cat.title}
-                            className="space-y-2"
-                          >
-                            {/* Category Title */}
-
-                            <span
-                              className="
-                                text-xs
-                                font-semibold
-                                uppercase
-                                tracking-wider
-                                text-gray-400
-                              "
-                            >
-                              {cat.title}
-                            </span>
-
-                            {/* Category Links */}
-
-                            <ul className="space-y-2 pl-2">
-                              {cat.links.map((link) => (
-                                <li key={link.label}>
-                                  <Link
-                                    href={link.href}
-                                    onClick={closeMobileMenu}
-                                    className="
-                                      block
-                                      text-sm
-                                      text-gray-600
-                                      transition
-                                      hover:text-[#7B8F50]
-                                    "
-                                  >
-                                    {link.label}
-                                  </Link>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  /* ==================================================
-                      NORMAL MOBILE LINK
-                  ================================================== */
-
-                  <Link
-                    href={item.href}
-                    onClick={closeMobileMenu}
-                    className="
-                      block
-                      py-3.5
-                      text-lg
-                      font-medium
-                      text-gray-800
-                      transition
-                      hover:text-[#7B8F50]
-                    "
-                  >
-                    {item.title}
-                  </Link>
-                )}
+                <Link
+                  href={item.href}
+                  onClick={closeMobileMenu}
+                  className="
+                    block
+                    py-4
+                    text-lg
+                    font-medium
+                    text-gray-800
+                    transition
+                    hover:text-[#68745A]
+                  "
+                >
+                  {item.title}
+                </Link>
               </li>
             ))}
+
+            {/* MOBILE CART */}
+
+            <li
+              className="
+                border-b
+                border-[#68745A]/10
+              "
+            >
+              <Link
+                href="/cart"
+                onClick={closeMobileMenu}
+                className="
+                  flex
+                  items-center
+                  gap-3
+                  py-4
+                  text-lg
+                  font-medium
+                  text-gray-800
+                  transition
+                  hover:text-[#68745A]
+                "
+              >
+                <FiShoppingCart className="text-xl" />
+
+                <span>
+                  Cart
+                </span>
+              </Link>
+            </li>
+
           </ul>
         </nav>
 
@@ -760,7 +486,8 @@ export default function MainNavbar() {
         <div
           className="
             border-t
-            bg-gray-50
+            border-[#68745A]/20
+            bg-[#F3F5EF]
             px-6
             py-4
           "
@@ -769,6 +496,7 @@ export default function MainNavbar() {
             © {new Date().getFullYear()} TCL GALLERY
           </p>
         </div>
+
       </aside>
     </>
   );

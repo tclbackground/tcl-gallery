@@ -949,7 +949,7 @@ export default function ProductDetailsClient({
                 "
               >
                 {product?.category ||
-                  "Fine Art"}
+                  "Photography"}
 
                 {" • "}
 

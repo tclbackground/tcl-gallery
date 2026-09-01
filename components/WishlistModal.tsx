@@ -1,249 +1,359 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { signIn, useSession } from "next-auth/react";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import Image from "next/image";
 import Link from "next/link";
 
-type WishlistProduct = {
-  id: string;
-  title: string | null;
-  imageUrl: string | null;
-  location: string | null;
-};
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-type WishlistItem = {
-  id: string;
-  product: WishlistProduct;
-};
+export default async function WishlistPage() {
+  const session = await getServerSession(authOptions);
 
-type WishlistModalProps = {
-  isOpen: boolean;
-  onClose: () => void;
-};
+  // ============================================================
+  // NOT LOGGED IN
+  // ============================================================
 
-export default function WishlistModal({
-  isOpen,
-  onClose,
-}: WishlistModalProps) {
-  const { data: session, status } = useSession();
+  if (!session?.user) {
+    return (
+      <div className="min-h-screen bg-stone-50">
 
-  const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
-  const [loading, setLoading] = useState(false);
+        {/* HEADER */}
+        <div className="flex items-center justify-between bg-stone-900 px-6 py-6">
+          <h1 className="font-serif text-3xl text-white">
+            My Wishlist
+          </h1>
 
-  useEffect(() => {
-    if (!isOpen || !session?.user) return;
-
-    const fetchWishlist = async () => {
-      try {
-        setLoading(true);
-
-        const response = await fetch("/api/wishlist");
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch wishlist");
-        }
-
-        const data = await response.json();
-
-        setWishlistItems(data.wishlist || []);
-      } catch (error) {
-        console.error("Wishlist error:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchWishlist();
-  }, [isOpen, session]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-
-    document.addEventListener("keydown", handleEscape);
-
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="relative flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden bg-white shadow-2xl">
-
-        {/* TOP HEADER */}
-        <div className="flex items-center justify-end border-b border-stone-700 bg-stone-800 px-6 py-3">
-          {session?.user ? (
-            <span className="mr-4 text-sm text-white">
-              My Wishlist
-            </span>
-          ) : (
-            <button
-              onClick={() => signIn(undefined, { callbackUrl: window.location.href })}
-              className="mr-4 text-sm text-white hover:text-stone-300"
-            >
-              Login
-            </button>
-          )}
-
-          <button
-            onClick={onClose}
-            className="text-2xl font-light text-white hover:text-stone-300"
-            aria-label="Close wishlist"
+          <Link
+            href="/account/login?callbackUrl=/wishlist"
+            className="text-sm uppercase tracking-wider text-white hover:text-amber-400"
           >
-            ×
-          </button>
+            Login
+          </Link>
         </div>
 
         {/* CONTENT */}
-        <div className="overflow-y-auto p-6 sm:p-8">
+        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
 
-          {status === "loading" ? (
-            <div className="flex min-h-[300px] items-center justify-center">
-              <p className="text-stone-500">Loading...</p>
-            </div>
-          ) : !session?.user ? (
+          <div className="rounded-2xl border border-stone-200 bg-white px-6 py-24 text-center">
 
-            /* NOT LOGGED IN */
-            <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
-              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-stone-200 text-3xl">
-                ♡
-              </div>
-
-              <h2 className="font-serif text-3xl text-stone-900">
-                My Wishlist
-              </h2>
-
-              <p className="mt-4 max-w-md text-sm leading-6 text-stone-500">
-                Login to save your favourite artworks and access your
-                wishlist anytime.
-              </p>
-
-              <button
-                onClick={() =>
-                  signIn(undefined, {
-                    callbackUrl: window.location.href,
-                  })
-                }
-                className="mt-8 bg-black px-10 py-3 text-sm uppercase tracking-wider text-white transition hover:bg-stone-800"
-              >
-                Login to View Wishlist
-              </button>
-
-              <Link
-                href="/signup"
-                onClick={onClose}
-                className="mt-5 text-sm text-stone-600 underline underline-offset-4 hover:text-black"
-              >
-                Create an account
-              </Link>
+            <div className="mb-6 text-5xl">
+              ♡
             </div>
 
-          ) : loading ? (
+            <h2 className="font-serif text-3xl text-stone-900">
+              Your wishlist is waiting
+            </h2>
 
-            /* LOADING */
-            <div className="flex min-h-[400px] items-center justify-center">
-              <p className="text-stone-500">
-                Loading your wishlist...
-              </p>
-            </div>
+            <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-stone-500">
+              Login to save your favourite artworks
+              and access your wishlist anytime.
+            </p>
 
-          ) : wishlistItems.length === 0 ? (
+            <Link
+              href="/account/login?callbackUrl=/wishlist"
+              className="mt-8 inline-block rounded-lg bg-[#4D3024] px-8 py-3 text-sm font-medium uppercase tracking-wider text-white transition hover:bg-[#22211B]"
+            >
+              Login to Continue
+            </Link>
 
-            /* EMPTY WISHLIST */
-            <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
-              <div className="mb-5 text-5xl">♡</div>
+          </div>
 
-              <h2 className="font-serif text-3xl text-stone-900">
-                Your wishlist is empty
-              </h2>
-
-              <p className="mt-3 text-sm text-stone-500">
-                Explore our collection and save the artworks you love.
-              </p>
-
-              <Link
-                href="/shop"
-                onClick={onClose}
-                className="mt-8 bg-black px-8 py-3 text-sm uppercase tracking-wider text-white hover:bg-stone-800"
-              >
-                Explore Collection
-              </Link>
-            </div>
-
-          ) : (
-
-            /* WISHLIST ITEMS */
-            <>
-              <h1 className="mb-2 font-serif text-3xl text-stone-900">
-                My Wishlist
-              </h1>
-
-              <div className="mb-8 border-b border-stone-200 pb-5">
-                <input
-                  type="text"
-                  placeholder="Search item"
-                  className="w-full border border-stone-300 px-4 py-3 text-sm outline-none focus:border-black"
-                />
-              </div>
-
-              <div className="space-y-0">
-                {wishlistItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex gap-5 border-b border-stone-200 py-5"
-                  >
-                    {/* IMAGE */}
-                    <div className="relative h-40 w-40 flex-shrink-0 overflow-hidden bg-stone-100">
-                      {item.product.imageUrl ? (
-                        <Image
-                          src={item.product.imageUrl}
-                          alt={item.product.title || "Artwork"}
-                          fill
-                          className="object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-sm text-stone-400">
-                          No Image
-                        </div>
-                      )}
-                    </div>
-
-                    {/* PRODUCT DETAILS */}
-                    <div className="flex flex-1 flex-col justify-center">
-                      <h2 className="font-serif text-xl text-stone-900">
-                        {item.product.title || "Untitled Artwork"}
-                      </h2>
-
-                      {item.product.location && (
-                        <p className="mt-2 text-sm text-stone-500">
-                          {item.product.location}
-                        </p>
-                      )}
-
-                      <Link
-                        href={`/shop/${item.product.id}`}
-                        onClick={onClose}
-                        className="mt-5 inline-block w-fit bg-black px-7 py-3 text-xs uppercase tracking-wider text-white hover:bg-stone-800"
-                      >
-                        View Artwork
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
         </div>
       </div>
+    );
+  }
+
+  // ============================================================
+  // GET USER ID
+  // ============================================================
+
+  const userId = (session.user as any)?.id;
+
+  // Debug
+  console.log(
+    "Wishlist page userId:",
+    userId
+  );
+
+  if (!userId) {
+    return (
+      <div className="min-h-screen bg-stone-50">
+
+        <div className="bg-stone-900 px-6 py-6">
+          <h1 className="font-serif text-3xl text-white">
+            My Wishlist
+          </h1>
+        </div>
+
+        <div className="mx-auto max-w-7xl px-4 py-20 text-center">
+
+          <h2 className="font-serif text-2xl text-stone-900">
+            Session problem
+          </h2>
+
+          <p className="mt-3 text-sm text-stone-500">
+            Your user ID was not found in the session.
+            Please logout and login again.
+          </p>
+
+          <Link
+            href="/account/login"
+            className="mt-6 inline-block rounded-lg bg-black px-6 py-3 text-sm text-white"
+          >
+            Login Again
+          </Link>
+
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================================
+  // GET WISHLIST
+  // ============================================================
+
+  let wishlistItems: any[] = [];
+
+  try {
+    wishlistItems =
+      await prisma.wishlist.findMany({
+        where: {
+          userId: userId,
+        },
+
+        include: {
+          product: true,
+        },
+
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+    console.log(
+      "Wishlist items:",
+      wishlistItems.length
+    );
+
+  } catch (error) {
+    console.error(
+      "Wishlist page database error:",
+      error
+    );
+  }
+
+  // ============================================================
+  // EMPTY WISHLIST
+  // ============================================================
+
+  if (wishlistItems.length === 0) {
+    return (
+      <div className="min-h-screen bg-stone-50">
+
+        {/* HEADER */}
+        <div className="flex items-center justify-between bg-stone-900 px-6 py-6">
+
+          <h1 className="font-serif text-3xl text-white">
+            My Wishlist
+          </h1>
+
+          <span className="text-sm text-stone-300">
+            {session.user?.email}
+          </span>
+
+        </div>
+
+        {/* EMPTY */}
+        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+
+          <div className="rounded-2xl border border-stone-200 bg-white px-6 py-28 text-center">
+
+            <div className="mb-5 text-5xl text-stone-300">
+              ♡
+            </div>
+
+            <h2 className="font-serif text-4xl text-stone-900">
+              Your wishlist is empty
+            </h2>
+
+            <p className="mt-4 text-sm text-stone-500">
+              Explore our collection and save the artworks
+              you love.
+            </p>
+
+            <Link
+              href="/shop"
+              className="mt-8 inline-block rounded-lg bg-[#4D3024] px-8 py-3 text-sm font-medium uppercase tracking-wider text-white transition hover:bg-[#22211B]"
+            >
+              Explore Collection
+            </Link>
+
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================================
+  // WISHLIST WITH PRODUCTS
+  // ============================================================
+
+  return (
+    <div className="min-h-screen bg-stone-50">
+
+      {/* ======================================================
+          HEADER
+      ====================================================== */}
+
+      <div className="flex items-center justify-between bg-stone-900 px-6 py-6">
+
+        <div>
+          <h1 className="font-serif text-3xl text-white">
+            My Wishlist
+          </h1>
+
+          <p className="mt-1 text-xs text-stone-400">
+            {wishlistItems.length} saved artwork
+            {wishlistItems.length !== 1
+              ? "s"
+              : ""}
+          </p>
+        </div>
+
+        <span className="hidden text-sm text-stone-300 sm:block">
+          {session.user?.email}
+        </span>
+
+      </div>
+
+      {/* ======================================================
+          CONTENT
+      ====================================================== */}
+
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+
+        {/* TOP */}
+        <div className="mb-8 flex items-center justify-between border-b border-stone-200 pb-5">
+
+          <div>
+            <h2 className="font-serif text-2xl text-stone-900">
+              Saved Artworks
+            </h2>
+
+            <p className="mt-1 text-sm text-stone-500">
+              Your favourite artworks
+            </p>
+          </div>
+
+          <Link
+            href="/shop"
+            className="rounded-lg border border-stone-300 px-5 py-2.5 text-xs font-medium uppercase tracking-wider text-stone-800 transition hover:border-[#4D3024] hover:text-[#4D3024]"
+          >
+            Continue Shopping
+          </Link>
+
+        </div>
+
+        {/* ====================================================
+            GRID
+        ==================================================== */}
+
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+
+          {wishlistItems.map((item) => {
+
+            const product = item.product;
+
+            if (!product) {
+              return null;
+            }
+
+            return (
+              <div
+                key={item.id}
+                className="group overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm transition hover:shadow-lg"
+              >
+
+                {/* IMAGE */}
+
+                <Link
+                  href={`/shop/${product.id}`}
+                  className="block"
+                >
+
+                  <div className="relative aspect-[4/5] overflow-hidden bg-stone-100">
+
+                    {product.imageUrl ? (
+
+                      <Image
+                        src={product.imageUrl}
+                        alt={
+                          product.title ||
+                          "Artwork"
+                        }
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                        className="object-cover transition duration-500 group-hover:scale-105"
+                      />
+
+                    ) : (
+
+                      <div className="flex h-full items-center justify-center text-sm text-stone-400">
+                        No Image
+                      </div>
+
+                    )}
+
+                  </div>
+
+                </Link>
+
+                {/* DETAILS */}
+
+                <div className="p-5">
+
+                  <p className="text-[10px] font-medium uppercase tracking-widest text-[#4D3024]">
+                    Fine Art
+                  </p>
+
+                  <h2 className="mt-2 line-clamp-2 font-serif text-xl text-stone-900">
+                    {product.title ||
+                      "Untitled Artwork"}
+                  </h2>
+
+                  {product.location && (
+                    <p className="mt-2 text-sm text-stone-500">
+                      {product.location}
+                    </p>
+                  )}
+
+                  {product.medium && (
+                    <p className="mt-1 text-xs text-stone-400">
+                      {product.medium}
+                    </p>
+                  )}
+
+                  {/* VIEW */}
+
+                  <Link
+                    href={`/shop/${product.id}`}
+                    className="mt-5 block w-full rounded-lg bg-[#4D3024] px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-white transition hover:bg-[#22211B]"
+                  >
+                    View Artwork
+                  </Link>
+
+                </div>
+
+              </div>
+            );
+          })}
+
+        </div>
+
+      </div>
+
     </div>
   );
 }

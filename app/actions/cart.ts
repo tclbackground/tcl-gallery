@@ -5,6 +5,12 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
+/**
+ * ============================================================
+ * ADD TO CART
+ * ============================================================
+ */
+
 export async function addToCart({
   productId,
   size,
@@ -23,20 +29,29 @@ export async function addToCart({
       return {
         success: false,
         loginRequired: true,
-        message: "Please login before adding artwork to your cart.",
+        message:
+          "Please login before adding artwork to your cart.",
       };
     }
 
-    const userId = (session.user as any).id;
+    const userId = (session.user as any)?.id;
 
-    const existingItem = await prisma.cartItem.findFirst({
-      where: {
-        userId,
-        productId,
-        size: size || null,
-        frame: frame || null,
-      },
-    });
+    if (!userId) {
+      return {
+        success: false,
+        message: "User ID not found.",
+      };
+    }
+
+    const existingItem =
+      await prisma.cartItem.findFirst({
+        where: {
+          userId,
+          productId,
+          size: size || null,
+          frame: frame || null,
+        },
+      });
 
     if (existingItem) {
       await prisma.cartItem.update({
@@ -44,7 +59,8 @@ export async function addToCart({
           id: existingItem.id,
         },
         data: {
-          quantity: existingItem.quantity + 1,
+          quantity:
+            existingItem.quantity + 1,
         },
       });
     } else {
@@ -54,41 +70,65 @@ export async function addToCart({
           productId,
           size: size || null,
           frame: frame || null,
-          price,
+          price: Number(price),
           quantity: 1,
         },
       });
     }
 
     revalidatePath("/cart");
+    revalidatePath("/checkout");
 
     return {
       success: true,
       message: "Artwork added to cart.",
     };
   } catch (error) {
-    console.error("Add to cart error:", error);
+    console.error(
+      "Add to cart error:",
+      error
+    );
 
     return {
       success: false,
-      message: "Unable to add artwork to cart.",
+      message:
+        "Unable to add artwork to cart.",
     };
   }
 }
+
+/**
+ * ============================================================
+ * UPDATE CART QUANTITY
+ * ============================================================
+ */
 
 export async function updateCartQuantity(
   cartItemId: string,
   quantity: number
 ) {
   try {
-    if (quantity < 1) {
+    const newQuantity = Math.floor(
+      Number(quantity)
+    );
+
+    if (!Number.isFinite(newQuantity)) {
       return {
         success: false,
-        message: "Quantity must be at least 1.",
+        message: "Invalid quantity.",
       };
     }
 
-    const session = await getServerSession(authOptions);
+    if (newQuantity < 1) {
+      return {
+        success: false,
+        message:
+          "Quantity must be at least 1.",
+      };
+    }
+
+    const session =
+      await getServerSession(authOptions);
 
     if (!session?.user) {
       return {
@@ -97,49 +137,83 @@ export async function updateCartQuantity(
       };
     }
 
-    const userId = (session.user as any).id;
+    const userId =
+      (session.user as any)?.id;
 
-    const cartItem = await prisma.cartItem.findFirst({
-      where: {
-        id: cartItemId,
-        userId,
-      },
-    });
+    if (!userId) {
+      return {
+        success: false,
+        message: "User ID not found.",
+      };
+    }
+
+    /*
+     * IMPORTANT:
+     * Find the cart item using BOTH
+     * item ID and user ID.
+     *
+     * This prevents one user from
+     * modifying another user's cart.
+     */
+
+    const cartItem =
+      await prisma.cartItem.findFirst({
+        where: {
+          id: cartItemId,
+          userId,
+        },
+      });
 
     if (!cartItem) {
       return {
         success: false,
-        message: "Cart item not found.",
+        message:
+          "Cart item not found.",
       };
     }
 
     await prisma.cartItem.update({
       where: {
-        id: cartItemId,
+        id: cartItem.id,
       },
       data: {
-        quantity,
+        quantity: newQuantity,
       },
     });
 
     revalidatePath("/cart");
+    revalidatePath("/checkout");
 
     return {
       success: true,
+      quantity: newQuantity,
     };
   } catch (error) {
-    console.error("Update quantity error:", error);
+    console.error(
+      "Update quantity error:",
+      error
+    );
 
     return {
       success: false,
-      message: "Unable to update quantity.",
+      message:
+        "Unable to update quantity.",
     };
   }
 }
 
-export async function removeFromCart(cartItemId: string) {
+/**
+ * ============================================================
+ * REMOVE FROM CART
+ * ============================================================
+ */
+
+export async function removeFromCart(
+  cartItemId: string
+) {
   try {
-    const session = await getServerSession(authOptions);
+    const session =
+      await getServerSession(authOptions);
 
     if (!session?.user) {
       return {
@@ -148,39 +222,58 @@ export async function removeFromCart(cartItemId: string) {
       };
     }
 
-    const userId = (session.user as any).id;
+    const userId =
+      (session.user as any)?.id;
 
-    const cartItem = await prisma.cartItem.findFirst({
-      where: {
-        id: cartItemId,
-        userId,
-      },
-    });
+    if (!userId) {
+      return {
+        success: false,
+        message: "User ID not found.",
+      };
+    }
+
+    /*
+     * Again, verify ownership before deleting.
+     */
+
+    const cartItem =
+      await prisma.cartItem.findFirst({
+        where: {
+          id: cartItemId,
+          userId,
+        },
+      });
 
     if (!cartItem) {
       return {
         success: false,
-        message: "Cart item not found.",
+        message:
+          "Cart item not found.",
       };
     }
 
     await prisma.cartItem.delete({
       where: {
-        id: cartItemId,
+        id: cartItem.id,
       },
     });
 
     revalidatePath("/cart");
+    revalidatePath("/checkout");
 
     return {
       success: true,
     };
   } catch (error) {
-    console.error("Remove cart error:", error);
+    console.error(
+      "Remove cart error:",
+      error
+    );
 
     return {
       success: false,
-      message: "Unable to remove artwork.",
+      message:
+        "Unable to remove artwork.",
     };
   }
 }

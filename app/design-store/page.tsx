@@ -11,7 +11,6 @@ type Product = {
   title: string;
   image: string;
   collection: string;
-  price: number;
 };
 
 const designStoreCategories = [
@@ -21,8 +20,7 @@ const designStoreCategories = [
     description:
       "Discover thoughtfully designed pieces inspired by nature, creativity and timeless beauty.",
     href: "/design-store/jewel-tree",
-    image:
-      "images/products/6.png",
+    image: "/images/products/6.png",
   },
   {
     title: "Living Legacy",
@@ -48,74 +46,56 @@ const products: Product[] = [
   {
     id: "1",
     title: "Golden Tree",
-    image:
-      "images/products/6.png",
+    image: "/images/products/6.png",
     collection: "jewel-tree",
-    price: 4500,
   },
   {
     id: "2",
     title: "Tree of Life",
-    image:
-      "/images/jeweltree/jewel-tree-1.jpeg",
+    image: "/images/jeweltree/jewel-tree-1.jpeg",
     collection: "jewel-tree",
-    price: 5200,
   },
   {
     id: "3",
     title: "Nature Inspired",
-    image:
-      "/images/jeweltree/jewel-tree-2.jpeg",
+    image: "/images/jeweltree/jewel-tree-2.jpeg",
     collection: "jewel-tree",
-    price: 6800,
   },
   {
     id: "4",
     title: "Legacy Vase",
-    image:
-      "/images/jeweltree/jewel-tree-3.jpeg",
+    image: "/images/jeweltree/jewel-tree-3.jpeg",
     collection: "living-legacy",
-    price: 3500,
   },
   {
     id: "5",
     title: "Living Object",
-    image:
-      "/images/livinglegacy/living-legacy.jpeg",
+    image: "/images/livinglegacy/living-legacy.jpeg",
     collection: "living-legacy",
-    price: 7200,
   },
   {
     id: "6",
     title: "Timeless Living",
-    image:
-      "/images/livinglegacy/living-legacy.jpeg",
+    image: "/images/livinglegacy/living-legacy.jpeg",
     collection: "living-legacy",
-    price: 8500,
   },
   {
     id: "7",
     title: "Forest Window",
-    image:
-      "/images/nature-window/forest-canopy.jpeg",
+    image: "/images/nature-window/forest-canopy.jpeg",
     collection: "nature-window",
-    price: 5500,
   },
   {
     id: "8",
     title: "Mountain View",
-    image:
-      "/images/nature-window/forest-canopy-2.jpeg",
+    image: "/images/nature-window/forest-canopy-2.jpeg",
     collection: "nature-window",
-    price: 6500,
   },
   {
     id: "9",
     title: "Green Escape",
-    image:
-      "/images/nature-window/forest-canopy-2.jpeg",
+    image: "/images/nature-window/forest-canopy-2.jpeg",
     collection: "nature-window",
-    price: 7200,
   },
 ];
 
@@ -128,10 +108,10 @@ export default function DesignStorePage() {
       <section className="bg-[#f7f6f2]">
         <div className="mx-auto grid min-h-[520px] max-w-[1800px] lg:grid-cols-2">
 
+          {/* HERO CONTENT */}
+
           <div className="flex items-center px-6 py-20 sm:px-10 lg:px-16 xl:px-24">
-
             <div>
-
               <p className="mb-5 font-serif text-sm uppercase tracking-[0.3em] text-[#7B8F50]">
                 TCL Gallery
               </p>
@@ -155,19 +135,17 @@ export default function DesignStorePage() {
                 Explore Collections
                 <FiArrowRight />
               </Link>
-
             </div>
-
           </div>
 
-          <div className="relative min-h-[420px] lg:min-h-[520px]">
+          {/* HERO IMAGE */}
 
+          <div className="relative min-h-[420px] lg:min-h-[520px]">
             <img
-              src="\images\products\6.png"
+              src="/images/products/6.png"
               alt="Design Store"
               className="absolute inset-0 h-full w-full object-cover"
             />
-
           </div>
 
         </div>
@@ -180,13 +158,10 @@ export default function DesignStorePage() {
         id="collections"
         className="bg-[#faf9f6] px-6 py-20 sm:px-10 lg:px-16"
       >
-
         <div className="mx-auto max-w-[1500px]">
 
           <div className="mb-12 flex items-end justify-between">
-
             <div>
-
               <p className="font-serif text-sm uppercase tracking-[0.25em] text-[#7B8F50]">
                 Explore
               </p>
@@ -194,11 +169,9 @@ export default function DesignStorePage() {
               <h2 className="mt-3 font-serif text-3xl sm:text-4xl">
                 Design Store Collections
               </h2>
-
             </div>
 
             <FiShoppingBag className="text-xl text-[#7B8F50]" />
-
           </div>
 
 
@@ -223,14 +196,13 @@ export default function DesignStorePage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
 
                   <div className="absolute bottom-0 p-7">
-
                     <h3 className="font-serif text-3xl text-white">
                       {category.title}
                     </h3>
-
                   </div>
 
                 </div>
+
 
                 <div className="p-7">
 
@@ -252,13 +224,10 @@ export default function DesignStorePage() {
           </div>
 
         </div>
-
       </section>
 
 
-      {/* =====================================================
-          ALL PRODUCTS BY COLLECTION
-      ===================================================== */}
+      {/* ALL PRODUCTS BY COLLECTION */}
 
       <section className="px-6 py-24 sm:px-10 lg:px-16">
 
@@ -327,9 +296,8 @@ export default function DesignStorePage() {
 
                   {collectionProducts.map((product) => (
 
-                    <Link
+                    <div
                       key={product.id}
-                      href={`/shop/${product.id}`}
                       className="group block"
                     >
 
@@ -343,9 +311,14 @@ export default function DesignStorePage() {
                           className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
                         />
 
-                        <div className="absolute inset-x-4 bottom-4 translate-y-12 bg-white py-3 text-center text-sm opacity-0 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-                          View Product
-                        </div>
+                        {/* ENQUIRE NOW OVERLAY */}
+
+                        <Link
+                          href="/contact"
+                          className="absolute inset-x-4 bottom-4 translate-y-12 bg-white py-3 text-center text-sm uppercase tracking-[0.12em] opacity-0 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100 hover:bg-[#7B8F50] hover:text-white"
+                        >
+                          Enquire Now
+                        </Link>
 
                       </div>
 
@@ -358,19 +331,26 @@ export default function DesignStorePage() {
                           {product.title}
                         </h3>
 
-                        <p className="mt-2 text-sm font-medium">
-                          ₹{product.price.toLocaleString("en-IN")}
-                        </p>
+                        {/* ENQUIRE NOW */}
+
+                        <Link
+                          href="/contact"
+                          className="mt-3 inline-flex items-center gap-2 text-sm font-medium uppercase tracking-[0.1em] text-[#7B8F50] transition hover:text-[#2f2f2f]"
+                        >
+                          Enquire Now
+                          <FiArrowRight />
+                        </Link>
 
                       </div>
 
-                    </Link>
+                    </div>
 
                   ))}
 
                 </div>
 
               </section>
+
             );
           })}
 
