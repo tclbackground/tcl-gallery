@@ -82,7 +82,7 @@ const products: Product[] = [
   {
     id: "7",
     title: "Forest Window",
-    image: "/images/nature-window/forest-canopy.jpeg",
+    image: "/images/nature-window/nature-window.jpeg",
     collection: "nature-window",
   },
   {
