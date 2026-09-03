@@ -216,7 +216,7 @@ export default function Home() {
 
               {/* EXPLORE COLLECTIONS */}
               <Link
-                href="/collections"
+                href="/shop"
                 className="
                   group
                   flex
