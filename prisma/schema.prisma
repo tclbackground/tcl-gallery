@@ -254,3 +254,31 @@ model Enquiry {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model DesignStoreProduct {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  slNo Int?
+
+  title String
+
+  collection String
+
+  description String?
+
+  price Float?
+
+  image1 String
+  image2 String?
+  image3 String?
+  image4 String?
+
+  referenceNo String?
+
+  material String?
+
+  size String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

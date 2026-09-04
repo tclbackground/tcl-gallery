@@ -16,7 +16,9 @@ import {
   FiBell,
   FiMoon,
   FiPlus,
+  FiImage,
 } from "react-icons/fi";
+
 import AdminUserMenu from "./components/AdminUserMenu";
 
 export default async function AdminLayout({
@@ -24,147 +26,666 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // 1. Fetch user session on the server
-  const session = await getServerSession(authOptions);
+  // =====================================================
+  // GET SESSION
+  // =====================================================
 
-  // 2. Protect route: redirect unauthenticated users to /login
+  const session =
+    await getServerSession(authOptions);
+
+  // =====================================================
+  // PROTECT ADMIN ROUTE
+  // =====================================================
+
   if (!session) {
-    redirect("/login?callbackUrl=/admin");
+    redirect(
+      "/login?callbackUrl=/admin"
+    );
   }
 
-  const userRole = ((session.user as any)?.role || "").toUpperCase();
+  const userRole = (
+    (session.user as any)?.role || ""
+  ).toUpperCase();
 
-  // 3. Optional: Role validation check
-  // If role is present in DB, check for "ADMIN". If role isn't assigned yet, allow authenticated user.
-  if (userRole && userRole !== "ADMIN") {
-    redirect("/"); // Non-admin authenticated users sent to homepage
+  // =====================================================
+  // ADMIN ROLE CHECK
+  // =====================================================
+
+  if (
+    userRole &&
+    userRole !== "ADMIN"
+  ) {
+    redirect("/");
   }
 
   const user = session.user;
 
+  // =====================================================
+  // LAYOUT
+  // =====================================================
+
   return (
-    <div className="min-h-screen bg-[#FBF9F0] text-[#22211B] flex font-sans antialiased">
-      {/* Sidebar */}
-      <aside className="w-64 border-r border-[#E8E2D5] bg-white flex flex-col h-screen sticky top-0 shrink-0 hidden md:flex">
-        {/* Brand Logo */}
-        <div className="p-6 border-b border-[#E8E2D5]/50 shrink-0">
-          <Link href="/admin" className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-[#22211B] text-white flex items-center justify-center font-serif text-lg font-bold">
+    <div
+      className="
+        flex
+        min-h-screen
+        bg-[#FBF9F0]
+        font-sans
+        antialiased
+        text-[#22211B]
+      "
+    >
+
+      {/* ==================================================
+          SIDEBAR
+      ================================================== */}
+
+      <aside
+        className="
+          sticky
+          top-0
+          hidden
+          h-screen
+          w-64
+          shrink-0
+          flex-col
+          border-r
+          border-[#E8E2D5]
+          bg-white
+          md:flex
+        "
+      >
+
+        {/* ==================================================
+            BRAND
+        ================================================== */}
+
+        <div
+          className="
+            shrink-0
+            border-b
+            border-[#E8E2D5]/50
+            p-6
+          "
+        >
+          <Link
+            href="/admin"
+            className="
+              flex
+              items-center
+              gap-3
+            "
+          >
+            <div
+              className="
+                flex
+                h-9
+                w-9
+                items-center
+                justify-center
+                rounded-xl
+                bg-[#22211B]
+                font-serif
+                text-lg
+                font-bold
+                text-white
+              "
+            >
               T
             </div>
-            <span className="font-serif text-xl font-bold text-[#22211B] tracking-tight">
+
+            <span
+              className="
+                font-serif
+                text-xl
+                font-bold
+                tracking-tight
+                text-[#22211B]
+              "
+            >
               TCL Admin
             </span>
           </Link>
         </div>
 
-        {/* Menu Navigation */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          <nav className="space-y-1 text-xs font-semibold">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-3 mb-2">
+        {/* ==================================================
+            NAVIGATION
+        ================================================== */}
+
+        <div
+          className="
+            flex-1
+            overflow-y-auto
+            p-6
+          "
+        >
+          <nav
+            className="
+              space-y-1
+              text-xs
+              font-semibold
+            "
+          >
+
+            <p
+              className="
+                mb-2
+                px-3
+                text-[10px]
+                font-bold
+                uppercase
+                tracking-widest
+                text-gray-400
+              "
+            >
               Menu
             </p>
+
+            {/* ==================================================
+                DASHBOARD
+            ================================================== */}
+
             <Link
               href="/admin"
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-[#F8F4EE] hover:text-[#22211B] text-gray-600 font-bold transition"
+              className="
+                flex
+                items-center
+                gap-3
+                rounded-xl
+                px-3.5
+                py-2.5
+                font-bold
+                text-gray-600
+                transition
+                hover:bg-[#F8F4EE]
+                hover:text-[#22211B]
+              "
             >
-              <FiGrid size={16} /> Dashboard
+              <FiGrid size={16} />
+
+              Dashboard
             </Link>
+
+            {/* ==================================================
+                ARTWORKS
+            ================================================== */}
 
             <Link
               href="/admin/artworks"
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-[#F8F4EE] text-[#4D3024] font-bold transition"
+              className="
+                flex
+                items-center
+                gap-3
+                rounded-xl
+                bg-[#F8F4EE]
+                px-3.5
+                py-2.5
+                font-bold
+                text-[#4D3024]
+                transition
+              "
             >
-              <FiPackage size={16} /> Artworks
+              <FiPackage size={16} />
+
+              Artworks
             </Link>
+
+            {/* ==================================================
+                ADD PRODUCT
+            ================================================== */}
+
+            <Link
+              href="/admin/add-product"
+              className="
+                ml-5
+                flex
+                items-center
+                gap-3
+                rounded-lg
+                px-3
+                py-2
+                text-gray-500
+                transition
+                hover:bg-[#FAF7F0]
+                hover:text-[#22211B]
+              "
+            >
+              <FiPlus size={14} />
+
+              Add Product
+            </Link>
+
+            {/* ==================================================
+                ADD FINE ART
+            ================================================== */}
+
+            <Link
+              href="/admin/fine-art/new"
+              className="
+                ml-5
+                flex
+                items-center
+                gap-3
+                rounded-lg
+                px-3
+                py-2
+                text-gray-500
+                transition
+                hover:bg-[#FAF7F0]
+                hover:text-[#22211B]
+              "
+            >
+              <FiImage size={14} />
+
+              Add Fine Art
+            </Link>
+
+            {/* ==================================================
+                ARTISTS
+            ================================================== */}
 
             <Link
               href="/admin/artists/add"
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-gray-600 hover:bg-[#F8F4EE] hover:text-[#22211B] transition"
+              className="
+                flex
+                items-center
+                gap-3
+                rounded-xl
+                px-3.5
+                py-2.5
+                text-gray-600
+                transition
+                hover:bg-[#F8F4EE]
+                hover:text-[#22211B]
+              "
             >
-              <FiUsers size={16} /> Artists
+              <FiUsers size={16} />
+
+              Artists
             </Link>
+
+            {/* ==================================================
+                ORDERS
+            ================================================== */}
+
             <Link
               href="/admin"
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-gray-600 hover:bg-[#F8F4EE] hover:text-[#22211B] transition"
+              className="
+                flex
+                items-center
+                gap-3
+                rounded-xl
+                px-3.5
+                py-2.5
+                text-gray-600
+                transition
+                hover:bg-[#F8F4EE]
+                hover:text-[#22211B]
+              "
             >
-              <FiShoppingBag size={16} /> Orders
+              <FiShoppingBag size={16} />
+
+              Orders
             </Link>
+
+            {/* ==================================================
+                CATEGORIES
+            ================================================== */}
+
             <Link
               href="/admin"
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-gray-600 hover:bg-[#F8F4EE] hover:text-[#22211B] transition"
+              className="
+                flex
+                items-center
+                gap-3
+                rounded-xl
+                px-3.5
+                py-2.5
+                text-gray-600
+                transition
+                hover:bg-[#F8F4EE]
+                hover:text-[#22211B]
+              "
             >
-              <FiFolder size={16} /> Categories
+              <FiFolder size={16} />
+
+              Categories
             </Link>
+
+            {/* ==================================================
+                CUSTOMERS
+            ================================================== */}
+
             <Link
               href="/admin"
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-gray-600 hover:bg-[#F8F4EE] hover:text-[#22211B] transition"
+              className="
+                flex
+                items-center
+                gap-3
+                rounded-xl
+                px-3.5
+                py-2.5
+                text-gray-600
+                transition
+                hover:bg-[#F8F4EE]
+                hover:text-[#22211B]
+              "
             >
-              <FiUserCheck size={16} /> Customers
+              <FiUserCheck size={16} />
+
+              Customers
             </Link>
+
+            {/* ==================================================
+                FEATURED
+            ================================================== */}
+
             <Link
               href="/admin"
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-gray-600 hover:bg-[#F8F4EE] hover:text-[#22211B] transition"
+              className="
+                flex
+                items-center
+                gap-3
+                rounded-xl
+                px-3.5
+                py-2.5
+                text-gray-600
+                transition
+                hover:bg-[#F8F4EE]
+                hover:text-[#22211B]
+              "
             >
-              <FiStar size={16} /> Featured
+              <FiStar size={16} />
+
+              Featured
             </Link>
+
+            {/* ==================================================
+                SETTINGS
+            ================================================== */}
+
             <Link
               href="/admin"
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-gray-600 hover:bg-[#F8F4EE] hover:text-[#22211B] transition"
+              className="
+                flex
+                items-center
+                gap-3
+                rounded-xl
+                px-3.5
+                py-2.5
+                text-gray-600
+                transition
+                hover:bg-[#F8F4EE]
+                hover:text-[#22211B]
+              "
             >
-              <FiSettings size={16} /> Settings
+              <FiSettings size={16} />
+
+              Settings
             </Link>
           </nav>
         </div>
 
-        {/* Quick Action Button */}
-        <div className="p-4 border-t border-[#E8E2D5] bg-[#FAF7F0] shrink-0">
+        {/* ==================================================
+            QUICK ACTIONS
+        ================================================== */}
+
+        <div
+          className="
+            shrink-0
+            space-y-2
+            border-t
+            border-[#E8E2D5]
+            bg-[#FAF7F0]
+            p-4
+          "
+        >
+
+          {/* ADD PRODUCT */}
+
           <Link
             href="/admin/add-product"
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#22211B] py-2.5 text-xs font-semibold text-white hover:bg-[#4D3024] transition shadow-xs"
+            className="
+              flex
+              w-full
+              items-center
+              justify-center
+              gap-2
+              rounded-xl
+              bg-[#22211B]
+              py-2.5
+              text-xs
+              font-semibold
+              text-white
+              shadow-sm
+              transition
+              hover:bg-[#4D3024]
+            "
           >
-            <FiPlus size={14} /> Add Artwork
+            <FiPlus size={14} />
+
+            Add Product
           </Link>
+
+          {/* ADD FINE ART */}
+
+          <Link
+            href="/admin/fine-art/new"
+            className="
+              flex
+              w-full
+              items-center
+              justify-center
+              gap-2
+              rounded-xl
+              border
+              border-[#C4A892]
+              bg-white
+              py-2.5
+              text-xs
+              font-semibold
+              text-[#4D3024]
+              transition
+              hover:bg-[#F1EBDD]
+            "
+          >
+            <FiImage size={14} />
+
+            Add Fine Art
+          </Link>
+
         </div>
       </aside>
 
-      {/* Main Content Layout */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Header Bar */}
-        <header className="h-16 border-b border-[#E8E2D5] bg-white px-6 flex items-center justify-between gap-4 sticky top-0 z-10">
-          <div className="relative w-full max-w-md">
+      {/* ==================================================
+          MAIN CONTENT
+      ================================================== */}
+
+      <div
+        className="
+          flex
+          min-w-0
+          flex-1
+          flex-col
+        "
+      >
+
+        {/* ==================================================
+            TOP HEADER
+        ================================================== */}
+
+        <header
+          className="
+            sticky
+            top-0
+            z-10
+            flex
+            h-16
+            items-center
+            justify-between
+            gap-4
+            border-b
+            border-[#E8E2D5]
+            bg-white
+            px-6
+          "
+        >
+
+          {/* SEARCH */}
+
+          <div
+            className="
+              relative
+              w-full
+              max-w-md
+            "
+          >
             <FiSearch
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+              className="
+                absolute
+                left-3.5
+                top-1/2
+                -translate-y-1/2
+                text-gray-400
+              "
               size={15}
             />
+
             <input
               type="text"
               placeholder="Search or type command..."
-              className="w-full bg-[#FAF7F0] border border-[#E8E2D5] rounded-xl pl-10 pr-12 py-2 text-xs focus:outline-none focus:border-[#22211B] transition"
+              className="
+                w-full
+                rounded-xl
+                border
+                border-[#E8E2D5]
+                bg-[#FAF7F0]
+                py-2
+                pl-10
+                pr-12
+                text-xs
+                transition
+                focus:border-[#22211B]
+                focus:outline-none
+              "
             />
-            <kbd className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-gray-400 bg-white px-1.5 py-0.5 rounded border border-[#E8E2D5]">
+
+            <kbd
+              className="
+                absolute
+                right-3
+                top-1/2
+                -translate-y-1/2
+                rounded
+                border
+                border-[#E8E2D5]
+                bg-white
+                px-1.5
+                py-0.5
+                text-[10px]
+                font-semibold
+                text-gray-400
+              "
+            >
               ⌘K
             </kbd>
           </div>
 
-          <div className="flex items-center gap-4">
-            <button className="h-9 w-9 rounded-xl border border-[#E8E2D5] bg-[#FAF7F0] text-gray-600 hover:text-[#22211B] flex items-center justify-center transition">
+          {/* RIGHT SIDE */}
+
+          <div
+            className="
+              flex
+              items-center
+              gap-4
+            "
+          >
+
+            {/* DARK MODE */}
+
+            <button
+              className="
+                flex
+                h-9
+                w-9
+                items-center
+                justify-center
+                rounded-xl
+                border
+                border-[#E8E2D5]
+                bg-[#FAF7F0]
+                text-gray-600
+                transition
+                hover:text-[#22211B]
+              "
+            >
               <FiMoon size={15} />
             </button>
-            <button className="relative h-9 w-9 rounded-xl border border-[#E8E2D5] bg-[#FAF7F0] text-gray-600 hover:text-[#22211B] flex items-center justify-center transition">
+
+            {/* NOTIFICATIONS */}
+
+            <button
+              className="
+                relative
+                flex
+                h-9
+                w-9
+                items-center
+                justify-center
+                rounded-xl
+                border
+                border-[#E8E2D5]
+                bg-[#FAF7F0]
+                text-gray-600
+                transition
+                hover:text-[#22211B]
+              "
+            >
               <FiBell size={15} />
-              <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-[#4D3024]" />
+
+              <span
+                className="
+                  absolute
+                  right-2
+                  top-2
+                  h-2
+                  w-2
+                  rounded-full
+                  bg-[#4D3024]
+                "
+              />
             </button>
 
-            <div className="h-6 w-[1px] bg-[#E8E2D5]" />
+            <div
+              className="
+                h-6
+                w-px
+                bg-[#E8E2D5]
+              "
+            />
 
-            {/* Interactive Admin User Dropdown */}
-            <AdminUserMenu user={user} />
+            {/* ADMIN USER */}
+
+            <AdminUserMenu
+              user={user}
+            />
           </div>
         </header>
 
-        {/* Content Body */}
-        <main className="flex-1 p-6 lg:p-8 overflow-y-auto">{children}</main>
+        {/* ==================================================
+            CONTENT
+        ================================================== */}
+
+        <main
+          className="
+            flex-1
+            overflow-y-auto
+            p-6
+            lg:p-8
+          "
+        >
+          {children}
+        </main>
       </div>
     </div>
   );
