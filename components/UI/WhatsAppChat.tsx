@@ -12,7 +12,7 @@ export default function WhatsAppChat() {
   }
 
   // Replace with your gallery support number (country code + number, no '+' or spaces)
-  const phoneNumber = "918904788377";
+  const phoneNumber = "919900014886";
   const defaultMessage = encodeURIComponent(
     `Hello TCL Gallery, I have an inquiry regarding fine-art prints and framing options.`
   );
