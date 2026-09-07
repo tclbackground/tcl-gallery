@@ -22,11 +22,11 @@ import logoImg from "@/public/images/Logo.jpg";
 const shopItems = [
   {
     title: "Photography",
-    href: "/shop/photography",
+    href: "/shop",
   },
   {
     title: "Fine Art",
-    href: "/shop/fine-art",
+    href: "/fine-art",
   },
 ];
 
