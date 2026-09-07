@@ -473,7 +473,7 @@ export default function Home() {
 
                   {/* EXPLORE COLLECTIONS */}
                   <Link
-                    href="/collections"
+                    href="/design-store"
                     className="
                       group
                       flex
