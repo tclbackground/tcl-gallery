@@ -7,13 +7,23 @@ import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 
 /**
- * Upload a Design Store Product
+ * Supported Design Store collections.
  *
- * Collections:
- * - jewel-tree
- * - living-legacy
- * - nature-window
- * - bags
+ * IMPORTANT:
+ * These values must match the value saved in MongoDB.
+ */
+const ALLOWED_COLLECTIONS = [
+  "jewel-tree",
+  "living-legacy",
+  "nature-window",
+  "bags",
+] as const;
+
+type DesignStoreCollection =
+  (typeof ALLOWED_COLLECTIONS)[number];
+
+/**
+ * Upload a Design Store Product
  */
 export async function uploadDesignStoreProduct(
   formData: FormData
@@ -34,7 +44,7 @@ export async function uploadDesignStoreProduct(
       };
     }
 
-    const role = (
+    const role = String(
       (session.user as any)?.role || ""
     ).toUpperCase();
 
@@ -49,59 +59,48 @@ export async function uploadDesignStoreProduct(
     // GET FORM VALUES
     // =====================================================
 
-    const title =
-      String(formData.get("title") || "").trim();
+    const title = String(
+      formData.get("title") || ""
+    ).trim();
 
-    const collection =
-      String(
-        formData.get("collection") || ""
-      ).trim();
+    const collection = String(
+      formData.get("collection") || ""
+    )
+      .trim()
+      .toLowerCase();
 
-    const description =
-      String(
-        formData.get("description") || ""
-      ).trim();
+    const description = String(
+      formData.get("description") || ""
+    ).trim();
 
-    const referenceNo =
-      String(
-        formData.get("referenceNo") || ""
-      ).trim();
+    const referenceNo = String(
+      formData.get("referenceNo") || ""
+    ).trim();
 
-    const material =
-      String(
-        formData.get("material") || ""
-      ).trim();
+    const material = String(
+      formData.get("material") || ""
+    ).trim();
 
-    const size =
-      String(
-        formData.get("size") || ""
-      ).trim();
+    const size = String(
+      formData.get("size") || ""
+    ).trim();
 
-    const priceStr =
-      String(
-        formData.get("price") || ""
-      ).trim();
+    const priceStr = String(
+      formData.get("price") || ""
+    ).trim();
 
-    const slNoStr =
-      String(
-        formData.get("slNo") || ""
-      ).trim();
+    const slNoStr = String(
+      formData.get("slNo") || ""
+    ).trim();
 
     // =====================================================
     // GET IMAGES
     // =====================================================
 
-    const image1 =
-      formData.get("image1");
-
-    const image2 =
-      formData.get("image2");
-
-    const image3 =
-      formData.get("image3");
-
-    const image4 =
-      formData.get("image4");
+    const image1 = formData.get("image1");
+    const image2 = formData.get("image2");
+    const image3 = formData.get("image3");
+    const image4 = formData.get("image4");
 
     // =====================================================
     // VALIDATION
@@ -110,29 +109,20 @@ export async function uploadDesignStoreProduct(
     if (!title) {
       return {
         success: false,
-        message:
-          "Product title is required.",
+        message: "Product title is required.",
       };
     }
 
     if (!collection) {
       return {
         success: false,
-        message:
-          "Please select a collection.",
+        message: "Please select a collection.",
       };
     }
 
-    const allowedCollections = [
-      "jewel-tree",
-      "living-legacy",
-      "nature-window",
-      "bags",
-    ];
-
     if (
-      !allowedCollections.includes(
-        collection
+      !ALLOWED_COLLECTIONS.includes(
+        collection as DesignStoreCollection
       )
     ) {
       return {
@@ -158,13 +148,10 @@ export async function uploadDesignStoreProduct(
     // PRICE
     // =====================================================
 
-    let price:
-      | number
-      | null = null;
+    let price: number | null = null;
 
     if (priceStr) {
-      const parsedPrice =
-        Number(priceStr);
+      const parsedPrice = Number(priceStr);
 
       if (
         Number.isNaN(parsedPrice) ||
@@ -184,13 +171,10 @@ export async function uploadDesignStoreProduct(
     // SL NO
     // =====================================================
 
-    let slNo:
-      | number
-      | null = null;
+    let slNo: number | null = null;
 
     if (slNoStr) {
-      const parsedSlNo =
-        Number(slNoStr);
+      const parsedSlNo = Number(slNoStr);
 
       if (
         Number.isNaN(parsedSlNo) ||
@@ -249,12 +233,10 @@ export async function uploadDesignStoreProduct(
         );
       }
 
-      // Check file type
+      // Image validation
 
       if (
-        !file.type.startsWith(
-          "image/"
-        )
+        !file.type.startsWith("image/")
       ) {
         throw new Error(
           `Image ${imageNumber} is not a valid image.`
@@ -281,11 +263,10 @@ export async function uploadDesignStoreProduct(
           .toString(36)
           .substring(2, 8)}-${originalName}`;
 
-      const filePath =
-        path.join(
-          uploadDir,
-          fileName
-        );
+      const filePath = path.join(
+        uploadDir,
+        fileName
+      );
 
       // Convert File to Buffer
 
@@ -340,43 +321,44 @@ export async function uploadDesignStoreProduct(
     // =====================================================
 
     const product =
-      await prisma.designStoreProduct.create(
-        {
-          data: {
-            slNo,
+      await prisma.designStoreProduct.create({
+        data: {
+          slNo,
 
-            title,
+          title,
 
-            collection,
+          // IMPORTANT:
+          // This is what connects the product
+          // to the correct collection page.
+          collection,
 
-            description:
-              description || null,
+          description:
+            description || null,
 
-            price,
+          price,
 
-            image1:
-              image1Url!,
+          image1:
+            image1Url!,
 
-            image2:
-              image2Url,
+          image2:
+            image2Url,
 
-            image3:
-              image3Url,
+          image3:
+            image3Url,
 
-            image4:
-              image4Url,
+          image4:
+            image4Url,
 
-            referenceNo:
-              referenceNo || null,
+          referenceNo:
+            referenceNo || null,
 
-            material:
-              material || null,
+          material:
+            material || null,
 
-            size:
-              size || null,
-          },
-        }
-      );
+          size:
+            size || null,
+        },
+      });
 
     // =====================================================
     // SUCCESS
@@ -384,13 +366,19 @@ export async function uploadDesignStoreProduct(
 
     return {
       success: true,
+
       message:
         "Design Store product added successfully!",
+
       product: {
         id: product.id,
-        title: product.title,
+
+        title:
+          product.title,
+
         collection:
           product.collection,
+
         image1:
           product.image1,
       },
@@ -403,6 +391,7 @@ export async function uploadDesignStoreProduct(
 
     return {
       success: false,
+
       message:
         error?.message ||
         "Failed to upload Design Store product.",

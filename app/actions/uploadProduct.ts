@@ -4,45 +4,228 @@ import { prisma } from "@/lib/prisma";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 
-export async function uploadProduct(formData: FormData) {
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+const ALLOWED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+];
+
+/* =========================================================
+   GET STRING
+========================================================= */
+
+function getString(
+  formData: FormData,
+  field: string
+): string {
+  const value = formData.get(field);
+
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim();
+}
+
+/* =========================================================
+   GET FILE
+========================================================= */
+
+function getFile(
+  formData: FormData,
+  field: string
+): File | null {
+  const value = formData.get(field);
+
+  if (!(value instanceof File)) {
+    return null;
+  }
+
+  if (value.size === 0) {
+    return null;
+  }
+
+  return value;
+}
+
+/* =========================================================
+   CREATE SAFE FILE NAME
+========================================================= */
+
+function createSafeFileName(
+  fileName: string
+): string {
+  const extension =
+    path.extname(fileName).toLowerCase() || ".jpg";
+
+  const baseName = path
+    .basename(fileName, extension)
+    .replace(/[^a-zA-Z0-9-_]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase();
+
+  return `${baseName || "artwork"}${extension}`;
+}
+
+/* =========================================================
+   SAVE IMAGE LOCALLY
+========================================================= */
+
+async function saveImageLocally(
+  file: File,
+  folder: string,
+  prefix: string
+): Promise<string> {
+  /* -------------------------------------------------------
+     VALIDATE TYPE
+  ------------------------------------------------------- */
+
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    throw new Error(
+      "Only JPG, JPEG, PNG and WEBP images are allowed."
+    );
+  }
+
+  /* -------------------------------------------------------
+     VALIDATE SIZE
+  ------------------------------------------------------- */
+
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error(
+      "Image size must be less than 10MB."
+    );
+  }
+
+  /* -------------------------------------------------------
+     CREATE DIRECTORY
+  ------------------------------------------------------- */
+
+  const uploadDir = path.join(
+    process.cwd(),
+    "public",
+    "images",
+    "products",
+    folder
+  );
+
+  await mkdir(uploadDir, {
+    recursive: true,
+  });
+
+  /* -------------------------------------------------------
+     FILE NAME
+  ------------------------------------------------------- */
+
+  const safeName = createSafeFileName(
+    file.name
+  );
+
+  const fileName =
+    `${prefix}-${Date.now()}-${safeName}`;
+
+  const filePath = path.join(
+    uploadDir,
+    fileName
+  );
+
+  /* -------------------------------------------------------
+     SAVE FILE
+  ------------------------------------------------------- */
+
+  const bytes = await file.arrayBuffer();
+
+  const buffer = Buffer.from(bytes);
+
+  await writeFile(filePath, buffer);
+
+  /* -------------------------------------------------------
+     RETURN WEBSITE URL
+  ------------------------------------------------------- */
+
+  return `/images/products/${folder}/${fileName}`;
+}
+
+/* =========================================================
+   UPLOAD PRODUCT
+========================================================= */
+
+export async function uploadProduct(
+  formData: FormData
+) {
   try {
-    // =====================================================
-    // GET FORM DATA
-    // =====================================================
+    console.log(
+      "===================================="
+    );
 
-    const title = String(
-      formData.get("title") || ""
-    ).trim();
+    console.log(
+      "STARTING PRODUCT UPLOAD"
+    );
 
-    const priceStr = String(
-      formData.get("price") || ""
-    ).trim();
+    console.log(
+      "===================================="
+    );
 
-    const category = String(
-      formData.get("category") || ""
-    ).trim();
+    /* =====================================================
+       GET FORM DATA
+    ===================================================== */
 
-    const description = String(
-      formData.get("description") || ""
-    ).trim();
+    const title = getString(
+      formData,
+      "title"
+    );
 
-    const image = formData.get("image");
+    const category = getString(
+      formData,
+      "category"
+    );
 
-    // =====================================================
-    // VALIDATION
-    // =====================================================
+    const referenceNo = getString(
+      formData,
+      "referenceNo"
+    );
+
+    const location = getString(
+      formData,
+      "location"
+    );
+
+    const yearString = getString(
+      formData,
+      "year"
+    );
+
+    const medium = getString(
+      formData,
+      "medium"
+    );
+
+    const size = getString(
+      formData,
+      "size"
+    );
+
+    const image = getFile(
+      formData,
+      "image"
+    );
+
+    const image2 = getFile(
+      formData,
+      "image2"
+    );
+
+    /* =====================================================
+       VALIDATION
+    ===================================================== */
 
     if (!title) {
       return {
         success: false,
         message: "Product title is required.",
-      };
-    }
-
-    if (!priceStr) {
-      return {
-        success: false,
-        message: "Product price is required.",
       };
     }
 
@@ -53,161 +236,253 @@ export async function uploadProduct(formData: FormData) {
       };
     }
 
-    if (!image || !(image instanceof File)) {
+    if (!referenceNo) {
       return {
         success: false,
-        message: "Please select an artwork image.",
+        message: "Reference number is required.",
       };
     }
 
-    // =====================================================
-    // CONVERT PRICE
-    // =====================================================
-
-    const price = parseFloat(priceStr);
-
-    if (!Number.isFinite(price) || price < 0) {
+    if (!location) {
       return {
         success: false,
-        message: "Please enter a valid price.",
+        message: "Location is required.",
       };
     }
 
-    // =====================================================
-    // IMAGE VALIDATION
-    // =====================================================
-
-    if (!image.type.startsWith("image/")) {
+    if (!yearString) {
       return {
         success: false,
-        message: "Only image files are allowed.",
+        message: "Year is required.",
       };
     }
 
-    // Maximum 10 MB
-
-    const maxSize = 10 * 1024 * 1024;
-
-    if (image.size > maxSize) {
+    if (!medium) {
       return {
         success: false,
-        message: "Image size must be less than 10MB.",
+        message: "Medium is required.",
       };
     }
 
-    // =====================================================
-    // CREATE UPLOAD DIRECTORY
-    // =====================================================
+    if (!size) {
+      return {
+        success: false,
+        message: "Size is required.",
+      };
+    }
 
-    const uploadDir = path.join(
-      process.cwd(),
-      "public",
-      "uploads"
-    );
+    if (!image) {
+      return {
+        success: false,
+        message:
+          "Please select an artwork image.",
+      };
+    }
 
-    await mkdir(uploadDir, {
-      recursive: true,
-    });
+    /* =====================================================
+       YEAR
+    ===================================================== */
 
-    // =====================================================
-    // CREATE SAFE FILE NAME
-    // =====================================================
+    const year = Number(yearString);
 
-    const originalName = image.name;
+    if (
+      !Number.isInteger(year) ||
+      year < 1000 ||
+      year > 9999
+    ) {
+      return {
+        success: false,
+        message:
+          "Please enter a valid year.",
+      };
+    }
 
-    const extension =
-      path.extname(originalName).toLowerCase() || ".jpg";
+    /* =====================================================
+       CHECK DUPLICATE REFERENCE NO
+    ===================================================== */
 
-    const baseName = path
-      .basename(originalName, extension)
-      .replace(/[^a-zA-Z0-9-_]/g, "_")
-      .replace(/_+/g, "_");
+    const existingProduct =
+      await prisma.product.findFirst({
+        where: {
+          referenceNo: referenceNo,
+        },
+      });
 
-    const fileName =
-      `${Date.now()}-${baseName}${extension}`;
+    if (existingProduct) {
+      return {
+        success: false,
+        message:
+          `Reference number "${referenceNo}" already exists.`,
+      };
+    }
 
-    const filePath = path.join(
-      uploadDir,
-      fileName
-    );
+    /* =====================================================
+       GET NEXT SL NO
+    ===================================================== */
 
-    // =====================================================
-    // SAVE IMAGE
-    // =====================================================
+    const lastProduct =
+      await prisma.product.findFirst({
+        orderBy: {
+          slNo: "desc",
+        },
+      });
 
-    const bytes = await image.arrayBuffer();
-
-    const buffer = Buffer.from(bytes);
-
-    await writeFile(filePath, buffer);
-
-    // URL accessible from website
-
-    const imageUrl =
-      `/uploads/${fileName}`;
-
-    console.log("Image uploaded:", imageUrl);
-
-    // =====================================================
-    // SAVE PRODUCT TO MONGODB
-    // =====================================================
-
-    const newProduct = await prisma.product.create({
-      data: {
-        title,
-
-        category,
-
-        description:
-          description || null,
-
-        imageUrl,
-
-        // IMPORTANT:
-        // Product model has NO "price" field.
-        // The available price fields are:
-        // price12x18
-        // price18x24
-        // price24x33
-
-        price12x18: price,
-
-        price18x24: null,
-
-        price24x33: null,
-
-        createdAt: new Date(),
-
-        updatedAt: new Date(),
-      },
-    });
-
-    // =====================================================
-    // SUCCESS
-    // =====================================================
+    const nextSlNo =
+      lastProduct?.slNo
+        ? lastProduct.slNo + 1
+        : 1;
 
     console.log(
-      "Product created successfully:",
+      "NEXT SL NO:",
+      nextSlNo
+    );
+
+    /* =====================================================
+       CREATE FOLDER NAME
+    ===================================================== */
+
+    const folderName =
+      referenceNo
+        .replace(/[^a-zA-Z0-9-_]/g, "-")
+        .replace(/-+/g, "-")
+        .toLowerCase();
+
+    /* =====================================================
+       SAVE MAIN IMAGE
+    ===================================================== */
+
+    console.log(
+      "Saving main image locally..."
+    );
+
+    const imageUrl =
+      await saveImageLocally(
+        image,
+        folderName,
+        "main"
+      );
+
+    console.log(
+      "MAIN IMAGE:",
+      imageUrl
+    );
+
+    /* =====================================================
+       SAVE IMAGE 2
+    ===================================================== */
+
+    let image2Url: string | null = null;
+
+    if (image2) {
+      console.log(
+        "Saving image 2 locally..."
+      );
+
+      image2Url =
+        await saveImageLocally(
+          image2,
+          folderName,
+          "image-2"
+        );
+
+      console.log(
+        "IMAGE 2:",
+        image2Url
+      );
+    }
+
+    /* =====================================================
+       SAVE PRODUCT TO MONGODB
+    ===================================================== */
+
+    const newProduct =
+      await prisma.product.create({
+        data: {
+          slNo: nextSlNo,
+
+          title: title,
+
+          imageUrl: imageUrl,
+
+          category: category,
+
+          referenceNo: referenceNo,
+
+          location: location,
+
+          year: year,
+
+          medium: medium,
+
+          size: size,
+
+          image2: image2Url,
+
+          createdAt: new Date(),
+
+          updatedAt: new Date(),
+        },
+      });
+
+    /* =====================================================
+       SUCCESS
+    ===================================================== */
+
+    console.log(
+      "===================================="
+    );
+
+    console.log(
+      "PRODUCT CREATED SUCCESSFULLY"
+    );
+
+    console.log(
+      "ID:",
       newProduct.id
+    );
+
+    console.log(
+      "SL NO:",
+      newProduct.slNo
+    );
+
+    console.log(
+      "IMAGE:",
+      imageUrl
+    );
+
+    console.log(
+      "IMAGE 2:",
+      image2Url
+    );
+
+    console.log(
+      "===================================="
     );
 
     return {
       success: true,
+
       message:
-        "Product and image uploaded successfully!",
-      product: newProduct,
+        `Product published successfully! SL NO: ${nextSlNo}`,
+
+      product: {
+        id: newProduct.id,
+        slNo: newProduct.slNo,
+        title: newProduct.title,
+        imageUrl: newProduct.imageUrl,
+        image2: newProduct.image2,
+      },
     };
+
   } catch (error: any) {
-    // =====================================================
-    // ERROR
-    // =====================================================
 
     console.error(
       "===================================="
     );
 
     console.error(
-      "PRODUCT UPLOAD ERROR:"
+      "PRODUCT UPLOAD ERROR"
     );
 
     console.error(error);
@@ -223,9 +498,10 @@ export async function uploadProduct(formData: FormData) {
 
     return {
       success: false,
+
       message:
         error?.message ||
-        "Failed to upload product to server.",
+        "Failed to upload product.",
     };
   }
 }
