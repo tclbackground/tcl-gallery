@@ -43,6 +43,20 @@ export default function ProductDetailsClient({
 
   const { data: session, status } = useSession();
 
+  // ====================================================
+  // PRODUCTS THAT SUPPORT A1 SIZE
+  // ====================================================
+  // Only these products will display the A1 size option.
+  // All other products will display only A3 and A2.
+  const A1_PRODUCT_IDS = [
+    "6a9dad812eaf98f754554431",
+    "6a8c26716bba48474153d34c",
+  ];
+
+  const allowA1 = A1_PRODUCT_IDS.includes(
+    String(product?.id || "")
+  );
+
   /* ==========================================
      IMAGE GALLERY
   ========================================== */
@@ -104,6 +118,11 @@ export default function ProductDetailsClient({
     useState<string>(
       getDefaultFrame("A3")?.id || ""
     );
+
+  // A1 has two options:
+  // 1. Stretched Canvas
+  // 2. Stretched Canvas + 0.2" Frame, without passepartout
+  const [a1WithFrame, setA1WithFrame] = useState(false);
 
   /* ==========================================
      QUANTITY
@@ -173,11 +192,15 @@ export default function ProductDetailsClient({
 
   useEffect(() => {
     /*
-      Only A2 supports stretched canvas
+      A1 and A2 support stretched canvas
     */
 
-    if (selectedSize !== "A2") {
+    if (selectedSize === "A1") {
+      setSelectedFinish("canvas");
+      setSelectedMedium("Stretched Canvas");
+    } else {
       setSelectedFinish("framed");
+      setSelectedMedium("Archival Fine-Art Paper");
     }
 
     const frames =
@@ -212,6 +235,13 @@ export default function ProductDetailsClient({
     currentConfig?.frameTypes?.[0] ||
     null;
 
+  const selectedFrameName =
+    selectedSize === "A1"
+      ? a1WithFrame
+        ? '0.2" Frame'
+        : "No Frame"
+      : selectedFrameData?.name || "Frame";
+
   /* ==========================================
      CANVAS MODE
 
@@ -219,7 +249,7 @@ export default function ProductDetailsClient({
   ========================================== */
 
   const isCanvas =
-    selectedSize === "A2" &&
+    (selectedSize === "A1" || selectedSize === "A2") &&
     selectedFinish === "canvas";
 
   /* ==========================================
@@ -227,9 +257,13 @@ export default function ProductDetailsClient({
   ========================================== */
 
   const currentFrameWidth =
-    isCanvas
-      ? 0
-      : getFrameWidth(selectedSize);
+    selectedSize === "A1"
+      ? a1WithFrame
+        ? 0.2
+        : 0
+      : isCanvas
+        ? 0
+        : getFrameWidth(selectedSize);
 
   /* ==========================================
      PASSEPARTOUT
@@ -268,6 +302,10 @@ export default function ProductDetailsClient({
         Number(product?.priceA2) ||
         FRAME_CONFIG.A2.price
       );
+    }
+
+    if (selectedSize === "A1") {
+      return 12000;
     }
 
     return (
@@ -403,8 +441,14 @@ export default function ProductDetailsClient({
       A3 or A1
     */
 
-    if (size !== "A2") {
+    if (size === "A1") {
+      setSelectedFinish("canvas");
+      setSelectedMedium("Stretched Canvas");
+      setA1WithFrame(false);
+    } else {
       setSelectedFinish("framed");
+      setSelectedMedium("Archival Fine-Art Paper");
+      setA1WithFrame(false);
     }
 
     const defaultFrame =
@@ -423,11 +467,12 @@ export default function ProductDetailsClient({
     finish: ArtworkFinish
   ) => {
     /*
-      Only A2 can use canvas
+      A1 and A2 can use canvas
     */
 
     if (
       finish === "canvas" &&
+      selectedSize !== "A1" &&
       selectedSize !== "A2"
     ) {
       return;
@@ -452,7 +497,7 @@ export default function ProductDetailsClient({
   const createCartItem = () => {
     return {
       cartItemId:
-        `${product?.id || "product"}-${selectedSize}-${selectedFinish}-${selectedMedium}-${selectedFrameId}`,
+        `${product?.id || "product"}-${selectedSize}-${selectedFinish}-${selectedMedium}-${selectedFrameId}-${selectedSize === "A1" ? a1WithFrame : ""}`,
 
       productId:
         product?.id || "",
@@ -468,24 +513,38 @@ export default function ProductDetailsClient({
       size: selectedSize,
 
       medium:
-        isCanvas
-          ? "Museum Grade Canvas"
-          : selectedMedium,
+        selectedSize === "A1"
+          ? "Stretched Canvas"
+          : isCanvas
+            ? "Stretched Canvas"
+            : selectedMedium,
 
       finish:
-        isCanvas
-          ? "Stretched Canvas"
-          : "Framed Artwork",
+        selectedSize === "A1"
+          ? a1WithFrame
+            ? 'Stretched Canvas + 0.2" Frame'
+            : "Stretched Canvas"
+          : isCanvas
+            ? "Stretched Canvas"
+            : "Framed Artwork",
 
-      frame: isCanvas
-        ? "No Frame"
-        : selectedFrameData?.name ||
-          "Frame",
+      frame:
+        selectedSize === "A1"
+          ? a1WithFrame
+            ? '0.2" Frame'
+            : "No Frame"
+          : isCanvas
+            ? "No Frame"
+            : selectedFrameData?.name ||
+              "Frame",
 
-      frameImage: isCanvas
-        ? null
-        : selectedFrameData?.image ||
-          null,
+      frameImage:
+        selectedSize === "A1"
+          ? null
+          : isCanvas
+            ? null
+            : selectedFrameData?.image ||
+              null,
 
       frameWidth:
         currentFrameWidth,
@@ -626,27 +685,33 @@ export default function ProductDetailsClient({
           >
             {activeImage ? (
               <ProductArtwork3D
-                key={`${activeImage}-${selectedSize}-${selectedFinish}-${selectedFrameId}`}
-                imageUrl={activeImage}
-                aspectRatio={artworkAspectRatio}
-            
-               
-                
-                frameWidth={
-                  currentFrameWidth
-                }
-                passepartoutWidth={
-                  selectedSize === "A1" ||
-                  isCanvas
+              key={`${activeImage}-${selectedSize}-${selectedFinish}-${selectedFrameId}-${a1WithFrame}`}
+              imageUrl={activeImage}
+              aspectRatio={artworkAspectRatio}
+              frameImage={
+                selectedSize === "A1" && a1WithFrame
+                  ? selectedFrameData?.image
+                  : undefined
+              }
+              frameType={
+                selectedFrameData?.id || "black"
+              }
+              frameWidth={currentFrameWidth}
+              passepartoutWidth={
+                selectedSize === "A1"
+                  ? 0
+                  : isCanvas
                     ? 0
                     : currentPassepartoutWidth
-                }
-                displayMode={
-                  isCanvas
+              }
+              displayMode={
+                selectedSize === "A1" && a1WithFrame
+                  ? "frame"
+                  : isCanvas
                     ? "canvas"
                     : "frame"
-                }
-              />
+              }
+            />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-sm text-gray-500">
                 Artwork image unavailable
@@ -950,11 +1015,6 @@ export default function ProductDetailsClient({
               >
                 {product?.category ||
                   "Photography"}
-
-                {" • "}
-
-                {product?.medium ||
-                  "Fine Art Photography"}
               </p>
 
               {product?.artist && (
@@ -1094,16 +1154,17 @@ export default function ProductDetailsClient({
               </label>
 
               <div
-                className="
+                className={`
                   grid
-                  grid-cols-3
+                  ${allowA1 ? "grid-cols-3" : "grid-cols-2"}
                   gap-2
-
                   sm:gap-3
-                "
+                `}
               >
                 {(
-                  ["A3", "A2", "A1"] as ArtworkSize[]
+                  (allowA1
+                    ? ["A3", "A2", "A1"]
+                    : ["A3", "A2"]) as ArtworkSize[]
                 ).map((size) => {
                   const config =
                     FRAME_CONFIG[size];
@@ -1159,9 +1220,10 @@ export default function ProductDetailsClient({
                         "
                       >
                         ₹{" "}
-                        {config.price.toLocaleString(
-                          "en-IN"
-                        )}
+                        {(size === "A1"
+                          ? 12000
+                          : config.price
+                        ).toLocaleString("en-IN")}
                       </span>
                     </button>
                   );
@@ -1170,84 +1232,100 @@ export default function ProductDetailsClient({
             </div>
 
             {/* ======================================
-                A2 FINISH
+                FINISH
             ====================================== */}
 
-            {selectedSize === "A2" && (
+            {(selectedSize === "A1" || selectedSize === "A2") && (
               <div>
                 <label
                   className="
                     mb-4
                     block
-
                     text-[10px]
                     font-bold
                     uppercase
                     tracking-[0.15em]
                     text-gray-600
-
                     sm:text-[11px]
                   "
                 >
                   Finish
                 </label>
 
-                <div
-                  className="
-                    grid
-                    grid-cols-1
-                    gap-3
+                <div className="grid grid-cols-1 gap-3">
+                  {selectedSize === "A1" ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setA1WithFrame(false)}
+                        className={`border px-4 py-4 text-left transition ${
+                          !a1WithFrame
+                            ? "border-[#22211B] bg-[#22211B] text-white"
+                            : "border-gray-300 bg-white hover:border-[#22211B]"
+                        }`}
+                      >
+                        <span className="block text-sm font-bold">
+                          Stretched Canvas
+                        </span>
+                        <span className="mt-1 block text-xs opacity-70">
+                          No frame or passepartout
+                        </span>
+                      </button>
 
-                    xs:grid-cols-2
-                  "
-                >
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleFinishChange(
-                        "framed"
-                      )
-                    }
-                    className={`border px-4 py-4 text-left transition ${
-                      selectedFinish ===
-                      "framed"
-                        ? "border-[#22211B] bg-[#22211B] text-white"
-                        : "border-gray-300 bg-white hover:border-[#22211B]"
-                    }`}
-                  >
-                    <span className="block text-sm font-bold">
-                      Framed Artwork
-                    </span>
+                      <button
+                        type="button"
+                        onClick={() => setA1WithFrame(true)}
+                        className={`border px-4 py-4 text-left transition ${
+                          a1WithFrame
+                            ? "border-[#22211B] bg-[#22211B] text-white"
+                            : "border-gray-300 bg-white hover:border-[#22211B]"
+                        }`}
+                      >
+                        <span className="block text-sm font-bold">
+                          With 0.2" Frame
+                        </span>
+                        <span className="mt-1 block text-xs opacity-70">
+                          0.2" frame, no passepartout
+                        </span>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleFinishChange("framed")}
+                        className={`border px-4 py-4 text-left transition ${
+                          selectedFinish === "framed"
+                            ? "border-[#22211B] bg-[#22211B] text-white"
+                            : "border-gray-300 bg-white hover:border-[#22211B]"
+                        }`}
+                      >
+                        <span className="block text-sm font-bold">
+                          Framed Artwork
+                        </span>
+                        <span className="mt-1 block text-xs opacity-70">
+                          1" frame + 1.5" passepartout
+                        </span>
+                      </button>
 
-                    <span className="mt-1 block text-xs opacity-70">
-                      1" frame + 1.5"
-                      passepartout
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleFinishChange(
-                        "canvas"
-                      )
-                    }
-                    className={`border px-4 py-4 text-left transition ${
-                      selectedFinish ===
-                      "canvas"
-                        ? "border-[#22211B] bg-[#22211B] text-white"
-                        : "border-gray-300 bg-white hover:border-[#22211B]"
-                    }`}
-                  >
-                    <span className="block text-sm font-bold">
-                      Stretched Canvas
-                    </span>
-
-                    <span className="mt-1 block text-xs opacity-70">
-                      No frame or
-                      passepartout
-                    </span>
-                  </button>
+                      <button
+                        type="button"
+                        onClick={() => handleFinishChange("canvas")}
+                        className={`border px-4 py-4 text-left transition ${
+                          selectedFinish === "canvas"
+                            ? "border-[#22211B] bg-[#22211B] text-white"
+                            : "border-gray-300 bg-white hover:border-[#22211B]"
+                        }`}
+                      >
+                        <span className="block text-sm font-bold">
+                          Stretched Canvas
+                        </span>
+                        <span className="mt-1 block text-xs opacity-70">
+                          No frame or passepartout
+                        </span>
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -1261,159 +1339,127 @@ export default function ProductDetailsClient({
                 className="
                   mb-4
                   block
-
                   text-[10px]
                   font-bold
                   uppercase
                   tracking-[0.15em]
                   text-gray-600
-
                   sm:text-[11px]
                 "
               >
                 Medium
               </label>
 
-              <div
-                className="
-                  grid
-                  grid-cols-1
-                  gap-2
-
-                  xs:grid-cols-2
-
-                  sm:flex
-                  sm:flex-wrap
-                  sm:gap-3
-                "
-              >
-                {mediumOptions.map(
-                  (medium) => (
-                    <button
-                      key={medium}
-                      type="button"
-                      onClick={() =>
-                        setSelectedMedium(
-                          medium
-                        )
-                      }
-                      className={`border px-4 py-3 text-center text-xs font-semibold transition sm:px-5 ${
-                        selectedMedium ===
-                        medium
-                          ? "border-[#22211B] bg-[#22211B] text-white"
-                          : "border-gray-300 bg-white text-gray-700 hover:border-[#22211B]"
-                      }`}
-                    >
-                      {medium}
-                    </button>
-                  )
-                )}
+              <div className="flex flex-wrap gap-3">
+                <div
+                  className="
+                    border
+                    border-[#22211B]
+                    bg-[#22211B]
+                    px-4
+                    py-3
+                    text-center
+                    text-xs
+                    font-semibold
+                    text-white
+                    sm:px-5
+                  "
+                >
+                  {selectedSize === "A1"
+                    ? "Stretched Canvas"
+                    : "Archival Fine-Art Paper"}
+                </div>
               </div>
             </div>
 
             {/* ======================================
-                FRAME TYPES
+                FRAME OPTIONS
             ====================================== */}
 
-            {!isCanvas && (
+            {selectedSize !== "A1" && selectedFinish === "framed" && (
               <div>
-                <div
+                <label
                   className="
                     mb-4
-                    flex
-                    flex-col
-                    gap-2
-
-                    xs:flex-row
-                    xs:items-center
-                    xs:justify-between
+                    block
+                    text-[10px]
+                    font-bold
+                    uppercase
+                    tracking-[0.15em]
+                    text-gray-600
+                    sm:text-[11px]
                   "
                 >
-                  <label
-                    className="
-                      text-[10px]
-                      font-bold
-                      uppercase
-                      tracking-[0.15em]
-                      text-gray-600
+                  Frame
+                </label>
 
-                      sm:text-[11px]
-                    "
-                  >
-                    Choose Frame
-                  </label>
-
-                  <span className="text-sm font-semibold text-[#4D3024]">
-                    {selectedFrameData?.name}
-                  </span>
-                </div>
-
-                <div
-                  className="
-                    grid
-                    grid-cols-2
-                    gap-2
-
-                    xs:gap-3
-
-                    sm:grid-cols-3
-                  "
-                >
-                  {currentConfig?.frameTypes?.map(
-                    (
-                      frame: FrameType
-                    ) => (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {(currentConfig?.frameTypes || []).map(
+                    (frame: FrameType) => (
                       <button
                         key={frame.id}
                         type="button"
-                        onClick={() =>
-                          setSelectedFrameId(
-                            frame.id
-                          )
-                        }
-                        className={`group min-w-0 border p-2 text-left transition-all duration-300 sm:p-3 ${
-                          selectedFrameId ===
-                          frame.id
-                            ? "border-[#22211B] bg-white ring-2 ring-[#22211B]/10"
-                            : "border-gray-200 bg-white hover:border-gray-500"
+                        onClick={() => setSelectedFrameId(frame.id)}
+                        className={`border p-2 text-left transition ${
+                          selectedFrameId === frame.id
+                            ? "border-[#22211B] bg-[#F3F0E8]"
+                            : "border-gray-300 bg-white hover:border-[#22211B]"
                         }`}
                       >
-                        <div
-                          className="
-                            relative
-                            mb-2
-                            aspect-square
-                            w-full
-                            overflow-hidden
-                            bg-[#F4F1EB]
-
-                            sm:mb-3
-                          "
-                        >
-                          <Image
-                            src={frame.image}
-                            alt={`${frame.name} frame`}
-                            fill
-                            unoptimized
-                            className="object-contain"
-                          />
+                        <div className="relative aspect-square overflow-hidden bg-[#F3F0E8]">
+                          {frame.image ? (
+                            <Image
+                              src={frame.image}
+                              alt={frame.name}
+                              fill
+                              unoptimized
+                              className="object-contain p-1"
+                            />
+                          ) : (
+                            <div
+                              className="h-full w-full"
+                              style={{
+                                background:
+                                  frame.frameColor || "#22211B",
+                              }}
+                            />
+                          )}
                         </div>
 
-                        <p
-                          className="
-                            truncate
-                            text-[11px]
-                            font-semibold
-                            text-[#22211B]
-
-                            sm:text-xs
-                          "
-                        >
+                        <span className="mt-2 block text-[10px] font-semibold text-[#17365D] sm:text-xs">
                           {frame.name}
-                        </p>
+                        </span>
                       </button>
                     )
                   )}
+                </div>
+              </div>
+            )}
+
+            {selectedSize === "A1" && a1WithFrame && (
+              <div>
+                <label
+                  className="
+                    mb-4
+                    block
+                    text-[10px]
+                    font-bold
+                    uppercase
+                    tracking-[0.15em]
+                    text-gray-600
+                    sm:text-[11px]
+                  "
+                >
+                  Frame
+                </label>
+
+                <div className="border border-[#22211B] bg-[#F3F0E8] p-4">
+                  <p className="text-sm font-bold text-[#22211B]">
+                    0.2" Frame
+                  </p>
+                  <p className="mt-1 text-xs text-gray-600">
+                    0.2" frame. No passepartout.
+                  </p>
                 </div>
               </div>
             )}
@@ -1422,54 +1468,108 @@ export default function ProductDetailsClient({
                 PASSEPARTOUT
             ====================================== */}
 
-            {showPassepartout && (
-              <div className="border border-[#C4A892]/30 bg-[#F3F0E8] p-4">
-                <p className="text-xs font-bold uppercase tracking-wider text-[#4D3024]">
+            {showPassepartout ? (
+              <div className="border border-[#C4A892]/40 bg-[#F3F0E8] p-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#4D3024]">
                   Passepartout Included
                 </p>
-
-                <p className="mt-1 text-sm text-gray-600">
-                  {currentPassepartoutWidth}
-                  " premium archival white
-                  passepartout
+                <p className="mt-1 text-xs leading-5 text-gray-600">
+                  1.5" premium archival passepartout included with framed artwork.
                 </p>
               </div>
+            ) : (
+              (selectedSize === "A1" || isCanvas) && (
+                <div className="border border-[#C4A892]/40 bg-[#F3F0E8] p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#4D3024]">
+                    Passepartout
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-gray-600">
+                    No passepartout included.
+                  </p>
+                </div>
+              )
             )}
 
             {/* ======================================
-                A1 INFO
+                IMAGE THUMBNAILS
             ====================================== */}
-
-            {selectedSize === "A1" && (
-              <div className="border border-[#C4A892]/30 bg-[#F3F0E8] p-4">
-                <p className="text-xs font-bold uppercase tracking-wider text-[#4D3024]">
-                  A1 Frame
-                </p>
-
-                <p className="mt-1 text-sm text-gray-600">
-                  0.2" frame.
-                  No passepartout included.
-                </p>
-              </div>
-            )}
 
             {/* ======================================
-                CANVAS INFO
+                YOUR SELECTION
             ====================================== */}
 
-            {isCanvas && (
-              <div className="border border-[#C4A892]/30 bg-[#F3F0E8] p-4">
-                <p className="text-xs font-bold uppercase tracking-wider text-[#4D3024]">
-                  Stretched Canvas
+            <div className="border border-[#C4A892]/40 bg-[#F3F0E8] p-4">
+              <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.15em] text-[#4D3024]">
+                Your Selection
+              </p>
+
+              <div className="space-y-1.5 text-xs text-gray-700">
+                <p>
+                  <span className="font-semibold">Size:</span>{" "}
+                  {selectedSize}
                 </p>
 
-                <p className="mt-1 text-sm leading-relaxed text-gray-600">
-                  Museum grade canvas stretched
-                  and ready for display.
-                  No frame or passepartout.
+                <p>
+                  <span className="font-semibold">Orientation:</span>{" "}
+                  {product?.orientation || "Portrait"}
+                </p>
+
+                <p>
+                  <span className="font-semibold">Medium:</span>{" "}
+                  {selectedSize === "A1"
+                    ? "Stretched Canvas"
+                    : isCanvas
+                      ? "Stretched Canvas"
+                      : "Archival Fine-Art Paper"}
+                </p>
+
+                <p>
+                  <span className="font-semibold">Finish:</span>{" "}
+                  {selectedSize === "A1"
+                    ? a1WithFrame
+                      ? 'Stretched Canvas + 0.2" Frame'
+                      : "Stretched Canvas"
+                    : isCanvas
+                      ? "Stretched Canvas"
+                      : "Framed Artwork"}
+                </p>
+
+                <p>
+                  <span className="font-semibold">Frame:</span>{" "}
+                  {selectedFrameName}
+                </p>
+
+                <p>
+                  <span className="font-semibold">Frame Width:</span>{" "}
+                  {currentFrameWidth}"
+                </p>
+
+                <p>
+                  <span className="font-semibold">Passepartout:</span>{" "}
+                  {currentPassepartoutWidth > 0
+                    ? `${currentPassepartoutWidth}"`
+                    : "None"}
+                </p>
+
+                <p>
+                  <span className="font-semibold">Quantity:</span>{" "}
+                  {quantity}
                 </p>
               </div>
-            )}
+            </div>
+
+            {/* ======================================
+                DELIVERY / SERVICE
+            ====================================== */}
+
+            <div className="border border-[#C4A892]/40 bg-[#F3F0E8] p-3 text-center">
+              <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#4D3024]">
+                Flat Shipping On Orders Above ₹5,000
+              </p>
+              <p className="mt-1 text-[9px] uppercase tracking-[0.08em] text-gray-600">
+                Secure Packaging • Pan India Delivery
+              </p>
+            </div>
 
             {/* ======================================
                 QUANTITY
@@ -1478,69 +1578,44 @@ export default function ProductDetailsClient({
             <div>
               <label
                 className="
-                  mb-3
+                  mb-4
                   block
-
                   text-[10px]
                   font-bold
                   uppercase
                   tracking-[0.15em]
                   text-gray-600
-
                   sm:text-[11px]
                 "
               >
                 Quantity
               </label>
 
-              <div className="inline-flex items-center border border-gray-300 bg-white">
+              <div className="flex w-fit items-center border border-gray-300 bg-white">
                 <button
                   type="button"
+                  aria-label="Decrease quantity"
                   onClick={() =>
-                    setQuantity((q) =>
-                      Math.max(1, q - 1)
+                    setQuantity((current) =>
+                      Math.max(1, current - 1)
                     )
                   }
-                  className="
-                    px-4
-                    py-3
-                    text-lg
-                    font-bold
-
-                    sm:px-5
-                  "
+                  className="flex h-11 w-11 items-center justify-center text-xl text-[#22211B] transition hover:bg-[#F3F0E8]"
                 >
                   −
                 </button>
 
-                <span
-                  className="
-                    min-w-[50px]
-                    text-center
-                    text-sm
-                    font-semibold
-
-                    sm:min-w-[55px]
-                  "
-                >
+                <span className="flex h-11 min-w-14 items-center justify-center border-x border-gray-300 px-4 text-sm font-bold text-[#22211B]">
                   {quantity}
                 </span>
 
                 <button
                   type="button"
+                  aria-label="Increase quantity"
                   onClick={() =>
-                    setQuantity(
-                      (q) => q + 1
-                    )
+                    setQuantity((current) => current + 1)
                   }
-                  className="
-                    px-4
-                    py-3
-                    text-lg
-                    font-bold
-
-                    sm:px-5
-                  "
+                  className="flex h-11 w-11 items-center justify-center text-xl text-[#22211B] transition hover:bg-[#F3F0E8]"
                 >
                   +
                 </button>
@@ -1548,205 +1623,39 @@ export default function ProductDetailsClient({
             </div>
 
             {/* ======================================
-                YOUR SELECTION
+                PURCHASE ACTIONS
             ====================================== */}
 
-            <div
-              className="
-                border
-                border-[#C4A892]/40
-                bg-[#F3F0E8]
-                p-4
-
-                sm:p-5
-              "
-            >
-              <p className="mb-4 text-xs font-bold uppercase tracking-[0.15em] text-[#4D3024]">
-                Your Selection
-              </p>
-
-              <div className="space-y-2 break-words text-sm text-gray-700">
-                <p>
-                  <span className="font-semibold">
-                    Size:
-                  </span>{" "}
-                  {selectedSize}
-                </p>
-
-                <p>
-                  <span className="font-semibold">
-                    Orientation:
-                  </span>{" "}
-                  {artworkOrientation}
-                </p>
-
-                <p>
-                  <span className="font-semibold">
-                    Medium:
-                  </span>{" "}
-                  {isCanvas
-                    ? "Museum Grade Canvas"
-                    : selectedMedium}
-                </p>
-
-                <p>
-                  <span className="font-semibold">
-                    Finish:
-                  </span>{" "}
-                  {isCanvas
-                    ? "Stretched Canvas"
-                    : "Framed Artwork"}
-                </p>
-
-                {!isCanvas && (
-                  <p>
-                    <span className="font-semibold">
-                      Frame:
-                    </span>{" "}
-                    {selectedFrameData?.name}
-                  </p>
-                )}
-
-                {!isCanvas && (
-                  <p>
-                    <span className="font-semibold">
-                      Frame Width:
-                    </span>{" "}
-                    {currentFrameWidth}"
-                  </p>
-                )}
-
-                {showPassepartout && (
-                  <p>
-                    <span className="font-semibold">
-                      Passepartout:
-                    </span>{" "}
-                    {currentPassepartoutWidth}"
-                  </p>
-                )}
-
-                <p>
-                  <span className="font-semibold">
-                    Quantity:
-                  </span>{" "}
-                  {quantity}
-                </p>
-              </div>
-            </div>
-
-            {/* ======================================
-                DISCOUNT
-            ====================================== */}
-
-            <div
-              className="
-                border
-                border-[#C4A892]/40
-                bg-[#F3F0E8]
-                p-4
-                text-center
-
-                text-[11px]
-                font-semibold
-                text-[#4D3024]
-
-                sm:text-xs
-              "
-            >
-              FLAT 10% OFF ON ORDERS ABOVE ₹10,000
-
-              <br />
-
-              <span className="mt-1 inline-block font-bold">
-                USE CODE: FLAT10
-              </span>
-            </div>
-
-            {/* ======================================
-                ACTIONS
-            ====================================== */}
-
-            <div className="space-y-3 pt-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <button
                 type="button"
                 onClick={handleAddToCart}
-                className="
-                  w-full
-                  border-2
-                  border-[#22211B]
-                  bg-white
-
-                  px-4
-                  py-3.5
-
-                  text-xs
-                  font-bold
-                  text-[#22211B]
-
-                  transition
-                  hover:bg-gray-50
-
-                  sm:py-4
-                  sm:text-sm
-                "
+                className="flex min-h-12 items-center justify-center border border-[#22211B] bg-white px-6 py-3 text-[10px] font-bold uppercase tracking-[0.12em] text-[#22211B] transition hover:bg-[#22211B] hover:text-white"
               >
-                ADD TO CART — ₹{" "}
-                {totalPrice.toLocaleString(
-                  "en-IN"
-                )}
+                Add to Cart — ₹{totalPrice.toLocaleString("en-IN")}
               </button>
 
               <button
                 type="button"
                 onClick={handleBuyNow}
-                disabled={
-                  status === "loading"
-                }
-                className="
-                  w-full
-                  bg-[#22211B]
-
-                  px-4
-                  py-3.5
-
-                  text-xs
-                  font-bold
-                  text-white
-
-                  transition
-                  hover:bg-[#4D3024]
-
-                  disabled:opacity-70
-
-                  sm:py-4
-                  sm:text-sm
-                "
+                className="flex min-h-12 items-center justify-center bg-[#22211B] px-6 py-3 text-[10px] font-bold uppercase tracking-[0.12em] text-white transition hover:opacity-90"
               >
-                {status === "loading"
-                  ? "CHECKING AUTH..."
-                  : "BUY IT NOW"}
+                Buy Now
               </button>
             </div>
 
-            {/* ======================================
-                DESCRIPTION
-            ====================================== */}
-
-            {product?.description && (
-              <div className="border-t border-gray-200 pt-6 sm:pt-8">
-                <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.15em] text-gray-700">
-                  Product Highlights
-                </h3>
-
-                <p className="text-sm leading-relaxed text-gray-600">
-                  {product.description}
-                </p>
-              </div>
-            )}
-
-            {/* ======================================
-                IMAGE THUMBNAILS
-            ====================================== */}
+            <div className="fixed bottom-4 right-4 z-50">
+              <button
+                type="button"
+                onClick={() => {
+                  window.location.href =
+                    "https://wa.me/?text=Hello%20TCL%20Gallery%2C%20I%20need%20help%20with%20this%20artwork.";
+                }}
+                className="flex items-center gap-2 rounded-full bg-[#22c55e] px-5 py-3 text-xs font-bold text-[#111]"
+              >
+                Concierge
+              </button>
+            </div>
 
             {imagesList.length > 1 && (
               <div className="border-t border-gray-200 pt-6 sm:pt-8">
