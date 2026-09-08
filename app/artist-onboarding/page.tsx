@@ -2,1029 +2,454 @@
 
 import { useState } from "react";
 
-type Artwork = {
-  title: string;
-  category: string;
-  medium: string;
-  year: string;
-  width: string;
-  height: string;
-  depth: string;
-  framing: string;
-  frameType: string;
-  artworkType: string;
-  editionNumber: string;
-  quantity: string;
-  artistPrice: string;
-  retailPrice: string;
-  description: string;
-};
+const artMediums = [
+  "Painting",
+  "Drawing & Sketching",
+  "Watercolour",
+  "Acrylic Painting",
+  "Oil Painting",
+  "Charcoal",
+  "Pencil Art",
+  "Pastel",
+  "Portrait Art",
+  "Landscape Art",
+  "Abstract Art",
+  "Mixed Media",
+  "Illustration",
+  "Calligraphy",
+  "Sculpture",
+  "Photography",
+  "Printmaking",
+  "Textile Art",
+  "Digital Art",
+  "Craft",
+  "Other",
+];
 
-const emptyArtwork: Artwork = {
-  title: "",
-  category: "",
-  medium: "",
-  year: "",
-  width: "",
-  height: "",
-  depth: "",
-  framing: "",
-  frameType: "",
-  artworkType: "",
-  editionNumber: "",
-  quantity: "",
-  artistPrice: "",
-  retailPrice: "",
-  description: "",
-};
+const artCategories = [
+  "Contemporary Art",
+  "Traditional Art",
+  "Abstract Art",
+  "Figurative Art",
+  "Landscape & Nature",
+  "Portraiture",
+  "Indian Art",
+  "Modern Art",
+  "Decorative Art",
+  "Mixed Media",
+  "Photography",
+  "Sculpture",
+  "Other",
+];
 
-export default function ArtistCollaborationPage() {
+const yearsOfPractice = [
+  "Less than 2 years",
+  "2–5 years",
+  "5–10 years",
+  "10–20 years",
+  "20+ years",
+];
+
+const associationOptions = [
+  "Exhibitions",
+  "Art Sales",
+  "Artist Representation",
+  "Workshops",
+  "Collaborations",
+  "Commissions",
+  "Other",
+];
+
+export default function ArtistRegistrationPage() {
   const [submitted, setSubmitted] = useState(false);
 
-  const [artworks, setArtworks] = useState<Artwork[]>([
-    { ...emptyArtwork },
-  ]);
-
-  const [formData, setFormData] = useState({
-    // Artist Details
+  const [form, setForm] = useState({
     fullName: "",
-    artistName: "",
-    mobile: "",
-    whatsapp: "",
+    professionalName: "",
     email: "",
+    phone: "",
+    whatsapp: "",
     city: "",
-    address: "",
-    instagram: "",
+    dateOfBirth: "",
     website: "",
+    instagram: "",
 
-    // Artist Profile
-    artistCategory: "",
-    primaryMedium: "",
-    yearsOfPractice: "",
+    medium: "",
+    category: "",
+    yearsPractice: "",
+    education: "",
     artistBio: "",
-    artisticStyle: "",
+    artisticExperience: "",
 
-    // Gallery Collaboration
-    numberOfArtworks: "",
-    collaborationModel: "",
-    exclusivity: "",
-    artistShare: "",
-    minimumSellingPrice: "",
-    consignmentPeriod: "",
+    practiceDescription: "",
+    materials: "",
+    techniques: "",
+    themes: "",
+    currentProjects: "",
 
-    // Logistics
-    artworkLocation: "",
-    deliveryResponsibility: "",
-    packagingAvailable: "",
-    pickupRequired: "",
-    specialHandling: "",
-    returnRequirement: "",
+    exhibitions: "",
+    galleries: "",
+    awards: "",
+    publications: "",
 
-    // Rights
-    authenticityConfirmed: false,
-    displayPermission: false,
-    salePermission: false,
-    photographyPermission: false,
-    marketingPermission: false,
-    socialMediaPermission: false,
-    websitePermission: false,
+    portfolioUrl: "",
+    artworkUrl: "",
 
-    // Declaration
-    declaration: false,
+    association: [] as string[],
+    associationOther: "",
+    galleryExpectation: "",
+
+    availableWorks: "",
+    artworkSizes: "",
+    priceRange: "",
+    numberOfWorks: "",
+    customWork: "",
+
+    additionalInformation: "",
+    terms: false,
+    promotionalConsent: false,
   });
 
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+  const [files, setFiles] = useState({
+    cv: null as File | null,
+    portfolio: null as File | null,
+    artwork1: null as File | null,
+    artwork2: null as File | null,
+    artwork3: null as File | null,
+  });
+
+  const updateField = (
+    field: keyof typeof form,
+    value: string | boolean | string[]
   ) => {
-    const { name, value, type } = e.target;
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
 
-    if (type === "checkbox") {
-      const checked = (e.target as HTMLInputElement).checked;
-
-      setFormData((prev) => ({
-        ...prev,
-        [name]: checked,
-      }));
+  const toggleAssociation = (item: string) => {
+    if (form.association.includes(item)) {
+      updateField(
+        "association",
+        form.association.filter((value) => value !== item)
+      );
     } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
+      updateField("association", [...form.association, item]);
     }
   };
 
-  const updateArtwork = (
-    index: number,
-    field: keyof Artwork,
-    value: string
+  const handleFile = (
+    field: keyof typeof files,
+    file: File | null
   ) => {
-    setArtworks((prev) =>
-      prev.map((artwork, i) =>
-        i === index
-          ? {
-              ...artwork,
-              [field]: value,
-            }
-          : artwork
-      )
-    );
+    setFiles((prev) => ({ ...prev, [field]: file }));
   };
 
-  const addArtwork = () => {
-    setArtworks((prev) => [
-      ...prev,
-      { ...emptyArtwork },
-    ]);
-  };
-
-  const removeArtwork = (index: number) => {
-    if (artworks.length === 1) return;
-
-    setArtworks((prev) =>
-      prev.filter((_, i) => i !== index)
-    );
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!formData.authenticityConfirmed) {
-      alert(
-        "Please confirm that the artworks are authentic and that you have the right to offer them for sale."
-      );
+    if (!form.terms) {
+      alert("Please accept the declaration before submitting.");
       return;
     }
 
-    if (!formData.declaration) {
-      alert("Please accept the final declaration.");
-      return;
-    }
-
-    const finalData = {
-      ...formData,
-      artworks,
-    };
-
-    console.log(
-      "TCL Gallery Artist Application:",
-      finalData
-    );
+    console.log("Artist Registration:", form);
+    console.log("Files:", files);
 
     setSubmitted(true);
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   if (submitted) {
     return (
-      <main className="min-h-screen bg-[#f7f5f0] px-4 py-16">
-        <div className="mx-auto max-w-2xl">
-          <div className="rounded-[32px] bg-white p-10 text-center shadow-sm md:p-16">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-black text-2xl text-white">
-              ✓
-            </div>
-
-            <p className="mt-7 text-xs uppercase tracking-[0.3em] text-gray-400">
-              TCL Gallery
-            </p>
-
-            <h1 className="mt-3 font-serif text-4xl text-gray-900 md:text-5xl">
-              Thank You
-            </h1>
-
-            <p className="mx-auto mt-5 max-w-lg text-sm leading-7 text-gray-600">
-              Your artwork submission has been received
-              successfully. Our team will review your artist
-              profile and submitted artworks and contact you
-              regarding the next steps.
-            </p>
-
-            <button
-              type="button"
-              onClick={() => setSubmitted(false)}
-              className="mt-8 rounded-full bg-black px-8 py-3.5 text-sm font-medium text-white transition hover:bg-gray-800"
-            >
-              Submit Another Application
-            </button>
+      <main className="min-h-screen bg-[#f5f3ee] flex items-center justify-center px-5 py-20 text-black">
+        <div className="w-full max-w-2xl bg-white border border-black/10 p-10 md:p-16 text-center">
+          <div className="mx-auto mb-7 flex h-16 w-16 items-center justify-center rounded-full bg-black text-white text-xl">
+            ✓
           </div>
+
+          <p className="text-[11px] tracking-[0.3em] uppercase text-black/45 mb-4">
+            TCL Gallery
+          </p>
+
+          <h1 className="font-serif text-4xl md:text-5xl leading-tight mb-5">
+            Registration Received
+          </h1>
+
+          <p className="text-sm md:text-base text-black/60 leading-7 max-w-lg mx-auto">
+            Thank you for registering with TCL Gallery. Our team will review
+            your artist profile and submitted material and contact you if there
+            is an opportunity to work together.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => setSubmitted(false)}
+            className="mt-9 bg-black text-white px-7 py-3.5 text-sm hover:bg-black/80 transition"
+          >
+            Register Another Artist
+          </button>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f5f0]">
-      {/* Header */}
-      <section className="border-b border-black/10 bg-white">
-        <div className="mx-auto max-w-6xl px-5 py-12 md:px-8 md:py-16">
-          <div className="max-w-3xl">
-            <p className="text-xs font-medium uppercase tracking-[0.35em] text-gray-400">
-              TCL Gallery
+    <main className="min-h-screen bg-[#f5f3ee] text-black">
+      {/* HERO */}
+      <section className="border-b border-black/10">
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-20 md:py-28">
+          <div className="max-w-5xl">
+            <p className="text-[11px] md:text-xs tracking-[0.32em] uppercase text-black/45 mb-6">
+              TCL Gallery · Artist Network
             </p>
 
-            <h1 className="mt-4 font-serif text-4xl leading-tight text-gray-900 md:text-6xl">
-              Artist Collaboration
+            <h1 className="font-serif text-5xl sm:text-6xl md:text-7xl lg:text-[80px] leading-[0.95] tracking-tight">
+              Artist
+              <br />
+              Registration
             </h1>
 
-            <p className="mt-5 max-w-2xl text-base leading-7 text-gray-600 md:text-lg">
-              Submit your artworks for collaboration with
-              TCL Gallery.
+            <p className="mt-8 max-w-3xl text-sm md:text-base leading-7 md:leading-8 text-black/60">
+              We invite artists to register with TCL Gallery and share their
+              artistic practice, portfolio and work with us. Your profile helps
+              us understand your work and explore opportunities for exhibitions,
+              sales, collaborations and other gallery initiatives.
             </p>
 
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-500">
-              We work with artists to showcase and sell
-              selected artworks through TCL Gallery. Please
-              share your artist profile and artwork details
-              below.
-            </p>
+            <div className="mt-9 flex flex-wrap gap-2">
+              <span className="border border-black/15 bg-white px-4 py-2 text-[10px] uppercase tracking-[0.15em]">
+                Artists
+              </span>
+              <span className="border border-black/15 bg-white px-4 py-2 text-[10px] uppercase tracking-[0.15em]">
+                Portfolio
+              </span>
+              <span className="border border-black/15 bg-white px-4 py-2 text-[10px] uppercase tracking-[0.15em]">
+                Collaborate
+              </span>
+            </div>
           </div>
         </div>
       </section>
 
+      {/* FORM */}
       <form
         onSubmit={handleSubmit}
-        className="mx-auto max-w-6xl px-5 py-8 md:px-8 md:py-12"
+        className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-14 md:py-20"
       >
-        {/* =====================================================
-            01 ARTIST DETAILS
-        ===================================================== */}
+        <div className="w-full mb-14 md:mb-20">
+          <p className="text-sm leading-7 text-black/55 max-w-4xl">
+            Please provide accurate information about your artistic practice
+            and portfolio. The information submitted through this form will be
+            used by TCL Gallery to evaluate your profile for relevant gallery
+            opportunities.
+          </p>
+        </div>
 
-        <Section
+        <FormSection
           number="01"
-          title="Artist Details"
-          description="Tell us a little about yourself."
+          title="Artist Information"
+          description="Tell us about yourself and how we can reach you."
         >
-          <div className="grid gap-5 md:grid-cols-2">
-            <Input
-              label="Full Name"
-              name="fullName"
-              value={formData.fullName}
-              onChange={handleChange}
-              required
-            />
-
-            <Input
-              label="Artist / Professional Name"
-              name="artistName"
-              value={formData.artistName}
-              onChange={handleChange}
-            />
-
-            <Input
-              label="Mobile Number"
-              name="mobile"
-              type="tel"
-              value={formData.mobile}
-              onChange={handleChange}
-              required
-            />
-
-            <Input
-              label="WhatsApp Number"
-              name="whatsapp"
-              type="tel"
-              value={formData.whatsapp}
-              onChange={handleChange}
-            />
-
-            <Input
-              label="Email Address"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
-
-            <Input
-              label="City"
-              name="city"
-              value={formData.city}
-              onChange={handleChange}
-              required
-            />
-
-            <div className="md:col-span-2">
-              <Textarea
-                label="Address"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                rows={3}
-              />
-            </div>
-
-            <Input
-              label="Instagram / Social Media"
-              name="instagram"
-              value={formData.instagram}
-              onChange={handleChange}
-              placeholder="@username"
-            />
-
-            <Input
-              label="Website / Portfolio"
-              name="website"
-              type="url"
-              value={formData.website}
-              onChange={handleChange}
-              placeholder="https://"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Input label="Full Name" required value={form.fullName} onChange={(e) => updateField("fullName", e.target.value)} />
+            <Input label="Professional / Artist Name" value={form.professionalName} onChange={(e) => updateField("professionalName", e.target.value)} />
+            <Input label="Email Address" type="email" required value={form.email} onChange={(e) => updateField("email", e.target.value)} />
+            <Input label="Mobile Number" required value={form.phone} onChange={(e) => updateField("phone", e.target.value)} />
+            <Input label="WhatsApp Number" value={form.whatsapp} onChange={(e) => updateField("whatsapp", e.target.value)} />
+            <Input label="City" value={form.city} onChange={(e) => updateField("city", e.target.value)} />
+            <Input label="Date of Birth" type="date" value={form.dateOfBirth} onChange={(e) => updateField("dateOfBirth", e.target.value)} />
+            <Input label="Website" placeholder="https://..." value={form.website} onChange={(e) => updateField("website", e.target.value)} />
+            <Input label="Instagram" placeholder="@username" value={form.instagram} onChange={(e) => updateField("instagram", e.target.value)} />
           </div>
-        </Section>
+        </FormSection>
 
-        {/* =====================================================
-            02 ARTIST PROFILE
-        ===================================================== */}
-
-        <Section
+        <FormSection
           number="02"
-          title="Artist Profile"
-          description="Help us understand your artistic practice."
+          title="Artistic Profile"
+          description="Help us understand your medium, experience and artistic background."
         >
-          <div className="grid gap-5 md:grid-cols-2">
-            <Select
-              label="Artist Category"
-              name="artistCategory"
-              value={formData.artistCategory}
-              onChange={handleChange}
-              required
-              options={[
-                "Painter",
-                "Photographer",
-                "Sculptor",
-                "Illustrator",
-                "Mixed Media Artist",
-                "Digital Artist",
-                "Printmaker",
-                "Ceramic Artist",
-                "Textile Artist",
-                "Other",
-              ]}
-            />
-
-            <Input
-              label="Primary Medium"
-              name="primaryMedium"
-              value={formData.primaryMedium}
-              onChange={handleChange}
-              placeholder="e.g. Acrylic, Oil, Photography"
-              required
-            />
-
-            <Input
-              label="Years of Artistic Practice"
-              name="yearsOfPractice"
-              type="number"
-              min="0"
-              value={formData.yearsOfPractice}
-              onChange={handleChange}
-            />
-
-            <Input
-              label="Artistic Style / Specialisation"
-              name="artisticStyle"
-              value={formData.artisticStyle}
-              onChange={handleChange}
-              placeholder="e.g. Abstract, Botanical, Landscape"
-            />
-
-            <div className="md:col-span-2">
-              <Textarea
-                label="Short Artist Bio"
-                name="artistBio"
-                value={formData.artistBio}
-                onChange={handleChange}
-                rows={5}
-                placeholder="Tell us briefly about your artistic journey and practice."
-                required
-              />
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Select label="Primary Art Medium" required value={form.medium} onChange={(e) => updateField("medium", e.target.value)} options={artMediums} />
+            <Select label="Primary Art Category" value={form.category} onChange={(e) => updateField("category", e.target.value)} options={artCategories} />
+            <Select label="Years of Artistic Practice" value={form.yearsPractice} onChange={(e) => updateField("yearsPractice", e.target.value)} options={yearsOfPractice} />
+            <Input label="Art Education / Training" value={form.education} onChange={(e) => updateField("education", e.target.value)} />
           </div>
-        </Section>
 
-        {/* =====================================================
-            03 ARTWORK SUBMISSION
-        ===================================================== */}
+          <div className="mt-6 space-y-6">
+            <Textarea label="Artist Bio" required placeholder="Tell us about your artistic journey, practice, interests and achievements." value={form.artistBio} onChange={(e) => updateField("artistBio", e.target.value)} />
+            <Textarea label="Artistic Experience" placeholder="Exhibitions, commissions, residencies, projects, teaching or other relevant experience." value={form.artisticExperience} onChange={(e) => updateField("artisticExperience", e.target.value)} />
+          </div>
+        </FormSection>
 
-        <Section
+        <FormSection
           number="03"
-          title="Artwork Submission"
-          description="Please provide details of the artworks you would like TCL Gallery to consider."
+          title="Art Practice"
+          description="Tell us more about the work you create and the ideas behind it."
         >
-          <div className="mb-7">
-            <Input
-              label="Number of Artworks Being Submitted"
-              name="numberOfArtworks"
-              type="number"
-              min="1"
-              value={formData.numberOfArtworks}
-              onChange={handleChange}
-              placeholder="e.g. 10"
-              required
-            />
+          <div className="space-y-6">
+            <Textarea label="Description of Artistic Practice" required placeholder="Describe your artistic practice and what defines your work." value={form.practiceDescription} onChange={(e) => updateField("practiceDescription", e.target.value)} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Textarea label="Materials / Media Used" placeholder="Canvas, paper, wood, metal, found objects, digital media etc." value={form.materials} onChange={(e) => updateField("materials", e.target.value)} />
+              <Textarea label="Techniques" placeholder="Describe the techniques and processes used in your work." value={form.techniques} onChange={(e) => updateField("techniques", e.target.value)} />
+            </div>
+            <Textarea label="Themes / Subjects" placeholder="Nature, people, culture, memory, abstraction, architecture etc." value={form.themes} onChange={(e) => updateField("themes", e.target.value)} />
+            <Textarea label="Current Projects" placeholder="Tell us about any ongoing or upcoming projects you would like to share." value={form.currentProjects} onChange={(e) => updateField("currentProjects", e.target.value)} />
           </div>
+        </FormSection>
 
-          <div className="space-y-7">
-            {artworks.map((artwork, index) => (
-              <div
-                key={index}
-                className="rounded-[28px] border border-gray-200 bg-[#fafafa] p-5 md:p-8"
-              >
-                {/* Artwork Header */}
-                <div className="mb-7 flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-gray-400">
-                      Artwork{" "}
-                      {String(index + 1).padStart(2, "0")}
-                    </p>
-
-                    <h3 className="mt-1 font-serif text-2xl text-gray-900">
-                      Artwork Details
-                    </h3>
-                  </div>
-
-                  {artworks.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        removeArtwork(index)
-                      }
-                      className="rounded-full border border-gray-200 px-4 py-2 text-xs text-gray-500 transition hover:border-red-300 hover:text-red-600"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-
-                <div className="grid gap-5 md:grid-cols-2">
-                  <ArtworkInput
-                    label="Artwork Title"
-                    value={artwork.title}
-                    onChange={(value) =>
-                      updateArtwork(
-                        index,
-                        "title",
-                        value
-                      )
-                    }
-                    required
-                  />
-
-                  <ArtworkInput
-                    label="Artwork Category"
-                    value={artwork.category}
-                    onChange={(value) =>
-                      updateArtwork(
-                        index,
-                        "category",
-                        value
-                      )
-                    }
-                    placeholder="e.g. Landscape, Abstract"
-                  />
-
-                  <ArtworkInput
-                    label="Medium"
-                    value={artwork.medium}
-                    onChange={(value) =>
-                      updateArtwork(
-                        index,
-                        "medium",
-                        value
-                      )
-                    }
-                    placeholder="e.g. Acrylic on Canvas"
-                    required
-                  />
-
-                  <ArtworkInput
-                    label="Year Created"
-                    value={artwork.year}
-                    onChange={(value) =>
-                      updateArtwork(
-                        index,
-                        "year",
-                        value
-                      )
-                    }
-                  />
-
-                  {/* SIZE */}
-                  <div className="md:col-span-2">
-                    <Label>Artwork Dimensions</Label>
-
-                    <div className="mt-2 grid gap-3 sm:grid-cols-3">
-                      <DimensionInput
-                        label="Width"
-                        value={artwork.width}
-                        onChange={(value) =>
-                          updateArtwork(
-                            index,
-                            "width",
-                            value
-                          )
-                        }
-                        placeholder="Width"
-                      />
-
-                      <DimensionInput
-                        label="Height"
-                        value={artwork.height}
-                        onChange={(value) =>
-                          updateArtwork(
-                            index,
-                            "height",
-                            value
-                          )
-                        }
-                        placeholder="Height"
-                      />
-
-                      <DimensionInput
-                        label="Depth"
-                        value={artwork.depth}
-                        onChange={(value) =>
-                          updateArtwork(
-                            index,
-                            "depth",
-                            value
-                          )
-                        }
-                        placeholder="Depth"
-                      />
-                    </div>
-
-                    <p className="mt-2 text-xs text-gray-400">
-                      Please mention dimensions in inches or
-                      centimetres.
-                    </p>
-                  </div>
-
-                  <ArtworkSelect
-                    label="Framing"
-                    value={artwork.framing}
-                    options={[
-                      "Framed",
-                      "Unframed",
-                      "Both Available",
-                    ]}
-                    onChange={(value) =>
-                      updateArtwork(
-                        index,
-                        "framing",
-                        value
-                      )
-                    }
-                  />
-
-                  <ArtworkInput
-                    label="Frame Type"
-                    value={artwork.frameType}
-                    onChange={(value) =>
-                      updateArtwork(
-                        index,
-                        "frameType",
-                        value
-                      )
-                    }
-                    placeholder="e.g. Wooden, Metal, Float"
-                  />
-
-                  <ArtworkSelect
-                    label="Artwork Type"
-                    value={artwork.artworkType}
-                    options={[
-                      "Original",
-                      "Limited Edition",
-                      "Open Edition",
-                      "Print",
-                      "Other",
-                    ]}
-                    onChange={(value) =>
-                      updateArtwork(
-                        index,
-                        "artworkType",
-                        value
-                      )
-                    }
-                  />
-
-                  <ArtworkInput
-                    label="Edition Number"
-                    value={artwork.editionNumber}
-                    onChange={(value) =>
-                      updateArtwork(
-                        index,
-                        "editionNumber",
-                        value
-                      )
-                    }
-                    placeholder="e.g. 3 / 25"
-                  />
-
-                  <ArtworkInput
-                    label="Available Quantity"
-                    value={artwork.quantity}
-                    onChange={(value) =>
-                      updateArtwork(
-                        index,
-                        "quantity",
-                        value
-                      )
-                    }
-                    placeholder="e.g. 1"
-                  />
-
-                  {/* PRICING */}
-                  <div className="md:col-span-2 rounded-2xl border border-gray-200 bg-white p-5">
-                    <p className="mb-4 text-xs uppercase tracking-[0.2em] text-gray-400">
-                      Pricing
-                    </p>
-
-                    <div className="grid gap-5 md:grid-cols-2">
-                      <ArtworkInput
-                        label="Artist Price / Expected Payout"
-                        value={artwork.artistPrice}
-                        onChange={(value) =>
-                          updateArtwork(
-                            index,
-                            "artistPrice",
-                            value
-                          )
-                        }
-                        placeholder="₹"
-                      />
-
-                      <ArtworkInput
-                        label="Suggested Retail Price"
-                        value={artwork.retailPrice}
-                        onChange={(value) =>
-                          updateArtwork(
-                            index,
-                            "retailPrice",
-                            value
-                          )
-                        }
-                        placeholder="₹"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <ArtworkTextarea
-                      label="Artwork Description"
-                      value={artwork.description}
-                      onChange={(value) =>
-                        updateArtwork(
-                          index,
-                          "description",
-                          value
-                        )
-                      }
-                      placeholder="Briefly describe the artwork, concept or story behind it."
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* ADD ARTWORK */}
-          <button
-            type="button"
-            onClick={addArtwork}
-            className="mt-7 w-full rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-5 text-sm font-medium text-gray-700 transition hover:border-gray-500 hover:bg-gray-50"
-          >
-            + Add Another Artwork
-          </button>
-        </Section>
-
-        {/* =====================================================
-            04 GALLERY COLLABORATION
-        ===================================================== */}
-
-        <Section
+        <FormSection
           number="04"
-          title="Gallery Collaboration"
-          description="Tell us about your preferred commercial arrangement with TCL Gallery."
+          title="Exhibitions & Recognition"
+          description="Share exhibitions, institutions, awards and publications that are relevant to your practice."
         >
-          <div className="grid gap-6 md:grid-cols-2">
-            <ChoiceCard
-              title="Preferred Collaboration Model"
-              name="collaborationModel"
-              value={formData.collaborationModel}
-              options={[
-                "Commission / Revenue Share",
-                "Consignment",
-                "Open to Discussion",
-              ]}
-              onChange={handleChange}
-            />
-
-            <ChoiceCard
-              title="Exclusivity"
-              name="exclusivity"
-              value={formData.exclusivity}
-              options={[
-                "Exclusive to TCL Gallery",
-                "Non-Exclusive",
-                "Open to Discussion",
-              ]}
-              onChange={handleChange}
-            />
-
-            <Input
-              label="Expected Artist Share"
-              name="artistShare"
-              value={formData.artistShare}
-              onChange={handleChange}
-              placeholder="e.g. 60%"
-            />
-
-            <Input
-              label="Minimum Selling Price"
-              name="minimumSellingPrice"
-              value={formData.minimumSellingPrice}
-              onChange={handleChange}
-              placeholder="₹"
-            />
-
-            <Input
-              label="Preferred Consignment Period"
-              name="consignmentPeriod"
-              value={formData.consignmentPeriod}
-              onChange={handleChange}
-              placeholder="e.g. 6 months"
-            />
-
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
-              <p className="text-sm font-medium text-gray-800">
-                Commercial Terms
-              </p>
-
-              <p className="mt-2 text-sm leading-6 text-gray-500">
-                Final selling price, commission percentage,
-                artist payout, consignment period and other
-                commercial terms will be mutually agreed
-                before the artwork is accepted.
-              </p>
-            </div>
+          <div className="space-y-6">
+            <Textarea label="Previous Exhibitions" placeholder="Mention solo and group exhibitions with year and location where possible." value={form.exhibitions} onChange={(e) => updateField("exhibitions", e.target.value)} />
+            <Textarea label="Galleries / Institutions" placeholder="Mention galleries, museums, art spaces, institutions or organisations you have worked with." value={form.galleries} onChange={(e) => updateField("galleries", e.target.value)} />
+            <Textarea label="Awards & Recognition" placeholder="Awards, grants, residencies, competitions or other recognition." value={form.awards} onChange={(e) => updateField("awards", e.target.value)} />
+            <Textarea label="Publications / Media Features" placeholder="Books, magazines, newspapers, websites, interviews or other features." value={form.publications} onChange={(e) => updateField("publications", e.target.value)} />
           </div>
-        </Section>
+        </FormSection>
 
-        {/* =====================================================
-            05 LOGISTICS
-        ===================================================== */}
-
-        <Section
+        <FormSection
           number="05"
-          title="Artwork Logistics"
-          description="Information required to receive and safely handle your artworks."
+          title="Portfolio & Documents"
+          description="Upload your portfolio and supporting documents so our team can review your work."
         >
-          <div className="grid gap-5 md:grid-cols-2">
-            <Input
-              label="Current Artwork Location"
-              name="artworkLocation"
-              value={formData.artworkLocation}
-              onChange={handleChange}
-              placeholder="City / Location"
-              required
-            />
-
-            <ChoiceCard
-              title="Who will arrange delivery to TCL Gallery?"
-              name="deliveryResponsibility"
-              value={formData.deliveryResponsibility}
-              options={[
-                "Artist",
-                "TCL Gallery",
-                "Courier / Transporter",
-                "To Be Discussed",
-              ]}
-              onChange={handleChange}
-            />
-
-            <ChoiceCard
-              title="Is suitable packaging available?"
-              name="packagingAvailable"
-              value={formData.packagingAvailable}
-              options={[
-                "Yes",
-                "No",
-                "Partially",
-              ]}
-              onChange={handleChange}
-            />
-
-            <ChoiceCard
-              title="Is artwork pickup required?"
-              name="pickupRequired"
-              value={formData.pickupRequired}
-              options={[
-                "Yes",
-                "No",
-                "To Be Discussed",
-              ]}
-              onChange={handleChange}
-            />
-
-            <div className="md:col-span-2">
-              <Textarea
-                label="Special Handling Requirements"
-                name="specialHandling"
-                value={formData.specialHandling}
-                onChange={handleChange}
-                rows={4}
-                placeholder="Mention if the artwork requires special handling, fragile packaging, temperature control, etc."
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <Textarea
-                label="Return Requirement for Unsold Artwork"
-                name="returnRequirement"
-                value={formData.returnRequirement}
-                onChange={handleChange}
-                rows={4}
-                placeholder="Mention any specific requirements regarding return of unsold artwork."
-              />
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <FileUpload label="Artist CV / Resume" accept=".pdf,.doc,.docx" file={files.cv} onChange={(file) => handleFile("cv", file)} />
+            <FileUpload label="Artist Portfolio" accept=".pdf,.doc,.docx" file={files.portfolio} onChange={(file) => handleFile("portfolio", file)} />
+            <FileUpload label="Artwork Sample 01" accept="image/*,.pdf" file={files.artwork1} onChange={(file) => handleFile("artwork1", file)} />
+            <FileUpload label="Artwork Sample 02" accept="image/*,.pdf" file={files.artwork2} onChange={(file) => handleFile("artwork2", file)} />
+            <FileUpload label="Artwork Sample 03" accept="image/*,.pdf" file={files.artwork3} onChange={(file) => handleFile("artwork3", file)} />
           </div>
-        </Section>
 
-        {/* =====================================================
-            06 RIGHTS & PERMISSIONS
-        ===================================================== */}
+          <div className="mt-7 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Input label="Portfolio Website / Link" placeholder="https://..." value={form.portfolioUrl} onChange={(e) => updateField("portfolioUrl", e.target.value)} />
+            <Input label="Artwork / Online Gallery Link" placeholder="https://..." value={form.artworkUrl} onChange={(e) => updateField("artworkUrl", e.target.value)} />
+          </div>
+        </FormSection>
 
-        <Section
+        <FormSection
           number="06"
-          title="Rights & Permissions"
-          description="Please confirm the permissions required for TCL Gallery to display and promote your artworks."
+          title="Gallery Association"
+          description="Tell us what kind of opportunities you would like to explore with TCL Gallery."
         >
-          {/* Authenticity */}
-          <div className="mb-7 rounded-2xl border border-gray-200 bg-gray-50 p-5">
-            <label className="flex cursor-pointer items-start gap-3">
-              <input
-                type="checkbox"
-                name="authenticityConfirmed"
-                checked={
-                  formData.authenticityConfirmed
-                }
-                onChange={handleChange}
-                required
-                className="mt-1 h-4 w-4 rounded border-gray-300"
-              />
-
-              <span className="text-sm leading-6 text-gray-700">
-                I confirm that the artworks submitted are
-                authentic and that I am the original creator
-                or authorised owner and have the right to
-                offer these artworks for sale.
-              </span>
-            </label>
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-2">
-            <Permission
-              label="Display my artworks in the gallery"
-              name="displayPermission"
-              checked={formData.displayPermission}
-              onChange={handleChange}
-            />
-
-            <Permission
-              label="Offer my artworks for sale"
-              name="salePermission"
-              checked={formData.salePermission}
-              onChange={handleChange}
-            />
-
-            <Permission
-              label="Photograph my artworks"
-              name="photographyPermission"
-              checked={formData.photographyPermission}
-              onChange={handleChange}
-            />
-
-            <Permission
-              label="Use artwork images for marketing"
-              name="marketingPermission"
-              checked={formData.marketingPermission}
-              onChange={handleChange}
-            />
-
-            <Permission
-              label="Use artwork images on social media"
-              name="socialMediaPermission"
-              checked={formData.socialMediaPermission}
-              onChange={handleChange}
-            />
-
-            <Permission
-              label="Use artwork images on TCL Gallery website"
-              name="websitePermission"
-              checked={formData.websitePermission}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
-            <p className="text-sm font-medium text-gray-800">
-              Copyright
-            </p>
-
-            <p className="mt-2 text-sm leading-6 text-gray-500">
-              Copyright ownership remains with the artist
-              unless otherwise agreed in writing. Any
-              reproduction, licensing or extended usage will
-              be subject to mutually agreed terms.
-            </p>
-          </div>
-        </Section>
-
-        {/* =====================================================
-            07 DECLARATION
-        ===================================================== */}
-
-        <section className="mt-8 rounded-[32px] bg-black p-7 text-white md:p-10">
-          <p className="text-xs uppercase tracking-[0.3em] text-white/40">
-            Final Declaration
-          </p>
-
-          <h2 className="mt-3 font-serif text-3xl md:text-4xl">
-            Artist Confirmation
-          </h2>
-
-          <p className="mt-5 max-w-4xl text-sm leading-7 text-white/70">
-            I confirm that the information and artwork
-            details provided by me are accurate. I confirm
-            that I have the necessary rights and authority to
-            offer the submitted artworks for sale through TCL
-            Gallery. I understand that final artwork
-            acceptance, pricing, commission, payment,
-            consignment period, logistics and other commercial
-            terms will be mutually agreed upon before the
-            artwork is accepted by TCL Gallery.
-          </p>
-
-          <label className="mt-7 flex cursor-pointer items-start gap-3">
-            <input
-              type="checkbox"
-              name="declaration"
-              checked={formData.declaration}
-              onChange={handleChange}
-              required
-              className="mt-1 h-4 w-4 rounded border-white/30"
-            />
-
-            <span className="text-sm leading-6 text-white/80">
-              I agree to the above declaration and confirm
-              that the information submitted by me is correct.
-            </span>
-          </label>
-        </section>
-
-        {/* =====================================================
-            SUBMIT
-        ===================================================== */}
-
-        <div className="flex flex-col items-center justify-between gap-5 py-10 sm:flex-row">
           <div>
-            <p className="text-xs leading-5 text-gray-500">
-              Your information will be used for artist
-              evaluation, artwork review and gallery
-              collaboration.
-            </p>
+            <label className="block text-sm font-medium mb-3">
+              Areas of Interest
+            </label>
 
-            <p className="mt-1 text-xs leading-5 text-gray-400">
-              PAN, GST and bank details will be collected
-              separately after approval.
-            </p>
+            <div className="flex flex-wrap gap-2">
+              {associationOptions.map((item) => {
+                const selected = form.association.includes(item);
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => toggleAssociation(item)}
+                    className={`px-4 py-2.5 border text-xs transition ${
+                      selected
+                        ? "bg-black text-white border-black"
+                        : "bg-white border-black/15 hover:border-black"
+                    }`}
+                  >
+                    {item}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <button
-            type="submit"
-            className="w-full rounded-full bg-black px-10 py-4 text-sm font-medium text-white transition hover:bg-gray-800 sm:w-auto"
-          >
-            Submit Artwork
-          </button>
+          {form.association.includes("Other") && (
+            <div className="mt-6">
+              <Input label="Please Specify" value={form.associationOther} onChange={(e) => updateField("associationOther", e.target.value)} />
+            </div>
+          )}
+
+          <div className="mt-7">
+            <Textarea label="What Are You Looking For From TCL Gallery?" placeholder="Tell us about the kind of association, opportunity or collaboration you would like to explore." value={form.galleryExpectation} onChange={(e) => updateField("galleryExpectation", e.target.value)} />
+          </div>
+        </FormSection>
+
+        <FormSection
+          number="07"
+          title="Artwork Details"
+          description="Share practical information about the works you currently have available."
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Input label="Available Works" placeholder="Example: Paintings, sculptures, prints" value={form.availableWorks} onChange={(e) => updateField("availableWorks", e.target.value)} />
+            <Input label="Number of Works Available" type="number" value={form.numberOfWorks} onChange={(e) => updateField("numberOfWorks", e.target.value)} />
+            <Input label="Typical Artwork Sizes" placeholder="Example: 24 × 36 inches" value={form.artworkSizes} onChange={(e) => updateField("artworkSizes", e.target.value)} />
+            <Input label="Typical Price Range" placeholder="₹" value={form.priceRange} onChange={(e) => updateField("priceRange", e.target.value)} />
+          </div>
+
+          <div className="mt-6">
+            <Textarea label="Custom / Commissioned Work" placeholder="Mention whether you accept commissions and any relevant details." value={form.customWork} onChange={(e) => updateField("customWork", e.target.value)} />
+          </div>
+        </FormSection>
+
+        <FormSection
+          number="08"
+          title="Additional Information"
+          description="Share anything else you would like TCL Gallery to know about you or your work."
+        >
+          <Textarea label="Additional Information" placeholder="Any other information, links, achievements, ideas or notes you would like to share." value={form.additionalInformation} onChange={(e) => updateField("additionalInformation", e.target.value)} />
+        </FormSection>
+
+        <FormSection
+          number="09"
+          title="Declaration & Consent"
+          description="Please confirm the following before submitting your artist registration."
+        >
+          <div className="space-y-5">
+            <Checkbox
+              checked={form.terms}
+              onChange={(value) => updateField("terms", value)}
+              label="I confirm that the information provided in this registration is accurate and complete."
+            />
+
+            <Checkbox
+              checked={form.promotionalConsent}
+              onChange={(value) => updateField("promotionalConsent", value)}
+              label="I allow TCL Gallery to use my artist profile, submitted artwork and registration information for gallery evaluation and promotional purposes where appropriate."
+            />
+          </div>
+        </FormSection>
+
+        <div className="border-t border-black/10 pt-10 mt-2">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-7">
+            <p className="text-xs leading-5 text-black/45 max-w-md">
+              Registration does not guarantee exhibition, representation, sales
+              or any other association with TCL Gallery. Each artist profile
+              will be reviewed based on the gallery's requirements and
+              opportunities.
+            </p>
+
+            <button
+              type="submit"
+              className="w-full md:w-auto bg-black text-white px-10 py-4 text-sm tracking-wide hover:bg-black/80 transition"
+            >
+              Register as Artist
+            </button>
+          </div>
         </div>
       </form>
+
+      <footer className="border-t border-black/10">
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-8 flex flex-col md:flex-row justify-between gap-3 text-xs text-black/45">
+          <span>TCL Gallery</span>
+          <span>Artist Registration · Bengaluru</span>
+        </div>
+      </footer>
     </main>
   );
 }
 
-/* =========================================================
-   SECTION
-========================================================= */
+/* ============================================================
+   FORM SECTION
+   Section title is ABOVE the fields, not on the side.
+============================================================ */
 
-function Section({
+function FormSection({
   number,
   title,
   description,
@@ -1036,387 +461,209 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="mb-6 rounded-[30px] bg-white p-6 shadow-sm md:p-9">
-      <div className="mb-8 border-b border-gray-100 pb-6">
-        <div className="flex items-start gap-4">
-          <span className="mt-1 text-xs font-medium tracking-[0.2em] text-gray-400">
-            {number}
-          </span>
+    <section className="border-t border-black/10 py-14 md:py-20">
+      <div className="w-full mb-10 md:mb-14">
+        <span className="block text-[11px] tracking-[0.25em] text-black/35">
+          {number}
+        </span>
 
-          <div>
-            <h2 className="font-serif text-3xl text-gray-900 md:text-4xl">
-              {title}
-            </h2>
+        <h2 className="mt-4 font-serif text-4xl sm:text-5xl lg:text-6xl leading-[0.95] tracking-tight break-words">
+          {title}
+        </h2>
 
-            <p className="mt-2 text-sm leading-6 text-gray-500">
-              {description}
-            </p>
-          </div>
-        </div>
+        <p className="mt-5 max-w-2xl text-sm sm:text-base leading-7 text-black/45">
+          {description}
+        </p>
       </div>
 
-      {children}
+      <div className="w-full min-w-0">
+        {children}
+      </div>
     </section>
   );
 }
 
-/* =========================================================
-   LABEL
-========================================================= */
-
-function Label({
-  children,
-  required = false,
-}: {
-  children: React.ReactNode;
-  required?: boolean;
-}) {
-  return (
-    <label className="block text-sm font-medium text-gray-800">
-      {children}
-
-      {required && (
-        <span className="ml-1 text-red-500">*</span>
-      )}
-    </label>
-  );
-}
-
-/* =========================================================
+/* ============================================================
    INPUT
-========================================================= */
+============================================================ */
 
 function Input({
   label,
-  name,
-  value,
-  onChange,
+  required,
   type = "text",
   placeholder,
-  required = false,
-  min,
+  value,
+  onChange,
 }: {
   label: string;
-  name: string;
-  value: string;
-  onChange: (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => void;
+  required?: boolean;
   type?: string;
   placeholder?: string;
-  required?: boolean;
-  min?: string;
-}) {
-  return (
-    <div>
-      <Label required={required}>{label}</Label>
-
-      <input
-        name={name}
-        type={type}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        required={required}
-        min={min}
-        className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-gray-500 focus:ring-2 focus:ring-gray-100"
-      />
-    </div>
-  );
-}
-
-/* =========================================================
-   TEXTAREA
-========================================================= */
-
-function Textarea({
-  label,
-  name,
-  value,
-  onChange,
-  rows = 4,
-  placeholder,
-}: {
-  label: string;
-  name: string;
   value: string;
-  onChange: (
-    e: React.ChangeEvent<HTMLTextAreaElement>
-  ) => void;
-  rows?: number;
-  placeholder?: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }) {
   return (
-    <div>
-      <Label>{label}</Label>
-
-      <textarea
-        name={name}
-        value={value}
-        onChange={onChange}
-        rows={rows}
-        placeholder={placeholder}
-        className="mt-2 w-full resize-y rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm leading-6 text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-gray-500 focus:ring-2 focus:ring-gray-100"
-      />
-    </div>
-  );
-}
-
-/* =========================================================
-   SELECT
-========================================================= */
-
-function Select({
-  label,
-  name,
-  value,
-  onChange,
-  options,
-  required = false,
-}: {
-  label: string;
-  name: string;
-  value: string;
-  onChange: (
-    e: React.ChangeEvent<HTMLSelectElement>
-  ) => void;
-  options: string[];
-  required?: boolean;
-}) {
-  return (
-    <div>
-      <Label required={required}>{label}</Label>
-
-      <select
-        name={name}
-        value={value}
-        onChange={onChange}
-        required={required}
-        className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-500 focus:ring-2 focus:ring-gray-100"
-      >
-        <option value="">Select an option</option>
-
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-/* =========================================================
-   CHOICE CARD
-========================================================= */
-
-function ChoiceCard({
-  title,
-  name,
-  value,
-  options,
-  onChange,
-}: {
-  title: string;
-  name: string;
-  value: string;
-  options: string[];
-  onChange: (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => void;
-}) {
-  return (
-    <div>
-      <Label>{title}</Label>
-
-      <div className="mt-3 flex flex-wrap gap-2">
-        {options.map((option) => (
-          <label
-            key={option}
-            className={`cursor-pointer rounded-full border px-4 py-2.5 text-sm transition ${
-              value === option
-                ? "border-black bg-black text-white"
-                : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
-            }`}
-          >
-            <input
-              type="radio"
-              name={name}
-              value={option}
-              checked={value === option}
-              onChange={onChange}
-              className="sr-only"
-            />
-
-            {option}
-          </label>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* =========================================================
-   PERMISSION
-========================================================= */
-
-function Permission({
-  label,
-  name,
-  checked,
-  onChange,
-}: {
-  label: string;
-  name: string;
-  checked: boolean;
-  onChange: (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => void;
-}) {
-  return (
-    <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 transition hover:border-gray-400">
-      <input
-        type="checkbox"
-        name={name}
-        checked={checked}
-        onChange={onChange}
-        className="h-4 w-4 rounded border-gray-300"
-      />
-
-      <span className="text-sm text-gray-700">
+    <label className="block min-w-0">
+      <span className="block text-sm font-medium mb-2">
         {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
       </span>
+
+      <input
+        required={required}
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        className="block w-full max-w-full h-12 border border-black/15 bg-white px-4 text-sm outline-none focus:border-black transition placeholder:text-black/30"
+      />
     </label>
   );
 }
 
-/* =========================================================
-   ARTWORK INPUT
-========================================================= */
+/* ============================================================
+   TEXTAREA
+============================================================ */
 
-function ArtworkInput({
+function Textarea({
   label,
+  required,
+  placeholder,
   value,
   onChange,
-  placeholder,
-  required = false,
 }: {
   label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
   required?: boolean;
+  placeholder?: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
 }) {
   return (
-    <div>
-      <Label required={required}>{label}</Label>
+    <label className="block min-w-0">
+      <span className="block text-sm font-medium mb-2">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </span>
 
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
+      <textarea
         required={required}
-        className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-gray-500 focus:ring-2 focus:ring-gray-100"
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        rows={5}
+        className="block w-full max-w-full border border-black/15 bg-white px-4 py-3 text-sm leading-6 outline-none focus:border-black transition resize-y placeholder:text-black/30"
       />
-    </div>
+    </label>
   );
 }
 
-/* =========================================================
-   ARTWORK SELECT
-========================================================= */
+/* ============================================================
+   SELECT
+============================================================ */
 
-function ArtworkSelect({
+function Select({
   label,
+  required,
   value,
-  options,
   onChange,
+  options,
 }: {
   label: string;
+  required?: boolean;
   value: string;
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   options: string[];
-  onChange: (value: string) => void;
 }) {
   return (
-    <div>
-      <Label>{label}</Label>
+    <label className="block min-w-0">
+      <span className="block text-sm font-medium mb-2">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </span>
 
       <select
+        required={required}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-500 focus:ring-2 focus:ring-gray-100"
+        onChange={onChange}
+        className="block w-full max-w-full h-12 border border-black/15 bg-white px-4 text-sm outline-none focus:border-black transition"
       >
         <option value="">Select an option</option>
-
         {options.map((option) => (
           <option key={option} value={option}>
             {option}
           </option>
         ))}
       </select>
-    </div>
+    </label>
   );
 }
 
-/* =========================================================
-   ARTWORK TEXTAREA
-========================================================= */
+/* ============================================================
+   FILE UPLOAD
+============================================================ */
 
-function ArtworkTextarea({
+function FileUpload({
   label,
-  value,
+  accept,
+  file,
   onChange,
-  placeholder,
 }: {
   label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
+  accept?: string;
+  file: File | null;
+  onChange: (file: File | null) => void;
 }) {
   return (
-    <div>
-      <Label>{label}</Label>
+    <label className="block cursor-pointer min-w-0">
+      <span className="block text-sm font-medium mb-2">{label}</span>
 
-      <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        rows={4}
-        placeholder={placeholder}
-        className="mt-2 w-full resize-y rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm leading-6 text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-gray-500 focus:ring-2 focus:ring-gray-100"
-      />
-    </div>
+      <div className="border border-dashed border-black/20 bg-white p-6 hover:border-black transition">
+        <input
+          type="file"
+          accept={accept}
+          onChange={(e) => onChange(e.target.files?.[0] || null)}
+          className="hidden"
+        />
+
+        <div className="text-center">
+          <div className="text-xl mb-2">↑</div>
+
+          <p className="text-sm break-all">
+            {file ? file.name : "Click to upload"}
+          </p>
+
+          <p className="text-[11px] text-black/35 mt-2">
+            PDF, DOC, DOCX or image
+          </p>
+        </div>
+      </div>
+    </label>
   );
 }
 
-/* =========================================================
-   DIMENSION INPUT
-========================================================= */
+/* ============================================================
+   CHECKBOX
+============================================================ */
 
-function DimensionInput({
-  label,
-  value,
+function Checkbox({
+  checked,
   onChange,
-  placeholder,
+  label,
 }: {
+  checked: boolean;
+  onChange: (value: boolean) => void;
   label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
 }) {
   return (
-    <div>
-      <p className="mb-1.5 text-xs text-gray-500">
-        {label}
-      </p>
-
+    <label className="flex items-start gap-3 cursor-pointer">
       <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-gray-500 focus:ring-2 focus:ring-gray-100"
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-1 h-4 w-4 accent-black shrink-0"
       />
-    </div>
+
+      <span className="text-sm leading-6 text-black/60">{label}</span>
+    </label>
   );
 }
