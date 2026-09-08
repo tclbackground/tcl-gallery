@@ -2,132 +2,166 @@
 
 import { useState } from "react";
 
-export default function TeacherOnboardingPage() {
+const artMediums = [
+  "Drawing & Sketching",
+  "Watercolour",
+  "Acrylic Painting",
+  "Oil Painting",
+  "Charcoal",
+  "Pencil Art",
+  "Pastel",
+  "Portrait Art",
+  "Landscape Art",
+  "Abstract Art",
+  "Mixed Media",
+  "Illustration",
+  "Calligraphy",
+  "Sculpture",
+  "Digital Art",
+  "Photography",
+  "Art & Craft",
+  "Other",
+];
+
+const studentLevels = [
+  "Complete Beginners",
+  "Beginners",
+  "Intermediate",
+  "Advanced",
+  "Mixed Level",
+];
+
+const ageGroups = [
+  "Kids – 4 to 7 Years",
+  "Kids – 8 to 12 Years",
+  "Teens – 13 to 17 Years",
+  "Adults – 18+",
+  "All Age Groups",
+];
+
+const courseFormats = [
+  "Regular Weekly Class",
+  "4-Week Course",
+  "6-Week Course",
+  "8-Week Course",
+  "12-Week Course",
+  "Weekend Workshop",
+  "One-Day Workshop",
+  "Masterclass",
+  "Holiday / Summer Camp",
+];
+
+const days = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
+
+export default function ArtistWorkshopPage() {
   const [submitted, setSubmitted] = useState(false);
 
-  const [formData, setFormData] = useState({
-    fullName: "",
-    preferredName: "",
-    dob: "",
-    gender: "",
-    mobile: "",
-    whatsapp: "",
+  const [form, setForm] = useState({
+    artistName: "",
+    professionalName: "",
     email: "",
+    phone: "",
+    whatsapp: "",
     city: "",
-    address: "",
-
-    professionalTitle: "",
-    bio: "",
-    yearsExperience: "",
-    organisation: "",
     website: "",
     instagram: "",
+    bio: "",
 
-    primaryArtForm: "",
-    specialisation: "",
-    skillLevel: "",
-    ageGroups: [] as string[],
-    teachingMode: "",
-
-    qualification: "",
-    artQualification: "",
-    institution: "",
-    qualificationYear: "",
-    certifications: "",
-
+    education: "",
+    artisticExperience: "",
     teachingExperience: "",
     previousInstitutions: "",
-    subjectsTaught: "",
-    onlineExperience: "",
-    offlineExperience: "",
-    workshopExperience: "",
 
-    portfolio: "",
-    sampleWork: "",
-
-    teachingDays: [] as string[],
-    teachingTime: "",
-    hoursPerWeek: "",
-    availabilityType: "",
-    preferredLocation: "",
-
-    teachingPhilosophy: "",
-    beginnerApproach: "",
-    teachingStyle: "",
-    studentLearning: "",
-
-    courseName: "",
-    courseArtForm: "",
-    courseAgeGroup: "",
-    courseLevel: "",
-    courseDuration: "",
+    classTitle: "",
+    medium: "",
+    classDescription: "",
+    learningOutcome: "",
+    studentProject: "",
+    level: "",
+    ageGroup: "",
+    format: "",
     sessions: "",
-    sessionDuration: "",
+    duration: "",
     minStudents: "",
-    idealStudents: "",
     maxStudents: "",
-    learningOutcomes: "",
+
+    weekdays: [] as string[],
+    preferredTime: "",
+    availableFrom: "",
+
     materialsRequired: "",
     materialsProvided: "",
+    equipmentRequired: "",
+    materialCost: "",
 
-    engagementModel: "",
-    teachingFee: "",
-    workshopFee: "",
+    paymentModel: "",
+    expectedFee: "",
+    minimumGuarantee: "",
+    otherRequirements: "",
 
-    emergencyName: "",
-    emergencyRelation: "",
-    emergencyPhone: "",
+    portfolio: "",
+    references: "",
 
-    declaration: false,
+    terms: false,
+    promotionalConsent: false,
   });
 
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+  const [files, setFiles] = useState({
+    cv: null as File | null,
+    portfolio: null as File | null,
+    artwork: null as File | null,
+    lessonPlan: null as File | null,
+  });
+
+  const updateField = (
+    field: keyof typeof form,
+    value: string | boolean | string[]
   ) => {
-    const { name, value, type } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
 
-    if (type === "checkbox") {
-      const checked = (e.target as HTMLInputElement).checked;
-
-      setFormData((prev) => ({
-        ...prev,
-        [name]: checked,
-      }));
+  const toggleDay = (day: string) => {
+    if (form.weekdays.includes(day)) {
+      updateField(
+        "weekdays",
+        form.weekdays.filter((item) => item !== day)
+      );
     } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
+      updateField("weekdays", [...form.weekdays, day]);
     }
   };
 
-  const handleCheckboxGroup = (
-    name: "ageGroups" | "teachingDays",
-    value: string
+  const handleFile = (
+    field: keyof typeof files,
+    file: File | null
   ) => {
-    setFormData((prev) => {
-      const current = prev[name];
-
-      return {
-        ...prev,
-        [name]: current.includes(value)
-          ? current.filter((item) => item !== value)
-          : [...current, value],
-      };
-    });
+    setFiles((prev) => ({
+      ...prev,
+      [field]: file,
+    }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.declaration) {
+    if (!form.terms) {
       alert("Please accept the declaration before submitting.");
       return;
     }
 
-    console.log("Teacher Onboarding Form:", formData);
+    console.log("Artist Application:", form);
+    console.log("Files:", files);
 
     setSubmitted(true);
 
@@ -139,867 +173,835 @@ export default function TeacherOnboardingPage() {
 
   if (submitted) {
     return (
-      <main className="min-h-screen bg-[#f7f5f0] px-4 py-16">
-        <div className="mx-auto max-w-2xl">
-          <div className="rounded-3xl bg-white p-10 text-center shadow-sm md:p-14">
-            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-black text-2xl text-white">
-              ✓
-            </div>
+      <main className="min-h-screen bg-[#f5f3ee] flex items-center justify-center px-5 py-20">
+        <div className="w-full max-w-2xl bg-white border border-black/10 p-10 md:p-16 text-center">
 
-            <p className="mb-3 text-sm uppercase tracking-[0.25em] text-gray-500">
-              TCL Gallery
-            </p>
-
-            <h1 className="font-serif text-4xl text-gray-900">
-              Thank You
-            </h1>
-
-            <p className="mx-auto mt-5 max-w-lg leading-7 text-gray-600">
-              Your teacher onboarding form has been submitted successfully.
-              Our team will review your profile and portfolio and get back to
-              you shortly.
-            </p>
-
-            <button
-              onClick={() => setSubmitted(false)}
-              className="mt-8 rounded-full bg-black px-7 py-3 text-sm font-medium text-white transition hover:bg-gray-800"
-            >
-              Submit Another Form
-            </button>
+          <div className="mx-auto mb-7 flex h-16 w-16 items-center justify-center rounded-full bg-black text-white text-xl">
+            ✓
           </div>
+
+          <p className="text-[11px] tracking-[0.3em] uppercase text-black/45 mb-4">
+            TCL Gallery
+          </p>
+
+          <h1 className="font-serif text-4xl md:text-5xl leading-tight mb-5">
+            Application Received
+          </h1>
+
+          <p className="text-sm md:text-base text-black/60 leading-7 max-w-lg mx-auto">
+            Thank you for your interest in teaching at TCL Gallery.
+            Our team will review your artist profile and proposed
+            class/workshop. We will contact shortlisted artists.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => setSubmitted(false)}
+            className="mt-9 bg-black text-white px-7 py-3.5 text-sm hover:bg-black/80 transition"
+          >
+            Submit Another Application
+          </button>
+
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f5f0]">
-      {/* Header */}
-      <section className="border-b border-black/10 bg-white">
-        <div className="mx-auto max-w-5xl px-5 py-12 md:px-8 md:py-16">
-          <div className="max-w-3xl">
-            <p className="mb-4 text-xs font-medium uppercase tracking-[0.3em] text-gray-500">
-              TCL Gallery
+    <main className="min-h-screen bg-[#f5f3ee] text-black">
+
+      {/* =====================================================
+          HERO
+      ===================================================== */}
+
+      <section className="border-b border-black/10">
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-20 md:py-28">
+
+          <div className="max-w-4xl">
+
+            <p className="text-[11px] md:text-xs tracking-[0.32em] uppercase text-black/45 mb-6">
+              TCL Gallery · Art Learning Centre
             </p>
 
-            <h1 className="font-serif text-4xl leading-tight text-gray-900 md:text-6xl">
-      Maison De Meraki
+            <h1 className="font-serif text-5xl sm:text-6xl md:text-7xl lg:text-[80px] leading-[0.95] tracking-tight">
+              Artist Workshop
+              <br />
+              & Instructor Application
             </h1>
 
-            <p className="mt-5 max-w-2xl text-base leading-7 text-gray-600 md:text-lg">
-              Teacher Onboarding Form
+            <p className="mt-8 max-w-2xl text-sm md:text-base leading-7 md:leading-8 text-black/60">
+              We are looking for artists, art educators and creative
+              professionals who can create meaningful learning
+              experiences for our students.
             </p>
 
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-500">
-              We would love to learn more about your artistic practice,
-              teaching experience and the courses you would like to offer at
-              TCL Gallery.
-            </p>
+            <div className="mt-9 flex flex-wrap gap-2">
+              <span className="border border-black/15 bg-white px-4 py-2 text-[10px] uppercase tracking-[0.15em]">
+                Teach
+              </span>
+
+              <span className="border border-black/15 bg-white px-4 py-2 text-[10px] uppercase tracking-[0.15em]">
+                Create
+              </span>
+
+              <span className="border border-black/15 bg-white px-4 py-2 text-[10px] uppercase tracking-[0.15em]">
+                Inspire
+              </span>
+            </div>
+
           </div>
+
         </div>
       </section>
 
+
+      {/* =====================================================
+          FORM
+      ===================================================== */}
+
       <form
         onSubmit={handleSubmit}
-        className="mx-auto max-w-5xl px-5 py-8 md:px-8 md:py-12"
+        className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-14 md:py-20"
       >
-        {/* Personal Details */}
-        <Section
+
+        <div className="max-w-3xl ml-auto mb-12">
+          <p className="text-sm leading-7 text-black/55">
+            Please provide details about your artistic practice,
+            teaching experience and the class or workshop you would
+            like to conduct at TCL Gallery. Each proposal is reviewed
+            based on artistic quality, teaching experience, student
+            relevance and course potential.
+          </p>
+        </div>
+
+
+        {/* =====================================================
+            01
+        ===================================================== */}
+
+        <FormSection
           number="01"
-          title="Personal Details"
-          description="Basic information to help us get to know you."
+          title="Artist Information"
+          description="Tell us about yourself and your artistic practice."
         >
-          <div className="grid gap-5 md:grid-cols-2">
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
             <Input
               label="Full Name"
-              name="fullName"
-              value={formData.fullName}
-              onChange={handleChange}
               required
+              value={form.artistName}
+              onChange={(e) =>
+                updateField("artistName", e.target.value)
+              }
             />
 
             <Input
-              label="Preferred Name"
-              name="preferredName"
-              value={formData.preferredName}
-              onChange={handleChange}
-            />
-
-            <Input
-              label="Date of Birth"
-              name="dob"
-              type="date"
-              value={formData.dob}
-              onChange={handleChange}
-            />
-
-            <Select
-              label="Gender"
-              name="gender"
-              value={formData.gender}
-              onChange={handleChange}
-              options={[
-                "Prefer not to say",
-                "Female",
-                "Male",
-                "Other",
-              ]}
-            />
-
-            <Input
-              label="Mobile Number"
-              name="mobile"
-              type="tel"
-              value={formData.mobile}
-              onChange={handleChange}
-              required
-            />
-
-            <Input
-              label="WhatsApp Number"
-              name="whatsapp"
-              type="tel"
-              value={formData.whatsapp}
-              onChange={handleChange}
+              label="Professional / Artist Name"
+              value={form.professionalName}
+              onChange={(e) =>
+                updateField("professionalName", e.target.value)
+              }
             />
 
             <Input
               label="Email Address"
-              name="email"
               type="email"
-              value={formData.email}
-              onChange={handleChange}
               required
+              value={form.email}
+              onChange={(e) =>
+                updateField("email", e.target.value)
+              }
             />
 
             <Input
-              label="Current City"
-              name="city"
-              value={formData.city}
-              onChange={handleChange}
+              label="Mobile Number"
               required
+              value={form.phone}
+              onChange={(e) =>
+                updateField("phone", e.target.value)
+              }
             />
 
-            <div className="md:col-span-2">
-              <Textarea
-                label="Residential Address"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                rows={3}
-              />
-            </div>
-          </div>
-        </Section>
+            <Input
+              label="WhatsApp Number"
+              value={form.whatsapp}
+              onChange={(e) =>
+                updateField("whatsapp", e.target.value)
+              }
+            />
 
-        {/* Professional Profile */}
-        <Section
+            <Input
+              label="City"
+              value={form.city}
+              onChange={(e) =>
+                updateField("city", e.target.value)
+              }
+            />
+
+            <Input
+              label="Website / Portfolio URL"
+              value={form.website}
+              onChange={(e) =>
+                updateField("website", e.target.value)
+              }
+            />
+
+            <Input
+              label="Instagram"
+              placeholder="@username"
+              value={form.instagram}
+              onChange={(e) =>
+                updateField("instagram", e.target.value)
+              }
+            />
+
+          </div>
+
+          <div className="mt-6">
+            <Textarea
+              label="Artist Bio"
+              required
+              placeholder="Tell us about your artistic journey, practice, interests and achievements."
+              value={form.bio}
+              onChange={(e) =>
+                updateField("bio", e.target.value)
+              }
+            />
+          </div>
+
+        </FormSection>
+
+
+        {/* =====================================================
+            02
+        ===================================================== */}
+
+        <FormSection
           number="02"
-          title="Artist & Professional Profile"
-          description="Tell us about your artistic practice and professional background."
+          title="Professional & Teaching Experience"
+          description="Help us understand your background and experience."
         >
-          <div className="grid gap-5 md:grid-cols-2">
-            <Input
-              label="Professional Title"
-              placeholder="Artist / Art Educator / Illustrator"
-              name="professionalTitle"
-              value={formData.professionalTitle}
-              onChange={handleChange}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <Textarea
+              label="Art Education / Qualifications"
+              value={form.education}
+              onChange={(e) =>
+                updateField("education", e.target.value)
+              }
+            />
+
+            <Textarea
+              label="Artistic Experience"
+              placeholder="Exhibitions, galleries, awards, commissions, residencies etc."
+              value={form.artisticExperience}
+              onChange={(e) =>
+                updateField(
+                  "artisticExperience",
+                  e.target.value
+                )
+              }
+            />
+
+            <Textarea
+              label="Teaching Experience"
               required
+              placeholder="Years of teaching, subjects taught, student age groups etc."
+              value={form.teachingExperience}
+              onChange={(e) =>
+                updateField(
+                  "teachingExperience",
+                  e.target.value
+                )
+              }
             />
 
-            <Input
-              label="Years of Professional Experience"
-              name="yearsExperience"
-              type="number"
-              value={formData.yearsExperience}
-              onChange={handleChange}
-              min="0"
+            <Textarea
+              label="Previous Institutions / Art Centres"
+              placeholder="Where have you previously taught or conducted workshops?"
+              value={form.previousInstitutions}
+              onChange={(e) =>
+                updateField(
+                  "previousInstitutions",
+                  e.target.value
+                )
+              }
             />
 
-            <Input
-              label="Current Organisation / Studio"
-              name="organisation"
-              value={formData.organisation}
-              onChange={handleChange}
-            />
-
-            <Input
-              label="Website / Portfolio Link"
-              name="website"
-              type="url"
-              value={formData.website}
-              onChange={handleChange}
-            />
-
-            <Input
-              label="Instagram / Social Media"
-              name="instagram"
-              value={formData.instagram}
-              onChange={handleChange}
-            />
-
-            <div className="md:col-span-2">
-              <Textarea
-                label="Short Bio / About Yourself"
-                name="bio"
-                value={formData.bio}
-                onChange={handleChange}
-                rows={5}
-                placeholder="Tell us briefly about yourself, your artistic journey and your work."
-                required
-              />
-            </div>
           </div>
-        </Section>
 
-        {/* Art Specialisation */}
-        <Section
+        </FormSection>
+
+
+        {/* =====================================================
+            03 - FIXED LAYOUT
+        ===================================================== */}
+
+        <FormSection
           number="03"
-          title="Art & Teaching Specialisation"
-          description="Help us understand what you would like to teach."
+          title="Proposed Class / Workshop"
+          description="Tell us about the class or workshop you would like to conduct."
         >
-          <div className="grid gap-5 md:grid-cols-2">
+
+          {/* CLASS TITLE */}
+
+          <Input
+            label="Proposed Class / Workshop Title"
+            required
+            placeholder="Example: Contemporary Watercolour for Beginners"
+            value={form.classTitle}
+            onChange={(e) =>
+              updateField("classTitle", e.target.value)
+            }
+          />
+
+          {/* DROPDOWNS */}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6">
+
             <Select
-              label="Primary Art Form"
-              name="primaryArtForm"
-              value={formData.primaryArtForm}
-              onChange={handleChange}
+              label="Primary Art Medium"
               required
-              options={[
-                "Drawing",
-                "Sketching",
-                "Painting",
-                "Watercolour",
-                "Acrylic",
-                "Oil Painting",
-                "Charcoal",
-                "Digital Art",
-                "Photography",
-                "Sculpture",
-                "Mixed Media",
-                "Craft",
-                "Other",
-              ]}
+              value={form.medium}
+              onChange={(e) =>
+                updateField("medium", e.target.value)
+              }
+              options={artMediums}
             />
 
             <Select
-              label="Preferred Teaching Level"
-              name="skillLevel"
-              value={formData.skillLevel}
-              onChange={handleChange}
-              options={[
-                "Beginner",
-                "Intermediate",
-                "Advanced",
-                "Beginner to Advanced",
-              ]}
-            />
-
-            <div className="md:col-span-2">
-              <Textarea
-                label="Specialisation / Techniques"
-                name="specialisation"
-                value={formData.specialisation}
-                onChange={handleChange}
-                rows={4}
-                placeholder="Mention your specific techniques, mediums and areas of expertise."
-              />
-            </div>
-
-            <div>
-              <Label>Age Groups You Can Teach</Label>
-
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                {[
-                  "4–6 years",
-                  "7–10 years",
-                  "11–14 years",
-                  "15–18 years",
-                  "Adults",
-                  "All Age Groups",
-                ].map((item) => (
-                  <CheckBox
-                    key={item}
-                    label={item}
-                    checked={formData.ageGroups.includes(item)}
-                    onChange={() =>
-                      handleCheckboxGroup("ageGroups", item)
-                    }
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <Label>Teaching Mode</Label>
-
-              <div className="mt-3 space-y-3">
-                {["Offline", "Online", "Both"].map((item) => (
-                  <Radio
-                    key={item}
-                    label={item}
-                    name="teachingMode"
-                    value={item}
-                    checked={formData.teachingMode === item}
-                    onChange={handleChange}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        </Section>
-
-        {/* Education */}
-        <Section
-          number="04"
-          title="Education & Certifications"
-          description="Academic and professional qualifications related to your work."
-        >
-          <div className="grid gap-5 md:grid-cols-2">
-            <Input
-              label="Highest Educational Qualification"
-              name="qualification"
-              value={formData.qualification}
-              onChange={handleChange}
-            />
-
-            <Input
-              label="Art / Fine Arts Qualification"
-              name="artQualification"
-              value={formData.artQualification}
-              onChange={handleChange}
-            />
-
-            <Input
-              label="Institution / University"
-              name="institution"
-              value={formData.institution}
-              onChange={handleChange}
-            />
-
-            <Input
-              label="Year of Completion"
-              name="qualificationYear"
-              type="number"
-              value={formData.qualificationYear}
-              onChange={handleChange}
-            />
-
-            <div className="md:col-span-2">
-              <Textarea
-                label="Relevant Certifications / Awards / Recognitions"
-                name="certifications"
-                value={formData.certifications}
-                onChange={handleChange}
-                rows={4}
-              />
-            </div>
-          </div>
-        </Section>
-
-        {/* Teaching Experience */}
-        <Section
-          number="05"
-          title="Teaching Experience"
-          description="Tell us about your experience as an educator."
-        >
-          <div className="grid gap-5 md:grid-cols-2">
-            <Input
-              label="Total Teaching Experience"
-              name="teachingExperience"
-              placeholder="e.g. 5 years"
-              value={formData.teachingExperience}
-              onChange={handleChange}
-            />
-
-            <Input
-              label="Previous Art Schools / Institutions"
-              name="previousInstitutions"
-              value={formData.previousInstitutions}
-              onChange={handleChange}
-            />
-
-            <div className="md:col-span-2">
-              <Textarea
-                label="Subjects / Art Forms Taught"
-                name="subjectsTaught"
-                value={formData.subjectsTaught}
-                onChange={handleChange}
-                rows={3}
-              />
-            </div>
-
-            <Textarea
-              label="Online Teaching Experience"
-              name="onlineExperience"
-              value={formData.onlineExperience}
-              onChange={handleChange}
-              rows={3}
-            />
-
-            <Textarea
-              label="Offline Teaching Experience"
-              name="offlineExperience"
-              value={formData.offlineExperience}
-              onChange={handleChange}
-              rows={3}
-            />
-
-            <div className="md:col-span-2">
-              <Textarea
-                label="Workshop / Masterclass Experience"
-                name="workshopExperience"
-                value={formData.workshopExperience}
-                onChange={handleChange}
-                rows={3}
-              />
-            </div>
-          </div>
-        </Section>
-
-        {/* Portfolio */}
-        <Section
-          number="06"
-          title="Portfolio"
-          description="Share your artwork and previous work with us."
-        >
-          <div className="grid gap-5">
-            <Input
-              label="Portfolio Website"
-              name="portfolio"
-              type="url"
-              value={formData.portfolio}
-              onChange={handleChange}
-              placeholder="https://"
-            />
-
-            <Input
-              label="Google Drive / PDF / Artwork Link"
-              name="sampleWork"
-              type="url"
-              value={formData.sampleWork}
-              onChange={handleChange}
-              placeholder="https://"
-            />
-
-            <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-6">
-              <p className="text-sm font-medium text-gray-800">
-                Portfolio Requirement
-              </p>
-
-              <p className="mt-2 text-sm leading-6 text-gray-500">
-                Please share 5–10 representative artwork samples through a
-                portfolio link, website or PDF.
-              </p>
-            </div>
-          </div>
-        </Section>
-
-        {/* Availability */}
-        <Section
-          number="07"
-          title="Availability"
-          description="Tell us when you are available to teach."
-        >
-          <div className="grid gap-5 md:grid-cols-2">
-            <div>
-              <Label>Preferred Teaching Days</Label>
-
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                {[
-                  "Monday",
-                  "Tuesday",
-                  "Wednesday",
-                  "Thursday",
-                  "Friday",
-                  "Saturday",
-                  "Sunday",
-                ].map((day) => (
-                  <CheckBox
-                    key={day}
-                    label={day}
-                    checked={formData.teachingDays.includes(day)}
-                    onChange={() =>
-                      handleCheckboxGroup("teachingDays", day)
-                    }
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-5">
-              <Input
-                label="Preferred Teaching Time"
-                name="teachingTime"
-                placeholder="e.g. 4 PM – 7 PM"
-                value={formData.teachingTime}
-                onChange={handleChange}
-              />
-
-              <Input
-                label="Hours Available Per Week"
-                name="hoursPerWeek"
-                type="number"
-                value={formData.hoursPerWeek}
-                onChange={handleChange}
-              />
-
-              <Select
-                label="Availability Type"
-                name="availabilityType"
-                value={formData.availabilityType}
-                onChange={handleChange}
-                options={[
-                  "Weekdays",
-                  "Weekends",
-                  "Weekdays & Weekends",
-                  "Flexible",
-                ]}
-              />
-
-              <Input
-                label="Preferred Teaching Location"
-                name="preferredLocation"
-                placeholder="e.g. TCL Gallery / Bengaluru"
-                value={formData.preferredLocation}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-        </Section>
-
-        {/* Teaching Approach */}
-        <Section
-          number="08"
-          title="Teaching Approach"
-          description="We want to understand your approach to teaching and students."
-        >
-          <div className="grid gap-5">
-            <Textarea
-              label="What is your teaching philosophy?"
-              name="teachingPhilosophy"
-              value={formData.teachingPhilosophy}
-              onChange={handleChange}
-              rows={4}
-            />
-
-            <Textarea
-              label="How do you approach beginners?"
-              name="beginnerApproach"
-              value={formData.beginnerApproach}
-              onChange={handleChange}
-              rows={4}
-            />
-
-            <Textarea
-              label="What makes your teaching style different?"
-              name="teachingStyle"
-              value={formData.teachingStyle}
-              onChange={handleChange}
-              rows={4}
-            />
-
-            <Textarea
-              label="What should students be able to learn / achieve?"
-              name="studentLearning"
-              value={formData.studentLearning}
-              onChange={handleChange}
-              rows={4}
-            />
-          </div>
-        </Section>
-
-        {/* Course Proposal */}
-        <Section
-          number="09"
-          title="Course Proposal"
-          description="If you have a course idea, please share the details below."
-        >
-          <div className="grid gap-5 md:grid-cols-2">
-            <Input
-              label="Proposed Course Name"
-              name="courseName"
-              value={formData.courseName}
-              onChange={handleChange}
+              label="Student Level"
               required
-            />
-
-            <Select
-              label="Course Art Form"
-              name="courseArtForm"
-              value={formData.courseArtForm}
-              onChange={handleChange}
-              options={[
-                "Drawing",
-                "Painting",
-                "Sketching",
-                "Photography",
-                "Sculpture",
-                "Mixed Media",
-                "Craft",
-                "Other",
-              ]}
+              value={form.level}
+              onChange={(e) =>
+                updateField("level", e.target.value)
+              }
+              options={studentLevels}
             />
 
             <Select
               label="Target Age Group"
-              name="courseAgeGroup"
-              value={formData.courseAgeGroup}
-              onChange={handleChange}
-              options={[
-                "Children",
-                "Teens",
-                "Adults",
-                "Children & Teens",
-                "All Age Groups",
-              ]}
+              required
+              value={form.ageGroup}
+              onChange={(e) =>
+                updateField("ageGroup", e.target.value)
+              }
+              options={ageGroups}
             />
 
             <Select
-              label="Course Level"
-              name="courseLevel"
-              value={formData.courseLevel}
-              onChange={handleChange}
-              options={[
-                "Beginner",
-                "Intermediate",
-                "Advanced",
-                "All Levels",
-              ]}
+              label="Course / Workshop Format"
+              required
+              value={form.format}
+              onChange={(e) =>
+                updateField("format", e.target.value)
+              }
+              options={courseFormats}
             />
 
-            <Input
-              label="Course Duration"
-              name="courseDuration"
-              placeholder="e.g. 4 weeks"
-              value={formData.courseDuration}
-              onChange={handleChange}
+          </div>
+
+          {/* DESCRIPTION */}
+
+          <div className="mt-6 space-y-6">
+
+            <Textarea
+              label="Class Description"
+              required
+              placeholder="Describe the class and what makes it interesting for students."
+              value={form.classDescription}
+              onChange={(e) =>
+                updateField(
+                  "classDescription",
+                  e.target.value
+                )
+              }
             />
+
+            <Textarea
+              label="What Will Students Learn?"
+              required
+              placeholder="Mention techniques, concepts, skills and knowledge students will gain."
+              value={form.learningOutcome}
+              onChange={(e) =>
+                updateField(
+                  "learningOutcome",
+                  e.target.value
+                )
+              }
+            />
+
+            <Textarea
+              label="What Will Students Create?"
+              placeholder="Describe the artwork or project students will complete."
+              value={form.studentProject}
+              onChange={(e) =>
+                updateField(
+                  "studentProject",
+                  e.target.value
+                )
+              }
+            />
+
+          </div>
+
+        </FormSection>
+
+
+        {/* =====================================================
+            04
+        ===================================================== */}
+
+        <FormSection
+          number="04"
+          title="Course Structure"
+          description="Provide the proposed structure of your class."
+        >
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
 
             <Input
               label="Number of Sessions"
-              name="sessions"
               type="number"
-              value={formData.sessions}
-              onChange={handleChange}
+              placeholder="Example: 6"
+              value={form.sessions}
+              onChange={(e) =>
+                updateField("sessions", e.target.value)
+              }
             />
 
             <Input
-              label="Duration of Each Session"
-              name="sessionDuration"
-              placeholder="e.g. 90 minutes"
-              value={formData.sessionDuration}
-              onChange={handleChange}
+              label="Duration Per Session"
+              placeholder="Example: 2 Hours"
+              value={form.duration}
+              onChange={(e) =>
+                updateField("duration", e.target.value)
+              }
             />
+
+            <Input
+              label="Minimum Students"
+              type="number"
+              value={form.minStudents}
+              onChange={(e) =>
+                updateField(
+                  "minStudents",
+                  e.target.value
+                )
+              }
+            />
+
+            <Input
+              label="Maximum Students"
+              type="number"
+              value={form.maxStudents}
+              onChange={(e) =>
+                updateField(
+                  "maxStudents",
+                  e.target.value
+                )
+              }
+            />
+
           </div>
 
-          {/* Class Size */}
-          <div className="mt-8 rounded-3xl border border-gray-200 bg-gray-50 p-6 md:p-8">
-            <div className="mb-5">
-              <h3 className="font-serif text-2xl text-gray-900">
-                Preferred Class Size
-              </h3>
+        </FormSection>
 
-              <p className="mt-2 text-sm leading-6 text-gray-500">
-                Help us understand the ideal number of students for your
-                course.
-              </p>
+
+        {/* =====================================================
+            05
+        ===================================================== */}
+
+        <FormSection
+          number="05"
+          title="Availability"
+          description="Tell us when you are available to teach."
+        >
+
+          <div>
+
+            <label className="block text-sm font-medium mb-3">
+              Preferred Teaching Days
+            </label>
+
+            <div className="flex flex-wrap gap-2">
+
+              {days.map((day) => {
+
+                const selected =
+                  form.weekdays.includes(day);
+
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => toggleDay(day)}
+                    className={`px-4 py-2.5 border text-xs transition ${
+                      selected
+                        ? "bg-black text-white border-black"
+                        : "bg-white border-black/15 hover:border-black"
+                    }`}
+                  >
+                    {day}
+                  </button>
+                );
+              })}
+
             </div>
 
-            <div className="grid gap-5 md:grid-cols-3">
-              <Input
-                label="Minimum Students"
-                name="minStudents"
-                type="number"
-                value={formData.minStudents}
-                onChange={handleChange}
-                min="1"
-              />
-
-              <Input
-                label="Ideal Students"
-                name="idealStudents"
-                type="number"
-                value={formData.idealStudents}
-                onChange={handleChange}
-                min="1"
-              />
-
-              <Input
-                label="Maximum Students"
-                name="maxStudents"
-                type="number"
-                value={formData.maxStudents}
-                onChange={handleChange}
-                min="1"
-              />
-            </div>
           </div>
 
-          <div className="mt-5 grid gap-5">
-            <Textarea
-              label="Learning Outcomes"
-              name="learningOutcomes"
-              value={formData.learningOutcomes}
-              onChange={handleChange}
-              rows={5}
-              placeholder="What will students learn by the end of the course?"
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-7">
+
+            <Input
+              label="Preferred Time"
+              placeholder="Example: 4:00 PM – 6:00 PM"
+              value={form.preferredTime}
+              onChange={(e) =>
+                updateField(
+                  "preferredTime",
+                  e.target.value
+                )
+              }
             />
+
+            <Input
+              label="Available From"
+              type="date"
+              value={form.availableFrom}
+              onChange={(e) =>
+                updateField(
+                  "availableFrom",
+                  e.target.value
+                )
+              }
+            />
+
+          </div>
+
+        </FormSection>
+
+
+        {/* =====================================================
+            06
+        ===================================================== */}
+
+        <FormSection
+          number="06"
+          title="Materials & Studio Requirements"
+          description="Let us know what is required for your class."
+        >
+
+          <div className="space-y-6">
 
             <Textarea
               label="Materials Required"
-              name="materialsRequired"
-              value={formData.materialsRequired}
-              onChange={handleChange}
-              rows={4}
-              placeholder="Mention art materials required for the course."
+              placeholder="List all materials students will need."
+              value={form.materialsRequired}
+              onChange={(e) =>
+                updateField(
+                  "materialsRequired",
+                  e.target.value
+                )
+              }
             />
 
             <Textarea
-              label="Materials Provided by Centre / Student"
-              name="materialsProvided"
-              value={formData.materialsProvided}
-              onChange={handleChange}
-              rows={4}
+              label="Materials Provided By Artist"
+              placeholder="Mention any materials you will provide."
+              value={form.materialsProvided}
+              onChange={(e) =>
+                updateField(
+                  "materialsProvided",
+                  e.target.value
+                )
+              }
             />
-          </div>
-        </Section>
 
-        {/* Commercial */}
-        <Section
-          number="10"
-          title="Commercial Details"
-          description="Basic information about your preferred engagement model."
+            <Textarea
+              label="Equipment / Studio Requirements"
+              placeholder="Easels, tables, projector, sink, lighting, special equipment etc."
+              value={form.equipmentRequired}
+              onChange={(e) =>
+                updateField(
+                  "equipmentRequired",
+                  e.target.value
+                )
+              }
+            />
+
+            <Input
+              label="Estimated Material Cost Per Student"
+              placeholder="₹"
+              value={form.materialCost}
+              onChange={(e) =>
+                updateField(
+                  "materialCost",
+                  e.target.value
+                )
+              }
+            />
+
+          </div>
+
+        </FormSection>
+
+
+        {/* =====================================================
+            07
+        ===================================================== */}
+
+        <FormSection
+          number="07"
+          title="Commercial Proposal"
+          description="Please provide your expected teaching fee or preferred payment model."
         >
-          <div className="grid gap-5 md:grid-cols-2">
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
             <Select
-              label="Preferred Engagement Model"
-              name="engagementModel"
-              value={formData.engagementModel}
-              onChange={handleChange}
+              label="Preferred Payment Model"
+              value={form.paymentModel}
+              onChange={(e) =>
+                updateField(
+                  "paymentModel",
+                  e.target.value
+                )
+              }
               options={[
-                "Per Session",
-                "Per Course",
+                "Fixed Fee Per Class",
+                "Fixed Course Fee",
+                "Per Student",
                 "Revenue Share",
                 "Open to Discussion",
               ]}
             />
 
             <Input
-              label="Expected Teaching Fee / Session"
-              name="teachingFee"
-              type="number"
+              label="Expected Fee"
               placeholder="₹"
-              value={formData.teachingFee}
-              onChange={handleChange}
+              value={form.expectedFee}
+              onChange={(e) =>
+                updateField(
+                  "expectedFee",
+                  e.target.value
+                )
+              }
             />
 
             <Input
-              label="Expected Workshop Fee"
-              name="workshopFee"
-              type="number"
+              label="Minimum Guarantee, If Any"
               placeholder="₹"
-              value={formData.workshopFee}
-              onChange={handleChange}
+              value={form.minimumGuarantee}
+              onChange={(e) =>
+                updateField(
+                  "minimumGuarantee",
+                  e.target.value
+                )
+              }
             />
+
           </div>
 
-          <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 text-sm leading-6 text-gray-500">
-            Payment details, PAN, GST and other financial documentation can
-            be collected separately after the teacher is selected.
-          </div>
-        </Section>
+          <div className="mt-6">
 
-        {/* Emergency Contact */}
-        <Section
-          number="11"
-          title="Emergency Contact"
-          description="Please provide a contact person we can reach if required."
+            <Textarea
+              label="Other Commercial / Professional Requirements"
+              value={form.otherRequirements}
+              onChange={(e) =>
+                updateField(
+                  "otherRequirements",
+                  e.target.value
+                )
+              }
+            />
+
+          </div>
+
+        </FormSection>
+
+
+        {/* =====================================================
+            08
+        ===================================================== */}
+
+        <FormSection
+          number="08"
+          title="Portfolio & Documents"
+          description="Upload documents that help us evaluate your application."
         >
-          <div className="grid gap-5 md:grid-cols-3">
-            <Input
-              label="Contact Name"
-              name="emergencyName"
-              value={formData.emergencyName}
-              onChange={handleChange}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+            <FileUpload
+              label="Artist CV / Resume"
+              accept=".pdf,.doc,.docx"
+              file={files.cv}
+              onChange={(file) =>
+                handleFile("cv", file)
+              }
             />
 
-            <Input
-              label="Relationship"
-              name="emergencyRelation"
-              value={formData.emergencyRelation}
-              onChange={handleChange}
+            <FileUpload
+              label="Teaching / Course Portfolio"
+              accept=".pdf,.doc,.docx"
+              file={files.portfolio}
+              onChange={(file) =>
+                handleFile("portfolio", file)
+              }
             />
 
-            <Input
-              label="Contact Number"
-              name="emergencyPhone"
-              type="tel"
-              value={formData.emergencyPhone}
-              onChange={handleChange}
+            <FileUpload
+              label="Sample Artwork"
+              accept="image/*,.pdf"
+              file={files.artwork}
+              onChange={(file) =>
+                handleFile("artwork", file)
+              }
             />
+
+            <FileUpload
+              label="Sample Lesson Plan / Syllabus"
+              accept=".pdf,.doc,.docx"
+              file={files.lessonPlan}
+              onChange={(file) =>
+                handleFile("lessonPlan", file)
+              }
+            />
+
           </div>
-        </Section>
 
-        {/* Declaration */}
-        <section className="mt-8 rounded-3xl bg-black p-7 text-white md:p-10">
-          <p className="text-xs uppercase tracking-[0.25em] text-white/50">
-            Final Declaration
-          </p>
+          <div className="mt-7">
 
-          <h2 className="mt-3 font-serif text-3xl">
-            Confirmation
-          </h2>
-
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-white/70">
-            I confirm that the information provided in this form is accurate
-            and complete. I agree to follow the professional standards,
-            policies, student safety guidelines and terms of engagement of TCL
-            Gallery and its Art Learning Centre.
-          </p>
-
-          <label className="mt-7 flex cursor-pointer items-start gap-3">
-            <input
-              type="checkbox"
-              name="declaration"
-              checked={formData.declaration}
-              onChange={handleChange}
-              className="mt-1 h-4 w-4 rounded border-white/30"
-              required
+            <Input
+              label="Portfolio / Previous Workshop Link"
+              placeholder="https://..."
+              value={form.portfolio}
+              onChange={(e) =>
+                updateField(
+                  "portfolio",
+                  e.target.value
+                )
+              }
             />
 
-            <span className="text-sm leading-6 text-white/80">
-              I agree to the above declaration and confirm that the information
-              submitted by me is correct.
-            </span>
-          </label>
-        </section>
+          </div>
 
-        {/* Submit */}
-        <div className="flex flex-col items-center justify-between gap-5 py-10 sm:flex-row">
-          <p className="text-xs leading-5 text-gray-500">
-            Your information will be used for teacher onboarding and
-            programme planning.
-          </p>
+          <div className="mt-6">
 
-          <button
-            type="submit"
-            className="w-full rounded-full bg-black px-10 py-4 text-sm font-medium text-white transition hover:bg-gray-800 sm:w-auto"
-          >
-            Submit Application
-          </button>
+            <Textarea
+              label="Professional References"
+              placeholder="Name, organization and contact details of previous institutions / references."
+              value={form.references}
+              onChange={(e) =>
+                updateField(
+                  "references",
+                  e.target.value
+                )
+              }
+            />
+
+          </div>
+
+        </FormSection>
+
+
+        {/* =====================================================
+            09
+        ===================================================== */}
+
+        <FormSection
+          number="09"
+          title="Declaration & Consent"
+          description="Please confirm the following before submitting."
+        >
+
+          <div className="space-y-5">
+
+            <Checkbox
+              checked={form.terms}
+              onChange={(value) =>
+                updateField("terms", value)
+              }
+              label="I confirm that the information provided in this application is accurate and complete."
+            />
+
+            <Checkbox
+              checked={form.promotionalConsent}
+              onChange={(value) =>
+                updateField(
+                  "promotionalConsent",
+                  value
+                )
+              }
+              label="I allow TCL Gallery to use my artist profile, artwork and workshop information for promotional purposes if selected."
+            />
+
+          </div>
+
+        </FormSection>
+
+
+        {/* =====================================================
+            SUBMIT
+        ===================================================== */}
+
+        <div className="border-t border-black/10 pt-10 mt-2">
+
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-7">
+
+            <p className="text-xs leading-5 text-black/45 max-w-md">
+              Submission of this application does not guarantee
+              selection. TCL Gallery will review each proposal and
+              contact shortlisted artists.
+            </p>
+
+            <button
+              type="submit"
+              className="w-full md:w-auto bg-black text-white px-10 py-4 text-sm tracking-wide hover:bg-black/80 transition"
+            >
+              Submit Artist Application
+            </button>
+
+          </div>
+
         </div>
+
       </form>
+
+
+      {/* =====================================================
+          FOOTER
+      ===================================================== */}
+
+      <footer className="border-t border-black/10">
+
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-8 flex flex-col md:flex-row justify-between gap-3 text-xs text-black/45">
+
+          <span>
+            TCL Gallery
+          </span>
+
+          <span>
+            Art Learning Centre · Bengaluru
+          </span>
+
+        </div>
+
+      </footer>
+
     </main>
   );
 }
 
-/* -------------------------------------------------
-   Reusable Components
-------------------------------------------------- */
 
-function Section({
+/* ============================================================
+   FORM SECTION
+============================================================ */
+
+function FormSection({
   number,
   title,
   description,
@@ -1011,204 +1013,314 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="mb-6 rounded-3xl bg-white p-6 shadow-sm md:p-9">
-      <div className="mb-8 border-b border-gray-100 pb-6">
-        <div className="flex items-start gap-4">
-          <span className="mt-1 text-xs font-medium tracking-[0.2em] text-gray-400">
-            {number}
-          </span>
+    <section className="border-t border-black/10 py-14 md:py-20">
+      <div className="w-full mb-10 md:mb-14">
+        <span className="block text-[11px] tracking-[0.25em] text-black/35">
+          {number}
+        </span>
 
-          <div>
-            <h2 className="font-serif text-3xl text-gray-900 md:text-4xl">
-              {title}
-            </h2>
+        <h2 className="mt-4 font-serif text-4xl sm:text-5xl lg:text-6xl leading-[0.95] tracking-tight break-words">
+          {title}
+        </h2>
 
-            <p className="mt-2 text-sm leading-6 text-gray-500">
-              {description}
-            </p>
-          </div>
-        </div>
+        <p className="mt-5 max-w-2xl text-sm sm:text-base leading-7 text-black/45">
+          {description}
+        </p>
       </div>
 
-      {children}
+      <div className="w-full min-w-0">
+        {children}
+      </div>
     </section>
   );
 }
 
-function Label({ children }: { children: React.ReactNode }) {
+
+/* ============================================================
+   INPUT
+============================================================ */
+
+function Input({
+  label,
+  required,
+  type = "text",
+  placeholder,
+  value,
+  onChange,
+}: {
+  label: string;
+  required?: boolean;
+  type?: string;
+  placeholder?: string;
+  value: string;
+  onChange: (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => void;
+}) {
   return (
-    <label className="block text-sm font-medium text-gray-800">
-      {children}
+    <label className="block min-w-0">
+
+      <span className="block text-sm font-medium mb-2">
+        {label}
+
+        {required && (
+          <span className="text-red-500 ml-1">
+            *
+          </span>
+        )}
+      </span>
+
+      <input
+        required={required}
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        className="
+          block
+          w-full
+          max-w-full
+          h-12
+          border
+          border-black/15
+          bg-white
+          px-4
+          text-sm
+          outline-none
+          focus:border-black
+          transition
+          placeholder:text-black/30
+        "
+      />
+
     </label>
   );
 }
 
-function Input({
-  label,
-  name,
-  value,
-  onChange,
-  type = "text",
-  placeholder,
-  required = false,
-  min,
-}: {
-  label: string;
-  name: string;
-  value: string;
-  onChange: (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => void;
-  type?: string;
-  placeholder?: string;
-  required?: boolean;
-  min?: string;
-}) {
-  return (
-    <div>
-      <Label>
-        {label}
-        {required && <span className="ml-1 text-red-500">*</span>}
-      </Label>
 
-      <input
-        name={name}
-        type={type}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        required={required}
-        min={min}
-        className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-gray-500 focus:ring-2 focus:ring-gray-100"
-      />
-    </div>
-  );
-}
+/* ============================================================
+   TEXTAREA
+============================================================ */
 
 function Textarea({
   label,
-  name,
+  required,
+  placeholder,
   value,
   onChange,
-  rows = 4,
-  placeholder,
 }: {
   label: string;
-  name: string;
+  required?: boolean;
+  placeholder?: string;
   value: string;
   onChange: (
     e: React.ChangeEvent<HTMLTextAreaElement>
   ) => void;
-  rows?: number;
-  placeholder?: string;
 }) {
   return (
-    <div>
-      <Label>{label}</Label>
+    <label className="block min-w-0">
+
+      <span className="block text-sm font-medium mb-2">
+        {label}
+
+        {required && (
+          <span className="text-red-500 ml-1">
+            *
+          </span>
+        )}
+      </span>
 
       <textarea
-        name={name}
+        required={required}
+        placeholder={placeholder}
         value={value}
         onChange={onChange}
-        rows={rows}
-        placeholder={placeholder}
-        className="mt-2 w-full resize-y rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm leading-6 text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-gray-500 focus:ring-2 focus:ring-gray-100"
+        rows={5}
+        className="
+          block
+          w-full
+          max-w-full
+          border
+          border-black/15
+          bg-white
+          px-4
+          py-3
+          text-sm
+          leading-6
+          outline-none
+          focus:border-black
+          transition
+          resize-y
+          placeholder:text-black/30
+        "
       />
-    </div>
+
+    </label>
   );
 }
 
+
+/* ============================================================
+   SELECT
+============================================================ */
+
 function Select({
   label,
-  name,
+  required,
   value,
   onChange,
   options,
-  required = false,
 }: {
   label: string;
-  name: string;
+  required?: boolean;
   value: string;
   onChange: (
     e: React.ChangeEvent<HTMLSelectElement>
   ) => void;
   options: string[];
-  required?: boolean;
 }) {
   return (
-    <div>
-      <Label>
+    <label className="block min-w-0">
+
+      <span className="block text-sm font-medium mb-2">
         {label}
-        {required && <span className="ml-1 text-red-500">*</span>}
-      </Label>
+
+        {required && (
+          <span className="text-red-500 ml-1">
+            *
+          </span>
+        )}
+      </span>
 
       <select
-        name={name}
+        required={required}
         value={value}
         onChange={onChange}
-        required={required}
-        className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-500 focus:ring-2 focus:ring-gray-100"
+        className="
+          block
+          w-full
+          max-w-full
+          h-12
+          border
+          border-black/15
+          bg-white
+          px-4
+          text-sm
+          outline-none
+          focus:border-black
+          transition
+        "
       >
-        <option value="">Select an option</option>
+
+        <option value="">
+          Select an option
+        </option>
 
         {options.map((option) => (
-          <option key={option} value={option}>
+          <option
+            key={option}
+            value={option}
+          >
             {option}
           </option>
         ))}
+
       </select>
-    </div>
-  );
-}
 
-function CheckBox({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: () => void;
-}) {
-  return (
-    <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 transition hover:border-gray-400">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onChange}
-        className="h-4 w-4 rounded border-gray-300"
-      />
-
-      <span className="text-sm text-gray-700">{label}</span>
     </label>
   );
 }
 
-function Radio({
+
+/* ============================================================
+   FILE UPLOAD
+============================================================ */
+
+function FileUpload({
   label,
-  name,
-  value,
-  checked,
+  accept,
+  file,
   onChange,
 }: {
   label: string;
-  name: string;
-  value: string;
-  checked: boolean;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  accept?: string;
+  file: File | null;
+  onChange: (file: File | null) => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-3">
+    <label className="block cursor-pointer min-w-0">
+
+      <span className="block text-sm font-medium mb-2">
+        {label}
+      </span>
+
+      <div className="border border-dashed border-black/20 bg-white p-6 hover:border-black transition">
+
+        <input
+          type="file"
+          accept={accept}
+          onChange={(e) =>
+            onChange(
+              e.target.files?.[0] || null
+            )
+          }
+          className="hidden"
+        />
+
+        <div className="text-center">
+
+          <div className="text-xl mb-2">
+            ↑
+          </div>
+
+          <p className="text-sm break-all">
+            {file
+              ? file.name
+              : "Click to upload"}
+          </p>
+
+          <p className="text-[11px] text-black/35 mt-2">
+            PDF, DOC, DOCX or image
+          </p>
+
+        </div>
+
+      </div>
+
+    </label>
+  );
+}
+
+
+/* ============================================================
+   CHECKBOX
+============================================================ */
+
+function Checkbox({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (value: boolean) => void;
+  label: string;
+}) {
+  return (
+    <label className="flex items-start gap-3 cursor-pointer">
+
       <input
-        type="radio"
-        name={name}
-        value={value}
+        type="checkbox"
         checked={checked}
-        onChange={onChange}
-        className="h-4 w-4"
+        onChange={(e) =>
+          onChange(e.target.checked)
+        }
+        className="mt-1 h-4 w-4 accent-black shrink-0"
       />
 
-      <span className="text-sm text-gray-700">{label}</span>
+      <span className="text-sm leading-6 text-black/60">
+        {label}
+      </span>
+
     </label>
   );
 }
