@@ -17,6 +17,7 @@
     "@prisma/client": "^5.22.0",
     "@react-three/drei": "^10.7.8",
     "@react-three/fiber": "^9.7.0",
+    "@swc/helpers": "^0.5.23",
     "@vercel/analytics": "^2.0.1",
     "bcryptjs": "^3.0.3",
     "crisp-sdk-web": "^1.2.0",
