@@ -1,14 +1,15 @@
 // app/api/checkout/create-order/route.ts
+
 import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
-
 export async function POST(req: Request) {
   try {
+    const razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID!,
+      key_secret: process.env.RAZORPAY_KEY_SECRET!,
+    });
+
     const { totalAmount } = await req.json();
 
     const options = {
@@ -27,8 +28,12 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error("Razorpay order creation error:", error);
+
     return NextResponse.json(
-      { success: false, message: "Failed to initialize payment gateway." },
+      {
+        success: false,
+        message: "Failed to initialize payment gateway.",
+      },
       { status: 500 }
     );
   }
