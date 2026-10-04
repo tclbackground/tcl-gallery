@@ -1,10 +1,11 @@
 "use client";
 
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 function LoginForm() {
+  const { data: session, status } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -14,6 +15,20 @@ function LoginForm() {
   const router = useRouter();
 
   useEffect(() => {
+    // 1. If user is already authenticated, send them directly to /admin or callbackUrl
+    if (status === "authenticated") {
+      const rawCallback = searchParams.get("callbackUrl");
+      const destination =
+        rawCallback &&
+        !rawCallback.includes("/login") &&
+        !rawCallback.includes("/account/login")
+          ? rawCallback
+          : "/admin";
+      router.replace(destination);
+      return;
+    }
+
+    // 2. Handle login errors from URL
     const urlError = searchParams.get("error");
     if (urlError === "CredentialsSignin") {
       setError("Invalid email or password");
@@ -21,12 +36,21 @@ function LoginForm() {
       setError("An authentication error occurred. Please try again.");
     }
 
-    // Clean up loop parameters if redirected back incorrectly
+    // 3. Clean up loop parameters if redirected back incorrectly
     const callbackUrl = searchParams.get("callbackUrl");
     if (callbackUrl && (callbackUrl.includes("/login") || callbackUrl.includes("/account/login"))) {
       router.replace("/login");
     }
-  }, [searchParams, router]);
+  }, [status, searchParams, router]);
+
+  // Show a neutral loading screen while verifying session state
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#FBF9F0]">
+        <div className="text-xs font-semibold text-[#22211B]">Checking authentication...</div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +71,6 @@ function LoginForm() {
       }
 
       if (res?.ok) {
-        // Respect callbackUrl if valid, otherwise go straight to /admin
         const rawCallback = searchParams.get("callbackUrl");
         const destination =
           rawCallback &&
@@ -56,7 +79,6 @@ function LoginForm() {
             ? rawCallback
             : "/admin";
 
-        // Hard refresh to synchronize NextAuth cookies across server and client components
         window.location.href = destination;
       }
     } catch (err) {
