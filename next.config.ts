@@ -3,13 +3,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Generates a self-contained production bundle for container runtimes
+  output: "standalone",
+
   typescript: {
     ignoreBuildErrors: true,
   },
 
   /*
-   * Allow development access from local
-   * and network IP addresses.
+   * Allow development access from local,
+   * network IP addresses, production domains, and GoDaddy preview URL.
    */
   allowedDevOrigins: [
     "172.16.4.83",
@@ -22,6 +25,7 @@ const nextConfig: NextConfig = {
     "127.0.0.1:3000",
     "tclgallery.com",
     "www.tclgallery.com",
+    "5852wjwnoi.preview.c35.airoapp.ai",
   ],
 
   experimental: {
@@ -37,6 +41,7 @@ const nextConfig: NextConfig = {
         "127.0.0.1:3000",
         "tclgallery.com",
         "www.tclgallery.com",
+        "5852wjwnoi.preview.c35.airoapp.ai",
       ],
     },
   },
