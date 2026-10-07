@@ -1,39 +1,66 @@
 import { NextResponse } from "next/server";
+import { execFileSync } from "child_process";
 import fs from "fs";
 
 export async function GET() {
-  let glibcVersion = null;
+  const enginePath = process.env.PRISMA_QUERY_ENGINE_LIBRARY;
 
-  try {
-    if (process.report?.getReport) {
-      const report = process.report.getReport();
-      glibcVersion =
-        report?.header?.glibcVersionRuntime || null;
-    }
-  } catch (error) {
-    glibcVersion = `ERROR: ${error.message}`;
+  if (!enginePath) {
+    return NextResponse.json({
+      success: false,
+      error: "PRISMA_QUERY_ENGINE_LIBRARY is not set",
+    });
   }
 
-  return NextResponse.json({
-    platform: process.platform,
-    architecture: process.arch,
-    nodeVersion: process.version,
+  const exists = fs.existsSync(enginePath);
 
-    glibcVersion,
+  const testScript = `
+    const enginePath = process.argv[1];
 
-    loaders: {
-      rhelLoader: fs.existsSync("/lib64/ld-linux-x86-64.so.2"),
-      standardLoader: fs.existsSync("/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2"),
-      muslLoader: fs.existsSync("/lib/ld-musl-x86_64.so.1"),
-    },
+    try {
+      require(enginePath);
 
-    files: {
-      rhelEngine: fs.existsSync(
-        "/app/node_modules/.prisma/client/libquery_engine-rhel-openssl-3.0.x.so.node"
-      ),
-    },
+      console.log(JSON.stringify({
+        success: true,
+        message: "Musl Prisma engine loaded successfully"
+      }));
+    } catch (error) {
+      console.log(JSON.stringify({
+        success: false,
+        name: error.name,
+        code: error.code || null,
+        message: error.message,
+        stack: error.stack
+      }));
 
-    prismaEngineVariable:
-      process.env.PRISMA_QUERY_ENGINE_LIBRARY || null,
-  });
+      process.exit(1);
+    }
+  `;
+
+  try {
+    const output = execFileSync(
+      process.execPath,
+      ["-e", testScript, enginePath],
+      {
+        encoding: "utf8",
+        timeout: 10000,
+      }
+    );
+
+    return NextResponse.json({
+      engine: enginePath.split("/").pop(),
+      engineExists: exists,
+      result: JSON.parse(output.trim()),
+    });
+
+  } catch (error) {
+    return NextResponse.json({
+      engine: enginePath.split("/").pop(),
+      engineExists: exists,
+      success: false,
+      exitCode: error.status || null,
+      stdout: error.stdout?.toString() || "",
+      stderr: error.stderr?.toString() || "",
+    });
+  }
 }
