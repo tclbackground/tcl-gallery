@@ -1,19 +1,33 @@
 import { NextResponse } from "next/server";
+import os from "os";
+import process from "process";
 import { execSync } from "child_process";
 
 export async function GET() {
-  let openssl = "unknown";
+  let ldd = "unavailable";
+  let libc = "unknown";
 
   try {
-    openssl = execSync("openssl version").toString().trim();
-  } catch (error) {
-    openssl = "openssl command not available";
+    ldd = execSync("ldd --version", {
+      encoding: "utf8",
+      timeout: 3000,
+    });
+  } catch (e) {
+    ldd = String(e);
   }
+
+  try {
+    libc = process.report?.getReport().header?.glibcVersionRuntime || "not glibc";
+  } catch {}
 
   return NextResponse.json({
     platform: process.platform,
     architecture: process.arch,
     nodeVersion: process.version,
-    openssl,
+    versions: process.versions,
+    libc,
+    ldd,
+    cwd: process.cwd(),
+    osRelease: os.release(),
   });
 }
