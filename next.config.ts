@@ -3,8 +3,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Generates a self-contained production bundle for container runtimes
-  output: "standalone",
+
 
   typescript: {
     ignoreBuildErrors: true,
