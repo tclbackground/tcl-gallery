@@ -1,64 +1,39 @@
 import { NextResponse } from "next/server";
-import { execFileSync } from "child_process";
+import fs from "fs";
 
 export async function GET() {
-  const enginePath = process.env.PRISMA_QUERY_ENGINE_LIBRARY;
-
-  if (!enginePath) {
-    return NextResponse.json({
-      success: false,
-      error: "PRISMA_QUERY_ENGINE_LIBRARY is not set",
-    });
-  }
-
-  const testScript = `
-    const enginePath = process.argv[1];
-
-    try {
-      require(enginePath);
-
-      console.log(JSON.stringify({
-        success: true,
-        message: "Native Prisma engine loaded successfully"
-      }));
-    } catch (error) {
-      console.log(JSON.stringify({
-        success: false,
-        name: error.name,
-        code: error.code || null,
-        message: error.message,
-        stack: error.stack
-      }));
-
-      process.exit(1);
-    }
-  `;
+  let glibcVersion = null;
 
   try {
-    const output = execFileSync(
-      process.execPath,
-      ["-e", testScript, enginePath],
-      {
-        encoding: "utf8",
-        timeout: 10000,
-      }
-    );
-
-    return NextResponse.json({
-      test: "external-node-process",
-      engine: enginePath.split("/").pop(),
-      result: JSON.parse(output.trim()),
-    });
-
+    if (process.report?.getReport) {
+      const report = process.report.getReport();
+      glibcVersion =
+        report?.header?.glibcVersionRuntime || null;
+    }
   } catch (error) {
-    return NextResponse.json({
-      test: "external-node-process",
-      engine: enginePath.split("/").pop(),
-      success: false,
-      exitCode: error.status || null,
-      stdout: error.stdout?.toString() || "",
-      stderr: error.stderr?.toString() || "",
-      error: error.message,
-    });
+    glibcVersion = `ERROR: ${error.message}`;
   }
+
+  return NextResponse.json({
+    platform: process.platform,
+    architecture: process.arch,
+    nodeVersion: process.version,
+
+    glibcVersion,
+
+    loaders: {
+      rhelLoader: fs.existsSync("/lib64/ld-linux-x86-64.so.2"),
+      standardLoader: fs.existsSync("/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2"),
+      muslLoader: fs.existsSync("/lib/ld-musl-x86_64.so.1"),
+    },
+
+    files: {
+      rhelEngine: fs.existsSync(
+        "/app/node_modules/.prisma/client/libquery_engine-rhel-openssl-3.0.x.so.node"
+      ),
+    },
+
+    prismaEngineVariable:
+      process.env.PRISMA_QUERY_ENGINE_LIBRARY || null,
+  });
 }
