@@ -17,8 +17,12 @@ export async function GET() {
   }
 
   try {
-    libc = process.report?.getReport().header?.glibcVersionRuntime || "not glibc";
-  } catch {}
+    libc =
+      process.report?.getReport().header?.glibcVersionRuntime ||
+      "not glibc";
+  } catch (e) {
+    libc = "unknown";
+  }
 
   return NextResponse.json({
     platform: process.platform,
