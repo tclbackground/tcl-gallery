@@ -1,11 +1,13 @@
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["linux-musl"]
+  binaryTargets = ["linux-musl-openssl-3.0.x", "windows"]
 }
+
 datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
 }
+
 
 model Artist {
   id String @id @default(auto()) @map("_id") @db.ObjectId
