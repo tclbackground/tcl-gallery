@@ -1,35 +1,41 @@
-// lib/prisma.ts
-
 import path from "path";
-import { PrismaClient, Prisma } from "@prisma/client";
+import type { PrismaClient as PrismaClientType } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
+  prisma: PrismaClientType | undefined;
 };
 
-if (process.platform === "linux") {
-  process.env.PRISMA_QUERY_ENGINE_LIBRARY = path.join(
-    process.cwd(),
-    "node_modules",
-    ".prisma",
-    "client",
-    "libquery_engine-linux-musl-openssl-3.0.x.so.node"
-  );
+const enginePath =
+  process.platform === "linux"
+    ? path.join(
+        process.cwd(),
+        "node_modules",
+        ".prisma",
+        "client",
+        "libquery_engine-linux-musl-openssl-3.0.x.so.node"
+      )
+    : undefined;
+
+// Load Prisma only after the environment/path has been determined.
+const { PrismaClient } = require("@prisma/client") as {
+  PrismaClient: new (options?: any) => PrismaClientType;
+};
+
+const prismaOptions: any = {
+  log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+};
+
+if (enginePath) {
+  prismaOptions.__internal = {
+    engine: {
+      binaryPath: enginePath,
+    },
+  };
 }
 
 console.log("=== TCL PRISMA CONFIG ===");
-console.log("platform:", process.platform);
-console.log(
-  "PRISMA_QUERY_ENGINE_LIBRARY:",
-  process.env.PRISMA_QUERY_ENGINE_LIBRARY
-);
-
-const prismaOptions: Prisma.PrismaClientOptions = {
-  log:
-    process.env.NODE_ENV === "development"
-      ? ["error", "warn"]
-      : ["error"],
-};
+console.log("Platform:", process.platform);
+console.log("Engine path:", enginePath);
 
 export const prisma =
   globalForPrisma.prisma ??
