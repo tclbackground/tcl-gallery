@@ -10,22 +10,17 @@ export async function GET() {
     "client"
   );
 
-  let files = [];
-
-  try {
-    files = fs.readdirSync(clientDir);
-  } catch (error) {
-    return NextResponse.json({
-      success: false,
-      clientDir,
-      error: String(error),
-    });
-  }
+  const enginePath =
+    process.env.PRISMA_QUERY_ENGINE_LIBRARY ||
+    path.join(clientDir, "libquery_engine-linux-musl.so.node");
 
   return NextResponse.json({
     success: true,
-    clientDir,
-    linuxMusl: files.filter((f) => f.includes("linux-musl")),
-    engines: files.filter((f) => f.includes("query_engine")),
+    cwd: process.cwd(),
+    prismaEngineVariable:
+      process.env.PRISMA_QUERY_ENGINE_LIBRARY || "NOT_SET",
+    enginePath,
+    engineExists: fs.existsSync(enginePath),
+    clientDirExists: fs.existsSync(clientDir),
   });
 }
