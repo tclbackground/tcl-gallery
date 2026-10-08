@@ -7,9 +7,6 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-// GoDaddy runs Linux/musl.
-// Force Prisma to use the OpenSSL 3 musl engine that is
-// included in the generated Prisma Client.
 if (process.platform === "linux") {
   process.env.PRISMA_QUERY_ENGINE_LIBRARY = path.join(
     process.cwd(),
@@ -20,8 +17,6 @@ if (process.platform === "linux") {
   );
 }
 
-// Temporary diagnostic logging.
-// This confirms which engine path the application is actually using.
 console.log("=== TCL PRISMA CONFIG ===");
 console.log("platform:", process.platform);
 console.log(
