@@ -5,13 +5,13 @@
   "engines": {
     "node": "22.x"
   },
-  "scripts": {
-    "dev": "next dev --webpack",
-    "postinstall": "prisma generate",
-    "build": "prisma generate && next build --webpack",
-    "start": "next start",
-    "lint": "eslint"
-  },
+ "scripts": {
+  "dev": "next dev --webpack",
+  "postinstall": "prisma generate",
+  "build": "prisma generate && next build --webpack",
+  "start": "prisma generate && next start",
+  "lint": "eslint"
+},
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
     "@prisma/client": "^5.22.0",
