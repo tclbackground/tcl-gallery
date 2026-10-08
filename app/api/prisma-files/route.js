@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
-import { createRequire } from "module";
-
-const require = createRequire(import.meta.url);
+import { execFileSync } from "child_process";
 
 export async function GET() {
   const enginePath =
@@ -13,22 +11,34 @@ export async function GET() {
     enginePath,
     engineExists: fs.existsSync(enginePath),
     envValue: process.env.PRISMA_QUERY_ENGINE_LIBRARY || "NOT_SET",
-    directLoad: null,
+    externalNodeTest: null,
   };
 
   try {
-    require(enginePath);
+    const output = execFileSync(
+      process.execPath,
+      [
+        "-e",
+        "require(process.argv[1]); console.log('ENGINE_LOADED')",
+        enginePath,
+      ],
+      {
+        encoding: "utf8",
+        timeout: 10000,
+      }
+    );
 
-    result.directLoad = {
+    result.externalNodeTest = {
       success: true,
-      message: "Linux musl Prisma engine loaded successfully",
+      output: output.trim(),
     };
   } catch (error) {
-    result.directLoad = {
+    result.externalNodeTest = {
       success: false,
-      name: error?.name || "UnknownError",
-      message: error?.message || String(error),
-      stack: error?.stack || null,
+      status: error?.status ?? null,
+      stdout: error?.stdout?.toString() ?? "",
+      stderr: error?.stderr?.toString() ?? "",
+      message: error?.message ?? String(error),
     };
   }
 
