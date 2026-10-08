@@ -3,24 +3,30 @@ import fs from "fs";
 import path from "path";
 
 export async function GET() {
-  const clientDir = path.join(
-    process.cwd(),
-    "node_modules",
-    ".prisma",
-    "client"
-  );
-
   const enginePath =
-    process.env.PRISMA_QUERY_ENGINE_LIBRARY ||
-    path.join(clientDir, "libquery_engine-linux-musl.so.node");
+    "/app/node_modules/.prisma/client/libquery_engine-linux-musl.so.node";
 
-  return NextResponse.json({
-    success: true,
-    cwd: process.cwd(),
-    prismaEngineVariable:
-      process.env.PRISMA_QUERY_ENGINE_LIBRARY || "NOT_SET",
+  const result = {
     enginePath,
     engineExists: fs.existsSync(enginePath),
-    clientDirExists: fs.existsSync(clientDir),
-  });
+    envValue: process.env.PRISMA_QUERY_ENGINE_LIBRARY || "NOT_SET",
+    directLoad: null,
+  };
+
+  try {
+    process.dlopen(module, enginePath);
+
+    result.directLoad = {
+      success: true,
+      message: "Linux musl Prisma engine loaded successfully",
+    };
+  } catch (error) {
+    result.directLoad = {
+      success: false,
+      error: String(error),
+      message: error?.message || "Unknown error",
+    };
+  }
+
+  return NextResponse.json(result);
 }
