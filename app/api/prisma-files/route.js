@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
 
 export async function GET() {
   const enginePath =
@@ -14,7 +17,7 @@ export async function GET() {
   };
 
   try {
-    process.dlopen(module, enginePath);
+    require(enginePath);
 
     result.directLoad = {
       success: true,
@@ -23,8 +26,9 @@ export async function GET() {
   } catch (error) {
     result.directLoad = {
       success: false,
-      error: String(error),
-      message: error?.message || "Unknown error",
+      name: error?.name || "UnknownError",
+      message: error?.message || String(error),
+      stack: error?.stack || null,
     };
   }
 
