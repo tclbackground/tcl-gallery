@@ -1,234 +1,422 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { ObjectId } from "mongodb";
+import { getDb } from "@/lib/mongodb";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 type Props = {
-  params: Promise<{ id: string }> | { id: string };
+  params: Promise<{ id: string }>;
 };
 
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/['’]/g, "")
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
+type Product = {
+  id: string;
+  slNo: number | null;
+  title: string;
+  collection: string;
+  description: string | null;
+  price: number | null;
+  image1: string | null;
+  image2: string | null;
+  image3: string | null;
+  image4: string | null;
+  referenceNo: string | null;
+  material: string | null;
+  size: string | null;
+};
 
-function resolveProductImage(
-  dbImage: string | null | undefined,
-  folder: string,
-  title: string
-): string {
-  if (dbImage && typeof dbImage === "string") {
-    const val = dbImage.trim();
-    if (val && val !== "null" && val !== "undefined") {
-      if (val.startsWith("http://") || val.startsWith("https://") || val.startsWith("/")) {
-        return val;
-      }
-      return `/images/${folder}/${val}`;
-    }
+function normalizeImage(
+  value: unknown
+): string | null {
+  if (!value) return null;
+
+  const image = String(value).trim();
+
+  if (
+    !image ||
+    image === "null" ||
+    image === "undefined"
+  ) {
+    return null;
   }
-  return `/images/${folder}/${slugify(title)}.jpeg`;
+
+  if (
+    image.startsWith("http://") ||
+    image.startsWith("https://") ||
+    image.startsWith("/")
+  ) {
+    return image;
+  }
+
+  return `/${image}`;
 }
 
-async function getProduct(rawId: string) {
-  const id = decodeURIComponent(rawId);
+function getCollectionLabel(
+  collection: string
+) {
+  switch (collection) {
+    case "jewel-tree":
+      return "Jewel Tree";
 
-  // 1. Check prisma.jewelTree
-  try {
-    const jewelTreeItem = await prisma.jewelTree.findUnique({
-      where: { id },
+    case "nature-window":
+    case "nature-window-collection":
+      return "Nature Window";
+
+    case "living-legacy":
+      return "Living Legacy";
+
+    case "bags":
+      return "Bags";
+
+    default:
+      return collection;
+  }
+}
+
+async function getProduct(
+  id: string
+): Promise<Product | null> {
+  if (!ObjectId.isValid(id)) {
+    return null;
+  }
+
+  const db = await getDb();
+
+  const product = await db
+    .collection("JewelTree")
+    .findOne({
+      _id: new ObjectId(id),
     });
 
-    if (jewelTreeItem) {
-      const title = jewelTreeItem.title?.trim() || "Untitled Product";
-      return {
-        id: jewelTreeItem.id,
-        title,
-        collectionName: "Jewel Tree",
-        collectionSlug: "jewel-tree",
-        image: resolveProductImage(jewelTreeItem.image, "jeweltree", title),
-        referenceNo: jewelTreeItem.referenceNo?.trim() || null,
-        size: jewelTreeItem.size?.trim() || null,
-        material: null,
-        description:
-          "A bespoke sculptural botanical piece, handcrafted to bring character, organic forms, and natural elegance into your space.",
-      };
-    }
-  } catch {
-    // Continue if ID is not in jewelTree
+  if (!product) {
+    return null;
   }
 
-  // 2. Check prisma.designStoreProduct
-  try {
-    const designStoreItem = await prisma.designStoreProduct.findUnique({
-      where: { id },
-    });
+  return {
+    id: product._id.toString(),
 
-    if (designStoreItem) {
-      const title = designStoreItem.title?.trim() || "Untitled Product";
-      const folder =
-        designStoreItem.collection === "nature-window"
-          ? "naturewindow"
-          : "livinglegacy";
+    slNo:
+      product["Sl No"] ??
+      product.slNo ??
+      null,
 
-      const collectionName =
-        designStoreItem.collection === "nature-window"
-          ? "Nature Window"
-          : "Living Legacy";
+    title:
+      String(
+        product["Title"] ??
+        product.title ??
+        ""
+      ).trim() || "Untitled Product",
 
-      return {
-        id: designStoreItem.id,
-        title,
-        collectionName,
-        collectionSlug: designStoreItem.collection,
-        image: resolveProductImage(designStoreItem.image1, folder, title),
-        referenceNo: designStoreItem.referenceNo?.trim() || null,
-        size: designStoreItem.size?.trim() || null,
-        material: designStoreItem.material?.trim() || null,
-        description:
-          designStoreItem.description?.trim() ||
-          "A distinctive decorative piece crafted with meticulous attention to detail, materiality, and form.",
-      };
-    }
-  } catch {
-    // Continue
-  }
+    collection:
+      String(
+        product.collection ?? ""
+      ).trim(),
 
-  return null;
+    description:
+      product["Description"] ??
+      product.description ??
+      null,
+
+    price:
+      product["Price"] ??
+      product.price ??
+      null,
+
+    image1: normalizeImage(
+      product["Image"] ??
+      product["Image 1"] ??
+      product.image ??
+      product.image1
+    ),
+
+    image2: normalizeImage(
+      product["Image 2"] ??
+      product.image2
+    ),
+
+    image3: normalizeImage(
+      product["Image 3"] ??
+      product.image3
+    ),
+
+    image4: normalizeImage(
+      product["Image 4"] ??
+      product.image4
+    ),
+
+    referenceNo:
+      String(
+        product["Reference No"] ??
+        product.referenceNo ??
+        ""
+      ).trim() || null,
+
+    material:
+      String(
+        product["Material"] ??
+        product.material ??
+        ""
+      ).trim() || null,
+
+    size:
+      String(
+        product["Size Inches (h x w x d)"] ??
+        product["Size"] ??
+        product.size ??
+        ""
+      ).trim() || null,
+  };
 }
 
-export default async function ProductDetailPage({ params }: Props) {
-  // Supports both Next.js 15 (Promise) and Next.js 14 (Object)
-  const resolvedParams = await Promise.resolve(params);
-  const product = await getProduct(resolvedParams.id);
+export async function generateMetadata({
+  params,
+}: Props): Promise<Metadata> {
+  const { id } = await params;
+
+  const product = await getProduct(id);
+
+  if (!product) {
+    return {
+      title: "Product Not Found | TCL Gallery",
+    };
+  }
+
+  return {
+    title: `${product.title} | TCL Gallery Design Store`,
+    description:
+      product.description ||
+      `Discover ${product.title} at TCL Gallery Design Store.`,
+  };
+}
+
+export default async function DesignStoreProductPage({
+  params,
+}: Props) {
+  const { id } = await params;
+
+  const product = await getProduct(id);
 
   if (!product) {
     notFound();
   }
 
-  const mailtoSubject = encodeURIComponent(
-    `Product Enquiry: ${product.title} (${product.referenceNo || "No Ref"})`
-  );
-  const mailtoBody = encodeURIComponent(
-    `Hi TCL Team,\n\nI would like to enquire about "${product.title}" (${product.collectionName}, Ref: ${
-      product.referenceNo || "N/A"
-    }).\n\nPlease let me know the availability and pricing details.\n\nThank you!`
+  const collectionName =
+    getCollectionLabel(product.collection);
+
+  const images = [
+    product.image1,
+    product.image2,
+    product.image3,
+    product.image4,
+  ].filter(
+    (image): image is string =>
+      Boolean(image)
   );
 
   return (
     <main className="min-h-screen bg-[#FBF9F0] text-[#2B211C]">
-      {/* BREADCRUMB NAVIGATION */}
-      <div className="max-w-[1400px] mx-auto px-6 sm:px-8 lg:px-12 pt-36 pb-8">
-        <nav className="flex items-center gap-2 text-[11px] uppercase tracking-[2px] text-[#8B624B]">
-          <Link href="/design-store" className="hover:underline">
+
+      {/* Breadcrumb */}
+
+      <section className="mx-auto max-w-[1500px] px-6 sm:px-8 lg:px-10 pt-36">
+
+        <nav className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[2px] text-[#8B624B]">
+
+          <Link
+            href="/design-store"
+            className="hover:underline"
+          >
             Design Store
           </Link>
+
           <span>/</span>
+
           <Link
             href={`/design-store/collection/${encodeURIComponent(
-              product.collectionSlug
+              product.collection
             )}`}
             className="hover:underline"
           >
-            {product.collectionName}
+            {collectionName}
           </Link>
+
           <span>/</span>
-          <span className="text-[#2B211C] font-semibold truncate max-w-xs">
+
+          <span className="text-[#2B211C]">
             {product.title}
           </span>
-        </nav>
-      </div>
 
-      {/* PRODUCT DISPLAY */}
-      <div className="max-w-[1400px] mx-auto px-6 sm:px-8 lg:px-12 pb-28">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
-          {/* IMAGE CONTAINER */}
-          <div className="lg:col-span-7">
-            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[28px] border border-[#E6DDD2] bg-white shadow-[0_12px_40px_rgba(70,45,30,0.06)]">
-              <img
-                src={product.image}
-                alt={product.title}
-                className="h-full w-full object-cover"
-              />
-            </div>
+        </nav>
+
+      </section>
+
+      {/* Product */}
+
+      <section className="mx-auto max-w-[1500px] px-6 sm:px-8 lg:px-10 py-16 lg:py-24">
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20">
+
+          {/* Images */}
+
+          <div>
+
+            {images.length > 0 ? (
+
+              <div className="space-y-5">
+
+                <div className="overflow-hidden rounded-[24px] bg-[#F2EDE5]">
+
+                  <img
+                    src={images[0]}
+                    alt={product.title}
+                    className="w-full aspect-[4/3] object-cover"
+                  />
+
+                </div>
+
+                {images.length > 1 && (
+
+                  <div className="grid grid-cols-3 gap-4">
+
+                    {images.slice(1).map(
+                      (image, index) => (
+                        <div
+                          key={`${image}-${index}`}
+                          className="overflow-hidden rounded-[16px] bg-[#F2EDE5]"
+                        >
+                          <img
+                            src={image}
+                            alt={`${product.title} ${
+                              index + 2
+                            }`}
+                            className="w-full aspect-square object-cover"
+                          />
+                        </div>
+                      )
+                    )}
+
+                  </div>
+
+                )}
+
+              </div>
+
+            ) : (
+
+              <div className="aspect-[4/3] rounded-[24px] bg-[#F2EDE5] flex items-center justify-center text-[#A99B8E]">
+                No Image Available
+              </div>
+
+            )}
+
           </div>
 
-          {/* PRODUCT INFO & ENQUIRE ACTIONS */}
-          <div className="lg:col-span-5 flex flex-col space-y-8">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[3.5px] text-[#8B624B]">
-                {product.collectionName}
-              </p>
-              <h1 className="mt-3 font-serif text-4xl sm:text-5xl font-semibold leading-tight text-[#29231F]">
-                {product.title}
-              </h1>
-            </div>
+          {/* Details */}
 
-            {/* SPECS TABLE */}
-            <div className="rounded-2xl border border-[#E6DDD2] bg-white/70 p-6 space-y-3 text-sm">
-              {product.referenceNo && (
-                <div className="flex justify-between py-1 border-b border-[#F0E8DF]">
-                  <span className="text-[#8C847E]">Reference No</span>
-                  <span className="font-mono font-medium text-[#29231F]">
-                    {product.referenceNo}
-                  </span>
-                </div>
-              )}
+          <div className="flex flex-col justify-center">
 
-              {product.size && (
-                <div className="flex justify-between py-1 border-b border-[#F0E8DF]">
-                  <span className="text-[#8C847E]">Dimensions</span>
-                  <span className="font-medium text-[#29231F]">
-                    {product.size}
-                  </span>
-                </div>
-              )}
-
-              {product.material && (
-                <div className="flex justify-between py-1 border-b border-[#F0E8DF]">
-                  <span className="text-[#8C847E]">Material</span>
-                  <span className="font-medium text-[#29231F]">
-                    {product.material}
-                  </span>
-                </div>
-              )}
-
-              <div className="flex justify-between py-1">
-                <span className="text-[#8C847E]">Availability</span>
-                <span className="font-medium text-emerald-700">
-                  Available on Request
-                </span>
-              </div>
-            </div>
-
-            {/* DESCRIPTION */}
-            <p className="text-base leading-relaxed text-[#77716B]">
-              {product.description}
+            <p className="text-[11px] font-semibold uppercase tracking-[4px] text-[#8B624B]">
+              {collectionName}
             </p>
 
-            {/* ENQUIRE NOW BUTTONS */}
-            <div className="pt-2 space-y-3">
+            <h1 className="mt-5 font-serif text-5xl sm:text-6xl font-semibold leading-tight text-[#29231F]">
+              {product.title}
+            </h1>
+
+            {product.referenceNo && (
+              <p className="mt-6 text-sm text-[#8F857C]">
+                Ref:{" "}
+                <span className="text-[#665F59]">
+                  {product.referenceNo}
+                </span>
+              </p>
+            )}
+
+            {product.size && (
+              <div className="mt-8">
+                <p className="text-[10px] uppercase tracking-[2px] font-semibold text-[#8B624B]">
+                  Size
+                </p>
+
+                <p className="mt-2 text-base text-[#665F59]">
+                  {product.size}
+                </p>
+              </div>
+            )}
+
+            {product.material && (
+              <div className="mt-6">
+                <p className="text-[10px] uppercase tracking-[2px] font-semibold text-[#8B624B]">
+                  Material
+                </p>
+
+                <p className="mt-2 text-base text-[#665F59]">
+                  {product.material}
+                </p>
+              </div>
+            )}
+
+            {product.description && (
+              <div className="mt-10 border-t border-[#DED4C8] pt-8">
+
+                <p className="text-[10px] uppercase tracking-[2px] font-semibold text-[#8B624B]">
+                  About the Product
+                </p>
+
+                <p className="mt-5 text-base leading-8 text-[#665F59]">
+                  {product.description}
+                </p>
+
+              </div>
+            )}
+
+            {product.price !== null && (
+              <div className="mt-8">
+
+                <p className="text-[10px] uppercase tracking-[2px] font-semibold text-[#8B624B]">
+                  Price
+                </p>
+
+                <p className="mt-2 font-serif text-3xl text-[#29231F]">
+                  ₹
+                  {Number(
+                    product.price
+                  ).toLocaleString("en-IN")}
+                </p>
+
+              </div>
+            )}
+
+            <div className="mt-10 flex flex-wrap gap-4">
+
+              <Link
+                href={`/design-store/collection/${encodeURIComponent(
+                  product.collection
+                )}`}
+                className="inline-flex items-center justify-center rounded-full border border-[#684633] px-8 py-4 text-[11px] font-semibold uppercase tracking-[2px] text-[#684633] hover:bg-[#684633] hover:text-white transition"
+              >
+                Back to Collection
+              </Link>
+
               <a
-                href={`mailto:concierge@todaycelebratelife.com?subject=${mailtoSubject}&body=${mailtoBody}`}
-                className="w-full flex items-center justify-center rounded-full bg-[#684633] px-8 py-4 text-xs font-semibold uppercase tracking-[2px] text-white transition hover:bg-[#4F3325] shadow-lg shadow-[#684633]/20"
+                href={`mailto:info@tclgallery.com?subject=${encodeURIComponent(
+                  `Enquiry for ${product.title}`
+                )}`}
+                className="inline-flex items-center justify-center rounded-full bg-[#684633] px-8 py-4 text-[11px] font-semibold uppercase tracking-[2px] text-white hover:bg-[#4F3325] transition"
               >
                 Enquire Now
               </a>
 
-              <Link
-                href="/contact"
-                className="w-full flex items-center justify-center rounded-full border border-[#684633] px-8 py-4 text-xs font-semibold uppercase tracking-[2px] text-[#684633] transition hover:bg-[#684633] hover:text-white"
-              >
-                Book a Consultation
-              </Link>
             </div>
+
           </div>
+
         </div>
-      </div>
+
+      </section>
+
     </main>
   );
 }

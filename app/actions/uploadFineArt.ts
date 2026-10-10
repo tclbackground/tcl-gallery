@@ -1,184 +1,122 @@
+
 "use server";
 
-import { prisma } from "@/lib/prisma";
-import { writeFile, mkdir, unlink } from "fs/promises";
-import path from "path";
-import crypto from "crypto";
+import { revalidatePath } from "next/cache";
+import { getDb } from "@/lib/mongodb";
+import cloudinary from "@/lib/cloudinary";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
-// ======================================================
-// HELPERS
-// ======================================================
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
-function getString(
-  formData: FormData,
-  name: string
-) {
+const ALLOWED_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
+type UploadedImage = {
+  url: string;
+  publicId: string;
+};
+
+function getString(formData: FormData, name: string) {
   const value = formData.get(name);
-
-  if (!value) {
-    return "";
-  }
-
-  return String(value).trim();
+  return typeof value === "string" ? value.trim() : "";
 }
 
-// ======================================================
-// SAVE IMAGE
-// ======================================================
+function getFile(
+  formData: FormData,
+  name: string
+): File | null {
+  const value = formData.get(name);
 
-async function saveImage(
+  if (
+    !value ||
+    typeof value === "string" ||
+    value.size === 0
+  ) {
+    return null;
+  }
+
+  return value;
+}
+
+async function uploadImage(
   file: File,
-  uploadDir: string,
-  prefix: string
-) {
-  if (!(file instanceof File)) {
-    return null;
-  }
-
-  if (file.size === 0) {
-    return null;
-  }
-
-  // Only images
-
-  if (!file.type.startsWith("image/")) {
+  label: string
+): Promise<UploadedImage> {
+  if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
     throw new Error(
-      `${prefix}: Only image files are allowed.`
+      `${label}: Only JPG, PNG and WEBP images are allowed.`
     );
   }
 
-  // Maximum 10MB
-
-  const maxSize = 10 * 1024 * 1024;
-
-  if (file.size > maxSize) {
+  if (file.size > MAX_FILE_SIZE) {
     throw new Error(
-      `${prefix}: Image must be less than 10MB.`
+      `${label}: Image must be 10 MB or smaller.`
     );
   }
 
-  // File extension
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const dataUri =
+    `data:${file.type};base64,${bytes.toString("base64")}`;
 
-  const extension =
-    path.extname(file.name).toLowerCase() ||
-    ".jpg";
-
-  // Safe original filename
-
-  const originalName = path.basename(
-    file.name,
-    extension
-  );
-
-  const safeName = originalName
-    .replace(/[^a-zA-Z0-9-_]/g, "_")
-    .replace(/_+/g, "_")
-    .substring(0, 80);
-
-  // Unique ID
-
-  const uniqueId =
-    crypto.randomBytes(8).toString("hex");
-
-  const fileName =
-    `${Date.now()}-${uniqueId}-${safeName}${extension}`;
-
-  const filePath = path.join(
-    uploadDir,
-    fileName
-  );
-
-  // Convert File to Buffer
-
-  const bytes = await file.arrayBuffer();
-
-  const buffer = Buffer.from(bytes);
-
-  // Save
-
-  await writeFile(filePath, buffer);
+  const result = await cloudinary.uploader.upload(dataUri, {
+    folder: "tcl-gallery/fine-art",
+    resource_type: "image",
+  });
 
   return {
-    filePath,
-    url: `/uploads/fine-art/${fileName}`,
+    url: result.secure_url,
+    publicId: result.public_id,
   };
 }
 
-// ======================================================
-// UPLOAD FINE ART
-// ======================================================
-
-export async function uploadFineArt(
-  formData: FormData
-) {
-  const savedFiles: string[] = [];
+export async function uploadFineArt(formData: FormData) {
+  const uploadedImages: UploadedImage[] = [];
 
   try {
-    console.log(
-      "===================================="
-    );
+    // Verify the current admin session.
+    const session = await getServerSession(authOptions);
 
-    console.log(
-      "STARTING FINE ART UPLOAD"
-    );
+    if (!session?.user) {
+      return {
+        success: false,
+        message: "You must be logged in.",
+      };
+    }
 
-    console.log(
-      "===================================="
-    );
+    const role = String(
+      (session.user as { role?: string }).role ?? ""
+    ).toUpperCase();
 
-    // ==================================================
-    // FORM VALUES
-    // ==================================================
+    if (role !== "ADMIN") {
+      return {
+        success: false,
+        message: "Unauthorized. Admin access is required.",
+      };
+    }
 
-    const slNoString =
-      getString(formData, "slNo");
+    // Read the existing form fields.
+    const titleOfArt = getString(formData, "titleOfArt");
+    const artistName = getString(formData, "artistName");
+    const itemRefNo = getString(formData, "itemRefNo");
 
     const category =
-      getString(formData, "category");
+      getString(formData, "category") || "Fine Art";
 
-    const artistName =
-      getString(formData, "artistName");
+    const paintingType = getString(formData, "paintingType");
+    const productCategory = getString(
+      formData,
+      "productCategory"
+    );
 
-    const itemRefNo =
-      getString(formData, "itemRefNo");
+    const widthCms = getString(formData, "widthCms");
+    const withFrame = getString(formData, "withFrame");
 
-    const yearString =
-      getString(formData, "year");
-
-    const titleOfArt =
-      getString(formData, "titleOfArt");
-
-    const widthCms =
-      getString(formData, "widthCms");
-
-    const withFrame =
-      getString(formData, "withFrame");
-
-    const paintingType =
-      getString(formData, "paintingType");
-
-    const productCategory =
-      getString(formData, "productCategory");
-
-    // ==================================================
-    // FILES
-    // ==================================================
-
-    const image1 =
-      formData.get("image1");
-
-    const image2 =
-      formData.get("image2");
-
-    const image3 =
-      formData.get("image3");
-
-    const photo =
-      formData.get("photo");
-
-    // ==================================================
-    // REQUIRED VALIDATION
-    // ==================================================
+    const slNoString = getString(formData, "slNo");
+    const yearString = getString(formData, "year");
 
     if (!titleOfArt) {
       return {
@@ -201,31 +139,23 @@ export async function uploadFineArt(
       };
     }
 
-    if (!image1 || !(image1 instanceof File)) {
+    const mainFile = getFile(formData, "image1");
+
+    if (!mainFile) {
       return {
         success: false,
-        message:
-          "Main artwork image is required.",
+        message: "Main artwork image is required.",
       };
     }
 
-    // ==================================================
-    // CATEGORY
-    // ==================================================
-
-    const finalCategory =
-      category || "Fine Art";
-
-    // ==================================================
-    // NUMBERS
-    // ==================================================
-
+    // Validate numeric fields before uploading files.
     let slNo: number | null = null;
+    let year: number | null = null;
 
     if (slNoString) {
-      slNo = parseInt(slNoString, 10);
+      slNo = Number(slNoString);
 
-      if (!Number.isFinite(slNo)) {
+      if (!Number.isSafeInteger(slNo) || slNo < 1) {
         return {
           success: false,
           message: "Invalid Serial Number.",
@@ -233,12 +163,14 @@ export async function uploadFineArt(
       }
     }
 
-    let year: number | null = null;
-
     if (yearString) {
-      year = parseInt(yearString, 10);
+      year = Number(yearString);
 
-      if (!Number.isFinite(year)) {
+      if (
+        !Number.isInteger(year) ||
+        year < 0 ||
+        year > 9999
+      ) {
         return {
           success: false,
           message: "Invalid year.",
@@ -246,240 +178,103 @@ export async function uploadFineArt(
       }
     }
 
-    // ==================================================
-    // UPLOAD DIRECTORY
-    // ==================================================
-
-    const uploadDir = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
-      "fine-art"
-    );
-
-    await mkdir(uploadDir, {
-      recursive: true,
-    });
-
-    // ==================================================
-    // SAVE MAIN IMAGE
-    // ==================================================
-
-    const savedImage1 = await saveImage(
-      image1,
-      uploadDir,
+    // Upload the main image and optional images.
+    const image1 = await uploadImage(
+      mainFile,
       "Main artwork image"
     );
+    uploadedImages.push(image1);
 
-    if (!savedImage1) {
-      return {
-        success: false,
-        message:
-          "Could not save the main artwork image.",
-      };
+    const image2File = getFile(formData, "image2");
+    let image2: UploadedImage | null = null;
+
+    if (image2File) {
+      image2 = await uploadImage(image2File, "Image 2");
+      uploadedImages.push(image2);
     }
 
-    savedFiles.push(
-      savedImage1.filePath
-    );
+    const image3File = getFile(formData, "image3");
+    let image3: UploadedImage | null = null;
 
-    // ==================================================
-    // IMAGE 2
-    // ==================================================
-
-    let image2Url: string | null = null;
-
-    if (image2 instanceof File && image2.size > 0) {
-      const savedImage2 = await saveImage(
-        image2,
-        uploadDir,
-        "Image 2"
-      );
-
-      if (savedImage2) {
-        image2Url = savedImage2.url;
-
-        savedFiles.push(
-          savedImage2.filePath
-        );
-      }
+    if (image3File) {
+      image3 = await uploadImage(image3File, "Image 3");
+      uploadedImages.push(image3);
     }
 
-    // ==================================================
-    // IMAGE 3
-    // ==================================================
+    const photoFile = getFile(formData, "photo");
+    let photo: UploadedImage | null = null;
 
-    let image3Url: string | null = null;
-
-    if (image3 instanceof File && image3.size > 0) {
-      const savedImage3 = await saveImage(
-        image3,
-        uploadDir,
-        "Image 3"
-      );
-
-      if (savedImage3) {
-        image3Url = savedImage3.url;
-
-        savedFiles.push(
-          savedImage3.filePath
-        );
-      }
+    if (photoFile) {
+      photo = await uploadImage(photoFile, "Photo");
+      uploadedImages.push(photo);
     }
 
-    // ==================================================
-    // PHOTO
-    // ==================================================
+    // Insert into the existing MongoDB database.
+    const db = await getDb();
+    const now = new Date();
 
-    let photoUrl: string | null = null;
+    const document = {
+      slNo,
+      category,
+      artistName,
+      itemRefNo,
+      year,
+      image1: image1.url,
+      image2: image2?.url ?? null,
+      image3: image3?.url ?? null,
+      titleOfArt,
+      widthCms: widthCms || null,
+      withFrame: withFrame || null,
+      photo: photo?.url ?? null,
+      paintingType: paintingType || null,
+      productCategory: productCategory || null,
 
-    if (photo instanceof File && photo.size > 0) {
-      const savedPhoto = await saveImage(
-        photo,
-        uploadDir,
-        "Photo"
-      );
+      // Cloudinary IDs allow future image management.
+      image1PublicId: image1.publicId,
+      image2PublicId: image2?.publicId ?? null,
+      image3PublicId: image3?.publicId ?? null,
+      photoPublicId: photo?.publicId ?? null,
 
-      if (savedPhoto) {
-        photoUrl = savedPhoto.url;
+      createdAt: now,
+      updatedAt: now,
+    };
 
-        savedFiles.push(
-          savedPhoto.filePath
-        );
-      }
-    }
+    const insertResult = await db
+      .collection("FineArt")
+      .insertOne(document);
 
-    // ==================================================
-    // CREATE FINE ART RECORD
-    // ==================================================
-
-    const fineArt =
-      await prisma.fineArt.create({
-        data: {
-          slNo,
-
-          category:
-            finalCategory || null,
-
-          artistName:
-            artistName || null,
-
-          itemRefNo:
-            itemRefNo || null,
-
-          year,
-
-          image1:
-            savedImage1.url,
-
-          image2:
-            image2Url,
-
-          image3:
-            image3Url,
-
-          titleOfArt:
-            titleOfArt || null,
-
-          widthCms:
-            widthCms || null,
-
-          withFrame:
-            withFrame || null,
-
-          photo:
-            photoUrl,
-
-          paintingType:
-            paintingType || null,
-
-          productCategory:
-            productCategory || null,
-
-          createdAt:
-            new Date(),
-
-          updatedAt:
-            new Date(),
-        },
-      });
-
-    // ==================================================
-    // SUCCESS
-    // ==================================================
-
-    console.log(
-      "===================================="
-    );
-
-    console.log(
-      "FINE ART CREATED SUCCESSFULLY"
-    );
-
-    console.log(
-      "ID:",
-      fineArt.id
-    );
-
-    console.log(
-      "===================================="
-    );
+    // Revalidate pages that display Fine Art.
+    revalidatePath("/admin/fine-art");
+    revalidatePath("/admin/fine-art/new");
+    revalidatePath("/");
 
     return {
       success: true,
-
-      message:
-        "Fine Art uploaded successfully!",
-
-      fineArt,
+      message: "Fine Art uploaded successfully!",
+      fineArt: {
+        id: insertResult.insertedId.toString(),
+        titleOfArt,
+        artistName,
+        itemRefNo,
+        image1: image1.url,
+      },
     };
-  } catch (error: any) {
-    // ==================================================
-    // ERROR
-    // ==================================================
+  } catch (error: unknown) {
+    console.error("FINE ART UPLOAD ERROR:", error);
 
-    console.error(
-      "===================================="
+    // Clean up Cloudinary images if the operation fails.
+    await Promise.allSettled(
+      uploadedImages.map((image) =>
+        cloudinary.uploader.destroy(image.publicId)
+      )
     );
-
-    console.error(
-      "FINE ART UPLOAD ERROR"
-    );
-
-    console.error(error);
-
-    console.error(
-      "MESSAGE:",
-      error?.message
-    );
-
-    console.error(
-      "STACK:",
-      error?.stack
-    );
-
-    console.error(
-      "===================================="
-    );
-
-    // ==================================================
-    // DELETE UPLOADED FILES
-    // ==================================================
-
-    for (const filePath of savedFiles) {
-      try {
-        await unlink(filePath);
-      } catch {
-        // Ignore delete errors
-      }
-    }
 
     return {
       success: false,
-
       message:
-        error?.message ||
-        "Failed to upload Fine Art.",
+        error instanceof Error
+          ? error.message
+          : "Failed to upload Fine Art.",
     };
   }
 }

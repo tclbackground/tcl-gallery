@@ -1,41 +1,89 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { getDb } from "@/lib/mongodb";
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
     console.log("Fetching Fine Art...");
 
-    const artworks = await prisma.fineArt.findMany({
-      where: {
-        productCategory: "fine-art",
-      },
-      take: 3,
-    });
+    const db = await getDb();
+
+    const artworks = await db
+      .collection("FineArt")
+      .find({
+        "Product Category": "fine-art",
+      })
+      .limit(3)
+      .toArray();
 
     console.log("Fine Art found:", artworks.length);
 
-    const formattedArtworks = artworks.map((artwork) => ({
-      id: artwork.id,
-      slNo: artwork.slNo,
-      category: artwork.category,
-      artistName: artwork.artistName,
-      itemRefNo: artwork.itemRefNo,
-      year: artwork.year,
+    const formattedArtworks = artworks.map(
+      (artwork: any) => ({
+        id: artwork._id?.toString(),
 
-      image: artwork.image1,
+        slNo:
+          artwork["Sl No"] ??
+          artwork.slNo ??
+          null,
 
-      title: artwork.titleOfArt,
+        category:
+          artwork["Category"] ??
+          artwork.category ??
+          null,
 
-      widthCms: artwork.widthCms,
+        artistName:
+          artwork["Artist Name"] ??
+          artwork.artistName ??
+          null,
 
-      withFrame: artwork.withFrame,
+        itemRefNo:
+          artwork["Item Ref No"] ??
+          artwork.itemRefNo ??
+          null,
 
-      photo: artwork.photo,
+        year:
+          artwork["Year"] ??
+          artwork.year ??
+          null,
 
-      paintingType: artwork.paintingType,
+        image:
+          artwork["Image 1"] ??
+          artwork.image1 ??
+          null,
 
-      productCategory: artwork.productCategory,
-    }));
+        title:
+          artwork["Title of the Art"] ??
+          artwork.titleOfArt ??
+          null,
+
+        widthCms:
+          artwork["Width (CMS)"] ??
+          artwork.widthCms ??
+          null,
+
+        withFrame:
+          artwork["With Frame"] ??
+          artwork.withFrame ??
+          null,
+
+        photo:
+          artwork["Photo"] ??
+          artwork.photo ??
+          null,
+
+        paintingType:
+          artwork["Painting Type"] ??
+          artwork.paintingType ??
+          null,
+
+        productCategory:
+          artwork["Product Category"] ??
+          artwork.productCategory ??
+          null,
+      })
+    );
 
     return NextResponse.json(
       {

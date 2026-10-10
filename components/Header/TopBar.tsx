@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+
 import {
   useState,
   useEffect,
@@ -68,8 +69,7 @@ export default function TopBar() {
   // ============================================================
 
   const isAdmin =
-    (session?.user as any)?.role ===
-    "ADMIN";
+    (session?.user as any)?.role === "ADMIN";
 
   // ============================================================
   // CLOSE ACCOUNT DROPDOWN
@@ -104,10 +104,13 @@ export default function TopBar() {
 
   // ============================================================
   // LOAD WISHLIST + CART COUNTS
+  // IMPORTANT:
+  // This component does NOT access MongoDB directly.
+  // It calls the server API instead.
   // ============================================================
 
-  const loadCounts =
-    useCallback(async () => {
+  const loadCounts = useCallback(
+    async () => {
       if (status !== "authenticated") {
         setWishlistCount(0);
         setCartCount(0);
@@ -117,34 +120,35 @@ export default function TopBar() {
       try {
         setLoadingCounts(true);
 
-        const response =
-          await fetch(
-            "/api/header-counts",
-            {
-              method: "GET",
-              cache: "no-store",
-            }
-          );
+        const response = await fetch(
+          "/api/header-counts",
+          {
+            method: "GET",
+            cache: "no-store",
+            credentials: "include",
+          }
+        );
+
+        const data = await response.json();
 
         if (!response.ok) {
+          console.error(
+            "Header counts API error:",
+            data
+          );
+
           throw new Error(
-            "Failed to load header counts"
+            data?.error ||
+              "Failed to load header counts"
           );
         }
 
-        const data =
-          await response.json();
-
         setWishlistCount(
-          Number(
-            data.wishlistCount || 0
-          )
+          Number(data?.wishlistCount || 0)
         );
 
         setCartCount(
-          Number(
-            data.cartCount || 0
-          )
+          Number(data?.cartCount || 0)
         );
       } catch (error) {
         console.error(
@@ -157,7 +161,9 @@ export default function TopBar() {
       } finally {
         setLoadingCounts(false);
       }
-    }, [status]);
+    },
+    [status]
+  );
 
   // ============================================================
   // INITIAL LOAD
@@ -222,8 +228,7 @@ export default function TopBar() {
 
     function handleVisibilityChange() {
       if (
-        document.visibilityState ===
-        "visible"
+        document.visibilityState === "visible"
       ) {
         loadCounts();
       }
@@ -353,7 +358,6 @@ export default function TopBar() {
                   aria-label="My Account"
                   title="My Account"
                 >
-
                   <FiUser size={15} />
 
                   <span className="hidden lg:inline">
@@ -368,7 +372,6 @@ export default function TopBar() {
                         : ""
                     }`}
                   />
-
                 </button>
 
                 {/* =================================================
@@ -384,6 +387,7 @@ export default function TopBar() {
 
                       <p className="font-semibold text-[#22211B]">
                         {session.user?.name ||
+                          userName ||
                           "User"}
                       </p>
 
@@ -402,9 +406,7 @@ export default function TopBar() {
                       }
                       className="flex items-center gap-2 px-4 py-3 transition hover:bg-[#F7F3EE]"
                     >
-                      <FiUser
-                        size={14}
-                      />
+                      <FiUser size={14} />
 
                       <span>
                         My Profile
@@ -420,9 +422,7 @@ export default function TopBar() {
                       }
                       className="flex items-center gap-2 px-4 py-3 transition hover:bg-[#F7F3EE]"
                     >
-                      <FiPackage
-                        size={14}
-                      />
+                      <FiPackage size={14} />
 
                       <span>
                         My Orders
@@ -438,9 +438,7 @@ export default function TopBar() {
                       }
                       className="flex items-center gap-2 px-4 py-3 transition hover:bg-[#F7F3EE]"
                     >
-                      <FiMapPin
-                        size={14}
-                      />
+                      <FiMapPin size={14} />
 
                       <span>
                         Track Order
@@ -456,15 +454,11 @@ export default function TopBar() {
                         <Link
                           href="/admin"
                           onClick={() =>
-                            setOpenAccount(
-                              false
-                            )
+                            setOpenAccount(false)
                           }
                           className="flex items-center gap-2 px-4 py-3 font-semibold text-[#4D3024] transition hover:bg-[#F7F3EE]"
                         >
-                          <FiShield
-                            size={14}
-                          />
+                          <FiShield size={14} />
 
                           <span>
                             Admin Dashboard
@@ -488,9 +482,7 @@ export default function TopBar() {
                       }
                       className="flex w-full items-center gap-2 px-4 py-3 text-red-600 transition hover:bg-red-50"
                     >
-                      <FiLogOut
-                        size={14}
-                      />
+                      <FiLogOut size={14} />
 
                       <span>
                         Logout
@@ -538,7 +530,6 @@ export default function TopBar() {
             aria-label="Wishlist"
             title="Wishlist"
           >
-
             <FiHeart size={19} />
 
             {status === "authenticated" &&
@@ -549,7 +540,6 @@ export default function TopBar() {
                     : wishlistCount}
                 </span>
               )}
-
           </Link>
 
           {/* =================================================
@@ -562,10 +552,7 @@ export default function TopBar() {
             aria-label="Shopping Cart"
             title="Shopping Cart"
           >
-
-            <FiShoppingCart
-              size={19}
-            />
+            <FiShoppingCart size={19} />
 
             {status === "authenticated" &&
               cartCount > 0 && (
@@ -575,7 +562,6 @@ export default function TopBar() {
                     : cartCount}
                 </span>
               )}
-
           </Link>
 
           {/* =================================================
@@ -588,13 +574,11 @@ export default function TopBar() {
             aria-label="Checkout"
             title="Checkout"
           >
+            <FiCreditCard size={15} />
 
-            <FiCreditCard
-              size={15}
-            />
-
-         
-
+            <span className="hidden xl:inline">
+              Checkout
+            </span>
           </Link>
 
         </div>

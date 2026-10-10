@@ -1,8 +1,9 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
+import { getDb } from "@/lib/mongodb";
+import cloudinary from "@/lib/cloudinary";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
@@ -13,14 +14,7 @@ const ALLOWED_IMAGE_TYPES = [
   "image/webp",
 ];
 
-/* =========================================================
-   GET STRING
-========================================================= */
-
-function getString(
-  formData: FormData,
-  field: string
-): string {
+function getString(formData: FormData, field: string): string {
   const value = formData.get(field);
 
   if (typeof value !== "string") {
@@ -29,10 +23,6 @@ function getString(
 
   return value.trim();
 }
-
-/* =========================================================
-   GET FILE
-========================================================= */
 
 function getFile(
   formData: FormData,
@@ -51,176 +41,97 @@ function getFile(
   return value;
 }
 
-/* =========================================================
-   CREATE SAFE FILE NAME
-========================================================= */
-
-function createSafeFileName(
-  fileName: string
-): string {
-  const extension =
-    path.extname(fileName).toLowerCase() || ".jpg";
-
-  const baseName = path
-    .basename(fileName, extension)
-    .replace(/[^a-zA-Z0-9-_]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .toLowerCase();
-
-  return `${baseName || "artwork"}${extension}`;
-}
-
-/* =========================================================
-   SAVE IMAGE LOCALLY
-========================================================= */
-
-async function saveImageLocally(
-  file: File,
-  folder: string,
-  prefix: string
-): Promise<string> {
-  /* -------------------------------------------------------
-     VALIDATE TYPE
-  ------------------------------------------------------- */
-
+function validateImage(file: File) {
   if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
     throw new Error(
       "Only JPG, JPEG, PNG and WEBP images are allowed."
     );
   }
 
-  /* -------------------------------------------------------
-     VALIDATE SIZE
-  ------------------------------------------------------- */
-
   if (file.size > MAX_FILE_SIZE) {
-    throw new Error(
-      "Image size must be less than 10MB."
-    );
+    throw new Error("Image size must be less than 10MB.");
   }
-
-  /* -------------------------------------------------------
-     CREATE DIRECTORY
-  ------------------------------------------------------- */
-
-  const uploadDir = path.join(
-    process.cwd(),
-    "public",
-    "images",
-    "products",
-    folder
-  );
-
-  await mkdir(uploadDir, {
-    recursive: true,
-  });
-
-  /* -------------------------------------------------------
-     FILE NAME
-  ------------------------------------------------------- */
-
-  const safeName = createSafeFileName(
-    file.name
-  );
-
-  const fileName =
-    `${prefix}-${Date.now()}-${safeName}`;
-
-  const filePath = path.join(
-    uploadDir,
-    fileName
-  );
-
-  /* -------------------------------------------------------
-     SAVE FILE
-  ------------------------------------------------------- */
-
-  const bytes = await file.arrayBuffer();
-
-  const buffer = Buffer.from(bytes);
-
-  await writeFile(filePath, buffer);
-
-  /* -------------------------------------------------------
-     RETURN WEBSITE URL
-  ------------------------------------------------------- */
-
-  return `/images/products/${folder}/${fileName}`;
 }
 
-/* =========================================================
-   UPLOAD PRODUCT
-========================================================= */
+async function uploadToCloudinary(
+  file: File,
+  folder: string,
+  publicId: string
+): Promise<{
+  url: string;
+  publicId: string;
+}> {
+  validateImage(file);
 
-export async function uploadProduct(
-  formData: FormData
-) {
+  const bytes = await file.arrayBuffer();
+  const buffer = Buffer.from(bytes);
+
+  const result = await new Promise<any>((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder,
+        public_id: publicId,
+        resource_type: "image",
+        overwrite: false,
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result);
+        }
+      }
+    );
+
+    uploadStream.end(buffer);
+  });
+
+  return {
+    url: result.secure_url,
+    publicId: result.public_id,
+  };
+}
+
+export async function uploadProduct(formData: FormData) {
   try {
-    console.log(
-      "===================================="
-    );
+    console.log("====================================");
+    console.log("STARTING PRODUCT UPLOAD");
+    console.log("====================================");
 
-    console.log(
-      "STARTING PRODUCT UPLOAD"
-    );
+    // =========================================================
+    // ADMIN AUTHENTICATION
+    // =========================================================
 
-    console.log(
-      "===================================="
-    );
+    const session = await getServerSession(authOptions);
 
-    /* =====================================================
-       GET FORM DATA
-    ===================================================== */
+    if (
+      !session ||
+      (session.user as any)?.role !== "ADMIN"
+    ) {
+      return {
+        success: false,
+        message: "Unauthorized. Admin access required.",
+      };
+    }
 
-    const title = getString(
-      formData,
-      "title"
-    );
+    // =========================================================
+    // GET FORM DATA
+    // =========================================================
 
-    const category = getString(
-      formData,
-      "category"
-    );
+    const title = getString(formData, "title");
+    const category = getString(formData, "category");
+    const referenceNo = getString(formData, "referenceNo");
+    const location = getString(formData, "location");
+    const yearString = getString(formData, "year");
+    const medium = getString(formData, "medium");
+    const size = getString(formData, "size");
 
-    const referenceNo = getString(
-      formData,
-      "referenceNo"
-    );
+    const image = getFile(formData, "image");
+    const image2 = getFile(formData, "image2");
 
-    const location = getString(
-      formData,
-      "location"
-    );
-
-    const yearString = getString(
-      formData,
-      "year"
-    );
-
-    const medium = getString(
-      formData,
-      "medium"
-    );
-
-    const size = getString(
-      formData,
-      "size"
-    );
-
-    const image = getFile(
-      formData,
-      "image"
-    );
-
-    const image2 = getFile(
-      formData,
-      "image2"
-    );
-
-    /* =====================================================
-       VALIDATION
-    ===================================================== */
+    // =========================================================
+    // VALIDATION
+    // =========================================================
 
     if (!title) {
       return {
@@ -274,14 +185,13 @@ export async function uploadProduct(
     if (!image) {
       return {
         success: false,
-        message:
-          "Please select an artwork image.",
+        message: "Please select an artwork image.",
       };
     }
 
-    /* =====================================================
-       YEAR
-    ===================================================== */
+    // =========================================================
+    // YEAR
+    // =========================================================
 
     const year = Number(yearString);
 
@@ -292,21 +202,25 @@ export async function uploadProduct(
     ) {
       return {
         success: false,
-        message:
-          "Please enter a valid year.",
+        message: "Please enter a valid year.",
       };
     }
 
-    /* =====================================================
-       CHECK DUPLICATE REFERENCE NO
-    ===================================================== */
+    // =========================================================
+    // MONGODB
+    // =========================================================
 
-    const existingProduct =
-      await prisma.product.findFirst({
-        where: {
-          referenceNo: referenceNo,
-        },
-      });
+    const db = await getDb();
+
+    const productsCollection = db.collection("Product");
+
+    // =========================================================
+    // CHECK DUPLICATE REFERENCE NUMBER
+    // =========================================================
+
+    const existingProduct = await productsCollection.findOne({
+      "REFERENCE NO": referenceNo,
+    });
 
     if (existingProduct) {
       return {
@@ -316,149 +230,147 @@ export async function uploadProduct(
       };
     }
 
-    /* =====================================================
-       GET NEXT SL NO
-    ===================================================== */
+    // =========================================================
+    // GET NEXT SL NO
+    // =========================================================
 
-    const lastProduct =
-      await prisma.product.findFirst({
-        orderBy: {
-          slNo: "desc",
-        },
-      });
+    const lastProduct = await productsCollection
+      .find({})
+      .sort({ "SL NO": -1 })
+      .limit(1)
+      .next();
+
+    const lastSlNo = lastProduct?.["SL NO"];
 
     const nextSlNo =
-      lastProduct?.slNo
-        ? lastProduct.slNo + 1
+      typeof lastSlNo === "number"
+        ? lastSlNo + 1
         : 1;
 
-    console.log(
-      "NEXT SL NO:",
-      nextSlNo
+    console.log("NEXT SL NO:", nextSlNo);
+
+    // =========================================================
+    // CREATE CLOUDINARY FOLDER
+    // =========================================================
+
+    const safeReferenceNo = referenceNo
+      .replace(/[^a-zA-Z0-9-_]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "")
+      .toLowerCase();
+
+    const cloudinaryFolder =
+      "tcl-gallery/products";
+
+    // =========================================================
+    // UPLOAD MAIN IMAGE
+    // =========================================================
+
+    console.log("Uploading main image to Cloudinary...");
+
+    const mainImage = await uploadToCloudinary(
+      image,
+      cloudinaryFolder,
+      `${safeReferenceNo}-main`
     );
-
-    /* =====================================================
-       CREATE FOLDER NAME
-    ===================================================== */
-
-    const folderName =
-      referenceNo
-        .replace(/[^a-zA-Z0-9-_]/g, "-")
-        .replace(/-+/g, "-")
-        .toLowerCase();
-
-    /* =====================================================
-       SAVE MAIN IMAGE
-    ===================================================== */
-
-    console.log(
-      "Saving main image locally..."
-    );
-
-    const imageUrl =
-      await saveImageLocally(
-        image,
-        folderName,
-        "main"
-      );
 
     console.log(
       "MAIN IMAGE:",
-      imageUrl
+      mainImage.url
     );
 
-    /* =====================================================
-       SAVE IMAGE 2
-    ===================================================== */
+    // =========================================================
+    // UPLOAD IMAGE 2
+    // =========================================================
 
-    let image2Url: string | null = null;
+    let secondImage: {
+      url: string;
+      publicId: string;
+    } | null = null;
 
     if (image2) {
       console.log(
-        "Saving image 2 locally..."
+        "Uploading image 2 to Cloudinary..."
       );
 
-      image2Url =
-        await saveImageLocally(
-          image2,
-          folderName,
-          "image-2"
-        );
+      secondImage = await uploadToCloudinary(
+        image2,
+        cloudinaryFolder,
+        `${safeReferenceNo}-image-2`
+      );
 
       console.log(
         "IMAGE 2:",
-        image2Url
+        secondImage.url
       );
     }
 
-    /* =====================================================
-       SAVE PRODUCT TO MONGODB
-    ===================================================== */
+    // =========================================================
+    // CREATE PRODUCT DOCUMENT
+    // =========================================================
 
-    const newProduct =
-      await prisma.product.create({
-        data: {
-          slNo: nextSlNo,
+    const now = new Date();
 
-          title: title,
+    const product = {
+      "SL NO": nextSlNo,
 
-          imageUrl: imageUrl,
+      TITLE: title,
 
-          category: category,
+      "IMAGE URL": mainImage.url,
 
-          referenceNo: referenceNo,
+      "IMAGE 2": secondImage?.url ?? null,
 
-          location: location,
+      "IMAGE 3": null,
+      "IMAGE 4": null,
+      "IMAGE 5": null,
 
-          year: year,
+      "REFERENCE NO": referenceNo,
 
-          medium: medium,
+      LOCATION: location,
 
-          size: size,
+      YEAR: year,
 
-          image2: image2Url,
+      MEDIUM: medium,
 
-          createdAt: new Date(),
+      SIZE: size,
 
-          updatedAt: new Date(),
-        },
-      });
+      "12X18 PRICE": null,
+      "18X24 PRICE": null,
+      "24X33 PRICE": null,
 
-    /* =====================================================
-       SUCCESS
-    ===================================================== */
+      category,
+
+      description: null,
+
+      artistId: null,
+
+      cloudinaryPublicId: mainImage.publicId,
+
+      cloudinaryImage2PublicId:
+        secondImage?.publicId ?? null,
+
+      createdAt: now,
+
+      updatedAt: now,
+    };
+
+    // =========================================================
+    // SAVE TO MONGODB
+    // =========================================================
+
+    const result =
+      await productsCollection.insertOne(product);
 
     console.log(
-      "===================================="
+      "PRODUCT CREATED:",
+      result.insertedId.toString()
     );
 
+    console.log("====================================");
     console.log(
       "PRODUCT CREATED SUCCESSFULLY"
     );
-
-    console.log(
-      "ID:",
-      newProduct.id
-    );
-
-    console.log(
-      "SL NO:",
-      newProduct.slNo
-    );
-
-    console.log(
-      "IMAGE:",
-      imageUrl
-    );
-
-    console.log(
-      "IMAGE 2:",
-      image2Url
-    );
-
-    console.log(
-      "===================================="
-    );
+    console.log("====================================");
 
     return {
       success: true,
@@ -467,34 +379,24 @@ export async function uploadProduct(
         `Product published successfully! SL NO: ${nextSlNo}`,
 
       product: {
-        id: newProduct.id,
-        slNo: newProduct.slNo,
-        title: newProduct.title,
-        imageUrl: newProduct.imageUrl,
-        image2: newProduct.image2,
+        id: result.insertedId.toString(),
+
+        slNo: nextSlNo,
+
+        title,
+
+        imageUrl: mainImage.url,
+
+        image2:
+          secondImage?.url ?? null,
       },
     };
-
   } catch (error: any) {
-
-    console.error(
-      "===================================="
-    );
-
-    console.error(
-      "PRODUCT UPLOAD ERROR"
-    );
+    console.error("====================================");
+    console.error("PRODUCT UPLOAD ERROR");
+    console.error("====================================");
 
     console.error(error);
-
-    console.error(
-      "ERROR MESSAGE:",
-      error?.message
-    );
-
-    console.error(
-      "===================================="
-    );
 
     return {
       success: false,

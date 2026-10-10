@@ -1,455 +1,384 @@
-"use client";
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
-import { useSession, signIn } from "next-auth/react";
-import {
-  FiHeart,
-  FiTrash2,
-  FiArrowRight,
-} from "react-icons/fi";
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { ObjectId } from "mongodb";
 
-type Product = {
+import { authOptions } from "@/lib/auth";
+import { getDb } from "@/lib/mongodb";
+import { removeFromWishlist } from "@/app/actions/wishlist";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+type ProductCard = {
+  wishlistId: string;
   id: string;
-  title: string | null;
-  imageUrl: string | null;
-  location: string | null;
-  medium: string | null;
+  title: string;
+  image: string | null;
+  referenceNo: string | null;
+  category: string | null;
+  price: number | null;
 };
 
-type WishlistItem = {
-  id: string;
-  product: Product;
-};
+function getTitle(product: Record<string, any>): string {
+  const value =
+    product["TITLE"] ??
+    product["Title"] ??
+    product.title ??
+    product["PRODUCT NAME"] ??
+    product.productName ??
+    product.name ??
+    product.Name;
 
-export default function WishlistPage() {
-  const {
-    data: session,
-    status,
-  } = useSession();
+  return String(value ?? "").trim() || "Untitled Artwork";
+}
 
-  const [items, setItems] =
-    useState<WishlistItem[]>([]);
+function getImage(
+  product: Record<string, any>
+): string | null {
+  const fields = [
+    "IMAGE URL",
+    "IMAGE",
+    "Image",
+    "image",
+    "image1",
+    "IMAGE 1",
+    "imageUrl",
+    "imageURL",
+    "photo",
+    "Photo",
+    "PHOTO",
+  ];
 
-  const [loading, setLoading] =
-    useState(true);
+  for (const field of fields) {
+    const value = product[field];
 
-  const [removing, setRemoving] =
-    useState<string | null>(null);
-
-  // ==========================================================
-  // LOAD WISHLIST
-  // ==========================================================
-
-  async function loadWishlist() {
-    if (status !== "authenticated") {
-      setItems([]);
-      setLoading(false);
-      return;
+    if (typeof value !== "string" || !value.trim()) {
+      continue;
     }
 
-    try {
-      setLoading(true);
+    const image = value.trim();
 
-      const response = await fetch(
-        "/api/wishlist",
-        {
-          method: "GET",
-          cache: "no-store",
-        }
-      );
+    if (
+      image === "null" ||
+      image === "undefined"
+    ) {
+      continue;
+    }
 
-      const data = await response.json();
+    if (/^https?:\/\//i.test(image)) {
+      return image;
+    }
 
-      console.log(
-        "Wishlist page:",
-        data
-      );
+    return image.startsWith("/")
+      ? image
+      : `/${image}`;
+  }
 
-      if (!response.ok) {
-        throw new Error(
-          data.error ||
-            "Unable to load wishlist"
-        );
-      }
+  return null;
+}
 
-      setItems(data.wishlist || []);
-    } catch (error) {
-      console.error(
-        "Wishlist loading error:",
-        error
-      );
+function getReference(
+  product: Record<string, any>
+): string | null {
+  const value =
+    product["REFERENCE NO"] ??
+    product["REFERENCE"] ??
+    product.referenceNo ??
+    product.reference ??
+    product["Reference No"] ??
+    product.itemRefNo;
 
-      setItems([]);
-    } finally {
-      setLoading(false);
+  return value == null || String(value).trim() === ""
+    ? null
+    : String(value).trim();
+}
+
+function getCategory(
+  product: Record<string, any>
+): string | null {
+  const value =
+    product["CATEGORY"] ??
+    product["Category"] ??
+    product.category;
+
+  return value == null || String(value).trim() === ""
+    ? null
+    : String(value).trim();
+}
+
+function getPrice(
+  product: Record<string, any>
+): number | null {
+  const value =
+    product["PRICE"] ??
+    product["Price"] ??
+    product.price;
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value.replace(/[₹,\s]/g, ""));
+
+    if (Number.isFinite(parsed)) {
+      return parsed;
     }
   }
 
-  // ==========================================================
-  // INITIAL LOAD
-  // ==========================================================
+  return null;
+}
 
-  useEffect(() => {
-    loadWishlist();
-  }, [status]);
-
-  // ==========================================================
-  // LISTEN FOR WISHLIST UPDATE
-  // ==========================================================
-
-  useEffect(() => {
-    function handleUpdate() {
-      loadWishlist();
-    }
-
-    window.addEventListener(
-      "wishlist-updated",
-      handleUpdate
-    );
-
-    return () => {
-      window.removeEventListener(
-        "wishlist-updated",
-        handleUpdate
-      );
-    };
-  }, [status]);
-
-  // ==========================================================
-  // REMOVE
-  // ==========================================================
-
-  async function removeItem(
-    wishlistId: string
-  ) {
-    if (removing) return;
-
-    try {
-      setRemoving(wishlistId);
-
-      const response = await fetch(
-        `/api/wishlist?id=${wishlistId}`,
-        {
-          method: "DELETE",
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error ||
-            "Unable to remove artwork"
-        );
-      }
-
-      // Remove from screen immediately
-
-      setItems((current) =>
-        current.filter(
-          (item) =>
-            item.id !== wishlistId
-        )
-      );
-
-      // Update TopBar
-
-      window.dispatchEvent(
-        new CustomEvent(
-          "wishlist-updated"
-        )
-      );
-    } catch (error) {
-      console.error(
-        "Remove wishlist error:",
-        error
-      );
-
-      alert(
-        "Unable to remove artwork."
-      );
-    } finally {
-      setRemoving(null);
-    }
-  }
-
-  // ==========================================================
-  // LOADING
-  // ==========================================================
-
-  if (
-    status === "loading" ||
-    loading
-  ) {
-    return (
-      <main className="min-h-[70vh] bg-[#FBF9F0] px-4 py-16">
-
-        <div className="mx-auto max-w-7xl">
-
-          <div className="flex min-h-[400px] items-center justify-center">
-
-            <div className="text-center">
-
-              <FiHeart
-                size={40}
-                className="mx-auto mb-4 animate-pulse text-[#4D3024]"
-              />
-
-              <p className="text-sm text-[#22211B]/60">
-                Loading your wishlist...
-              </p>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </main>
-    );
-  }
-
-  // ==========================================================
-  // LOGIN REQUIRED
-  // ==========================================================
+export default async function WishlistPage() {
+  const session = await getServerSession(authOptions);
 
   if (!session?.user) {
+    redirect("/login");
+  }
+
+  const sessionUserId = (
+    session.user as { id?: string }
+  ).id;
+
+  if (!sessionUserId) {
     return (
-      <main className="min-h-[70vh] bg-[#FBF9F0] px-4 py-16">
-
-        <div className="mx-auto max-w-7xl">
-
-          <div className="flex min-h-[500px] flex-col items-center justify-center rounded-2xl border border-[#C4A892]/30 bg-white text-center">
-
-            <FiHeart
-              size={50}
-              strokeWidth={1.2}
-              className="mb-6 text-[#C4A892]"
-            />
-
-            <h1 className="font-serif text-4xl text-[#22211B]">
-              My Wishlist
-            </h1>
-
-            <p className="mt-4 max-w-md text-sm text-[#22211B]/60">
-              Login to save your favourite
-              artworks and access your
-              wishlist anytime.
-            </p>
-
-            <button
-              onClick={() =>
-                signIn(undefined, {
-                  callbackUrl:
-                    "/wishlist",
-                })
-              }
-              className="mt-8 rounded-full bg-[#4D3024] px-8 py-3 text-sm font-semibold uppercase tracking-wider text-white transition hover:bg-[#22211B]"
-            >
-              Login to Continue
-            </button>
-
-          </div>
-
+      <main className="min-h-screen bg-[#FBF9F0] px-6 py-20 text-[#2B211C]">
+        <div className="mx-auto max-w-6xl">
+          <h1 className="font-serif text-4xl font-semibold">
+            My Wishlist
+          </h1>
+          <p className="mt-4 text-[#77716B]">
+            Your session does not contain a user ID.
+            Please sign in again.
+          </p>
         </div>
-
       </main>
     );
   }
 
-  // ==========================================================
-  // EMPTY
-  // ==========================================================
+  const db = await getDb();
 
-  if (items.length === 0) {
-    return (
-      <main className="min-h-[70vh] bg-[#FBF9F0] px-4 py-16">
+  // Support existing Wishlist documents that store userId
+  // as either a string or an ObjectId.
+  const userIdCandidates: Array<string | ObjectId> = [
+    sessionUserId,
+  ];
 
-        <div className="mx-auto max-w-7xl">
-
-          <div className="flex min-h-[500px] flex-col items-center justify-center rounded-2xl border border-[#C4A892]/30 bg-white text-center">
-
-            <FiHeart
-              size={50}
-              strokeWidth={1.2}
-              className="mb-6 text-[#C4A892]"
-            />
-
-            <h1 className="font-serif text-5xl text-[#22211B]">
-              Your wishlist is empty
-            </h1>
-
-            <p className="mt-4 text-sm text-[#22211B]/60">
-              Explore our collection and
-              save the artworks you love.
-            </p>
-
-            <Link
-              href="/shop"
-              className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#4D3024] px-8 py-3 text-sm font-semibold uppercase tracking-wider text-white transition hover:bg-[#22211B]"
-            >
-              Explore Collection
-              <FiArrowRight />
-            </Link>
-
-          </div>
-
-        </div>
-
-      </main>
-    );
+  if (
+    ObjectId.isValid(sessionUserId) &&
+    sessionUserId.length === 24
+  ) {
+    userIdCandidates.push(new ObjectId(sessionUserId));
   }
 
-  // ==========================================================
-  // WISHLIST
-  // ==========================================================
+  const wishlistItems = await db
+    .collection("Wishlist")
+    .find({
+      userId: { $in: userIdCandidates },
+    })
+    .sort({ createdAt: -1 })
+    .toArray();
+
+  const products: ProductCard[] = [];
+
+  for (const item of wishlistItems) {
+    const rawProductId = String(item.productId ?? "");
+
+    if (
+      !ObjectId.isValid(rawProductId) ||
+      rawProductId.length !== 24
+    ) {
+      console.warn(
+        "[Wishlist] Invalid product ID:",
+        rawProductId
+      );
+      continue;
+    }
+
+    const productObjectId = new ObjectId(rawProductId);
+
+    // The IDs in your screenshots belong to the Product
+    // collection, so check that collection first.
+    let product = await db
+      .collection("Product")
+      .findOne({ _id: productObjectId });
+
+    // Fallbacks for products stored in other existing collections.
+    if (!product) {
+      product = await db
+        .collection("Artwork")
+        .findOne({ _id: productObjectId });
+    }
+
+    if (!product) {
+      product = await db
+        .collection("JewelTree")
+        .findOne({ _id: productObjectId });
+    }
+
+    if (!product) {
+      product = await db
+        .collection("DesignStoreProduct")
+        .findOne({ _id: productObjectId });
+    }
+
+    if (!product) {
+      product = await db
+        .collection("FineArt")
+        .findOne({ _id: productObjectId });
+    }
+
+    if (!product) {
+      console.warn(
+        "[Wishlist] Product not found:",
+        rawProductId
+      );
+      continue;
+    }
+
+    products.push({
+      wishlistId: item._id.toString(),
+      id: product._id.toString(),
+      title: getTitle(product),
+      image: getImage(product),
+      referenceNo: getReference(product),
+      category: getCategory(product),
+      price: getPrice(product),
+    });
+  }
 
   return (
-    <main className="min-h-[70vh] bg-[#FBF9F0] px-4 py-10 sm:px-6 lg:px-8">
-
+    <main className="min-h-screen bg-[#FBF9F0] px-6 py-16 text-[#2B211C] sm:px-10">
       <div className="mx-auto max-w-7xl">
+        {/* Breadcrumb */}
+        <nav className="mb-8 text-sm text-[#8B624B]">
+          <Link href="/" className="hover:underline">
+            Home
+          </Link>
+          {" / "}
+          <span>My Wishlist</span>
+        </nav>
 
-        {/* HEADER */}
-
-        <div className="mb-8 flex items-end justify-between border-b border-[#C4A892]/30 pb-6">
-
+        {/* Heading */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[4px] text-[#8B624B]">
+              Your favourites
+            </p>
 
-            <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#4D3024]">
-              <FiHeart size={14} />
-              Saved Artworks
-            </div>
-
-            <h1 className="font-serif text-4xl text-[#22211B] sm:text-5xl">
+            <h1 className="mt-3 font-serif text-4xl font-semibold sm:text-5xl">
               My Wishlist
             </h1>
 
+            <p className="mt-4 text-[#77716B]">
+              Keep the artworks you love together in one place.
+            </p>
           </div>
 
-          <div className="text-sm text-[#22211B]/60">
-            {items.length}{" "}
-            {items.length === 1
-              ? "artwork"
-              : "artworks"}{" "}
-            saved
-          </div>
-
+          <p className="text-sm text-[#8B624B]">
+            {products.length}{" "}
+            {products.length === 1 ? "Artwork" : "Artworks"}
+          </p>
         </div>
 
-        {/* PRODUCTS */}
-
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-
-          {items.map((item) => {
-
-            const product =
-              item.product;
-
-            return (
-              <div
-                key={item.id}
-                className="group overflow-hidden rounded-xl border border-[#C4A892]/30 bg-white shadow-sm transition hover:shadow-lg"
+        {/* Products */}
+        {products.length > 0 ? (
+          <div className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {products.map((product) => (
+              <article
+                key={product.wishlistId}
+                className="group overflow-hidden rounded-[22px] border border-[#E6DDD2] bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(70,45,30,0.10)]"
               >
-
-                {/* IMAGE */}
-
                 <Link
-                  href={`/shop/${product.id}`}
+                  href={`/shop/${encodeURIComponent(product.id)}`}
+                  className="block"
                 >
-                  <div className="relative aspect-[4/5] overflow-hidden bg-[#E8DBCA]/30">
-
-                    {product.imageUrl ? (
-                      <Image
-                        src={
-                          product.imageUrl
-                        }
-                        alt={
-                          product.title ||
-                          "Artwork"
-                        }
-                        fill
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                        className="object-cover transition duration-500 group-hover:scale-105"
+                  {/* Artwork image */}
+                  <div className="relative aspect-[4/3] overflow-hidden bg-[#F2EDE5]">
+                    {product.image ? (
+                      <img
+                        src={product.image}
+                        alt={product.title}
+                        loading="lazy"
+                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center text-sm text-[#22211B]/40">
-                        No Image
+                      <div className="absolute inset-0 flex items-center justify-center text-sm text-[#B5A99D]">
+                        Image unavailable
                       </div>
                     )}
+                  </div>
 
+                  {/* Artwork details */}
+                  <div className="p-6">
+                    {product.category && (
+                      <p className="text-[10px] font-semibold uppercase tracking-[2px] text-[#8B624B]">
+                        {product.category}
+                      </p>
+                    )}
+
+                    <h2 className="mt-2 break-words font-serif text-2xl font-semibold leading-tight text-[#29231F]">
+                      {product.title}
+                    </h2>
+
+                    {product.referenceNo && (
+                      <p className="mt-3 text-xs text-[#9A9189]">
+                        Ref: {product.referenceNo}
+                      </p>
+                    )}
+
+                    {product.price !== null && (
+                      <p className="mt-4 text-lg font-semibold text-[#684633]">
+                        ₹{product.price.toLocaleString("en-IN")}
+                      </p>
+                    )}
+
+                    <p className="mt-6 text-[11px] font-semibold uppercase tracking-[1.5px] text-[#684633]">
+                      View Artwork →
+                    </p>
                   </div>
                 </Link>
 
-                {/* DETAILS */}
-
-                <div className="p-5">
-
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#4D3024]">
-                    Fine Art
-                  </p>
-
-                  <h2 className="mt-2 line-clamp-2 font-serif text-xl text-[#22211B]">
-                    {product.title ||
-                      "Untitled Artwork"}
-                  </h2>
-
-                  {product.location && (
-                    <p className="mt-2 text-sm text-[#22211B]/60">
-                      {product.location}
-                    </p>
-                  )}
-
-                  {product.medium && (
-                    <p className="mt-1 text-xs text-[#22211B]/40">
-                      {product.medium}
-                    </p>
-                  )}
-
-                  {/* ACTIONS */}
-
-                  <div className="mt-5 flex gap-2">
-
-                    <Link
-                      href={`/shop/${product.id}`}
-                      className="flex-1 rounded-lg bg-[#4D3024] px-3 py-3 text-center text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-[#22211B]"
-                    >
-                      View Artwork
-                    </Link>
-
+                {/* Remove from wishlist */}
+                <div className="border-t border-[#EEE5DB] px-6 py-4">
+                  <form
+                    action={async () => {
+                      "use server";
+                      await removeFromWishlist(product.wishlistId);
+                    }}
+                  >
                     <button
-                      type="button"
-                      onClick={() =>
-                        removeItem(
-                          item.id
-                        )
-                      }
-                      disabled={
-                        removing ===
-                        item.id
-                      }
-                      className="flex h-11 w-11 items-center justify-center rounded-lg border border-[#C4A892]/40 text-[#4D3024] transition hover:border-red-300 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
-                      aria-label="Remove from wishlist"
-                      title="Remove from wishlist"
+                      type="submit"
+                      className="text-sm text-[#8B624B] underline underline-offset-4 transition hover:text-[#4F3325]"
                     >
-                      <FiTrash2
-                        size={16}
-                      />
+                      Remove from Wishlist
                     </button>
-
-                  </div>
-
+                  </form>
                 </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-12 rounded-[22px] border border-dashed border-[#DCCFC1] bg-white/40 px-6 py-20 text-center">
+            <h2 className="font-serif text-2xl font-semibold">
+              Your wishlist is empty
+            </h2>
 
-              </div>
-            );
-          })}
+            <p className="mt-3 text-[#77716B]">
+              Save an artwork you love, and it will appear here.
+            </p>
 
-        </div>
-
+            <Link
+              href="/design-store"
+              className="mt-7 inline-flex rounded-full bg-[#684633] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#4F3325]"
+            >
+              Explore Design Store
+            </Link>
+          </div>
+        )}
       </div>
-
     </main>
   );
 }

@@ -1,13 +1,12 @@
 import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { prisma } from "@/lib/prisma";
+import { getDb } from "@/lib/mongodb";
 import bcrypt from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
   debug: process.env.NODE_ENV === "development",
 
-  // Use only one secret
   secret: process.env.NEXTAUTH_SECRET,
 
   session: {
@@ -20,10 +19,18 @@ export const authOptions: NextAuthOptions = {
   },
 
   providers: [
+    // =========================================================
+    // GOOGLE LOGIN
+    // =========================================================
+
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
     }),
+
+    // =========================================================
+    // EMAIL + PASSWORD LOGIN
+    // =========================================================
 
     CredentialsProvider({
       name: "Credentials",
@@ -46,29 +53,54 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          const user = await prisma.user.findUnique({
-            where: {
-              email: credentials.email,
-            },
+          const db = await getDb();
+
+          const email = String(credentials.email)
+            .trim()
+            .toLowerCase();
+
+          // =====================================================
+          // FIND USER IN MONGODB
+          // =====================================================
+
+          const user = await db.collection("User").findOne({
+            email,
           });
 
-          if (!user || !user.password) {
+          if (!user) {
+            console.log("Login failed: user not found");
             return null;
           }
 
+          if (!user.password) {
+            console.log(
+              "Login failed: user does not have a password"
+            );
+            return null;
+          }
+
+          // =====================================================
+          // CHECK PASSWORD
+          // =====================================================
+
           const isValidPassword = await bcrypt.compare(
-            credentials.password,
-            user.password
+            String(credentials.password),
+            String(user.password)
           );
 
           if (!isValidPassword) {
+            console.log("Login failed: invalid password");
             return null;
           }
 
+          // =====================================================
+          // RETURN NEXTAUTH USER
+          // =====================================================
+
           return {
-            id: user.id,
+            id: user._id.toString(),
             email: user.email,
-            name: user.name,
+            name: user.name || null,
             role: user.role || "USER",
           };
         } catch (error) {
@@ -79,8 +111,15 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
 
+  // ===========================================================
+  // CALLBACKS
+  // ===========================================================
+
   callbacks: {
-    // Save ID and role in JWT
+    // =========================================================
+    // JWT
+    // =========================================================
+
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
@@ -90,17 +129,24 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
 
-    // Make ID and role available in session
+    // =========================================================
+    // SESSION
+    // =========================================================
+
     async session({ session, token }) {
       if (session.user) {
         (session.user as any).id = token.id;
-        (session.user as any).role = token.role || "USER";
+        (session.user as any).role =
+          token.role || "USER";
       }
 
       return session;
     },
 
-    // Handle callback URLs safely
+    // =========================================================
+    // REDIRECT
+    // =========================================================
+
     async redirect({ url, baseUrl }) {
       if (url.startsWith("/")) {
         return `${baseUrl}${url}`;

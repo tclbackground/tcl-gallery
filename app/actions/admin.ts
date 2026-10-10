@@ -1,58 +1,145 @@
+
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { writeFile, mkdir } from "fs/promises";
-import { existsSync } from "fs";
-import path from "path";
-import { prisma } from "@/lib/prisma";
+import { ObjectId } from "mongodb";
+import { getDb } from "@/lib/mongodb";
+import cloudinary from "@/lib/cloudinary";
 
 /* =========================================================
-   HELPER: CREATE UPLOAD DIRECTORY
+   HELPERS
 ========================================================= */
 
-async function ensureUploadDir(folder: string) {
-  const uploadDir = path.join(process.cwd(), "public", "images", folder);
-
-  if (!existsSync(uploadDir)) {
-    await mkdir(uploadDir, { recursive: true });
-  }
-
-  return uploadDir;
+function getText(formData: FormData, key: string): string {
+  const value = formData.get(key);
+  return typeof value === "string" ? value.trim() : "";
 }
 
-/* =========================================================
-   HELPER: SAVE FILE
-========================================================= */
+function getOptionalText(
+  formData: FormData,
+  key: string
+): string | null {
+  return getText(formData, key) || null;
+}
 
-async function saveFile(file: File, folder: string) {
-  if (!file || file.size === 0) {
+function getNumber(
+  formData: FormData,
+  key: string
+): number | null {
+  const value = getText(formData, key);
+
+  if (!value) return null;
+
+  const number = Number(value);
+
+  if (!Number.isFinite(number) || number < 0) {
+    throw new Error(`Invalid value for ${key}.`);
+  }
+
+  return number;
+}
+
+function getOptionalFile(
+  formData: FormData,
+  key: string
+): File | null {
+  const value = formData.get(key);
+
+  if (
+    typeof File === "undefined" ||
+    !(value instanceof File) ||
+    value.size === 0
+  ) {
     return null;
   }
 
-  const uploadDir = await ensureUploadDir(folder);
+  return value;
+}
 
-  const cleanFileName = `${Date.now()}-${file.name.replace(
-    /[^a-zA-Z0-9.-]/g,
-    "_"
-  )}`;
+function validObjectId(value: string): boolean {
+  return ObjectId.isValid(value);
+}
+
+async function uploadImage(
+  file: File,
+  folder: string
+): Promise<string> {
+  const allowedTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+  ];
+
+  if (!allowedTypes.includes(file.type)) {
+    throw new Error(
+      "Upload a JPG, PNG, WEBP or GIF image."
+    );
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    throw new Error(
+      "Image size must not exceed 10 MB."
+    );
+  }
 
   const buffer = Buffer.from(await file.arrayBuffer());
+  const dataUri =
+    `data:${file.type};base64,${buffer.toString("base64")}`;
 
-  await writeFile(
-    path.join(uploadDir, cleanFileName),
-    buffer
-  );
+  const result = await cloudinary.uploader.upload(dataUri, {
+    folder,
+    resource_type: "image",
+  });
 
-  return `/images/${folder}/${cleanFileName}`;
+  return result.secure_url;
+}
+
+function getExistingValue(
+  formData: FormData,
+  keys: string[],
+  fallback: unknown
+): string | null {
+  for (const key of keys) {
+    if (formData.has(key)) {
+      // An explicitly submitted empty string means the image
+      // was removed. Do not restore the old image in that case.
+      return getText(formData, key) || null;
+    }
+  }
+
+  return typeof fallback === "string" && fallback.trim()
+    ? fallback.trim()
+    : null;
+}
+
+function getImageFile(
+  formData: FormData,
+  key: string
+): File | null {
+  return getOptionalFile(formData, key);
+}
+
+function revalidateArtworkPaths(id?: string) {
+  revalidatePath("/admin");
+  revalidatePath("/admin/artworks");
+  revalidatePath("/admin/artists");
+  revalidatePath("/shop");
+  revalidatePath("/cart");
+  revalidatePath("/checkout");
+
+  if (id) {
+    revalidatePath(`/shop/${id}`);
+  }
 }
 
 /* =========================================================
-   UPLOAD / CREATE ARTIST
+   CREATE ARTIST
 ========================================================= */
 
 export async function uploadArtist(formData: FormData) {
   try {
-    const name = (formData.get("name") as string)?.trim();
+    const name = getText(formData, "name");
 
     if (!name) {
       return {
@@ -62,47 +149,42 @@ export async function uploadArtist(formData: FormData) {
     }
 
     let imageUrl =
-      (formData.get("imageUrl") as string)?.trim() || "";
+      getOptionalText(formData, "imageUrl");
 
-    const imageFile = formData.get("image") as File | null;
+    const imageFile = getImageFile(formData, "image");
 
-    if (
-      imageFile &&
-      typeof imageFile === "object" &&
-      imageFile.size > 0
-    ) {
-      const uploadedImage = await saveFile(
+    if (imageFile) {
+      imageUrl = await uploadImage(
         imageFile,
-        "artists"
+        "tcl-gallery/artists"
       );
-
-      if (uploadedImage) {
-        imageUrl = uploadedImage;
-      }
     }
 
-    const artist = await prisma.artist.create({
-      data: {
-        name,
-        imageUrl: imageUrl || null,
-      },
+    const db = await getDb();
+
+    const result = await db.collection("Artist").insertOne({
+      name,
+      imageUrl,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
 
-    revalidatePath("/admin/artists");
-    revalidatePath("/shop");
+    revalidateArtworkPaths();
 
     return {
       success: true,
       message: "Artist added successfully.",
-      artistId: artist.id,
+      artistId: result.insertedId.toString(),
     };
-  } catch (error: any) {
-    console.error("Artist upload error:", error);
+  } catch (error) {
+    console.error("Artist creation error:", error);
 
     return {
       success: false,
       message:
-        error?.message || "Failed to add artist.",
+        error instanceof Error
+          ? error.message
+          : "Failed to add artist.",
     };
   }
 }
@@ -113,13 +195,13 @@ export async function uploadArtist(formData: FormData) {
 
 export async function updateArtist(formData: FormData) {
   try {
-    const id = formData.get("id") as string;
-    const name = (formData.get("name") as string)?.trim();
+    const id = getText(formData, "id");
+    const name = getText(formData, "name");
 
-    if (!id) {
+    if (!validObjectId(id)) {
       return {
         success: false,
-        message: "Artist ID is required.",
+        message: "A valid artist ID is required.",
       };
     }
 
@@ -130,52 +212,60 @@ export async function updateArtist(formData: FormData) {
       };
     }
 
-    let imageUrl =
-      (formData.get("imageUrl") as string)?.trim() ||
-      (formData.get("existingImageUrl") as string)?.trim() ||
-      "";
+    const db = await getDb();
 
-    const imageFile = formData.get("image") as File | null;
+    const existingArtist = await db
+      .collection("Artist")
+      .findOne({ _id: new ObjectId(id) });
 
-    if (
-      imageFile &&
-      typeof imageFile === "object" &&
-      imageFile.size > 0
-    ) {
-      const uploadedImage = await saveFile(
-        imageFile,
-        "artists"
-      );
-
-      if (uploadedImage) {
-        imageUrl = uploadedImage;
-      }
+    if (!existingArtist) {
+      return {
+        success: false,
+        message: "Artist not found.",
+      };
     }
 
-    await prisma.artist.update({
-      where: {
-        id,
-      },
-      data: {
-        name,
-        imageUrl: imageUrl || null,
-      },
-    });
+    let imageUrl = getExistingValue(
+      formData,
+      ["imageUrl", "existingImageUrl"],
+      existingArtist.imageUrl
+    );
 
-    revalidatePath("/admin/artists");
-    revalidatePath("/shop");
+    const imageFile = getImageFile(formData, "image");
+
+    if (imageFile) {
+      imageUrl = await uploadImage(
+        imageFile,
+        "tcl-gallery/artists"
+      );
+    }
+
+    await db.collection("Artist").updateOne(
+      { _id: new ObjectId(id) },
+      {
+        $set: {
+          name,
+          imageUrl,
+          updatedAt: new Date(),
+        },
+      }
+    );
+
+    revalidateArtworkPaths();
 
     return {
       success: true,
       message: "Artist updated successfully.",
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Artist update error:", error);
 
     return {
       success: false,
       message:
-        error?.message || "Failed to update artist.",
+        error instanceof Error
+          ? error.message
+          : "Failed to update artist.",
     };
   }
 }
@@ -186,33 +276,41 @@ export async function updateArtist(formData: FormData) {
 
 export async function deleteArtist(id: string) {
   try {
-    if (!id) {
+    if (!validObjectId(id)) {
       return {
         success: false,
-        message: "Artist ID is required.",
+        message: "A valid artist ID is required.",
       };
     }
 
-    await prisma.artist.delete({
-      where: {
-        id,
-      },
+    const db = await getDb();
+
+    const result = await db.collection("Artist").deleteOne({
+      _id: new ObjectId(id),
     });
 
-    revalidatePath("/admin/artists");
-    revalidatePath("/shop");
+    if (result.deletedCount === 0) {
+      return {
+        success: false,
+        message: "Artist not found.",
+      };
+    }
+
+    revalidateArtworkPaths();
 
     return {
       success: true,
       message: "Artist deleted successfully.",
     };
-  } catch (error: any) {
-    console.error("Artist delete error:", error);
+  } catch (error) {
+    console.error("Artist deletion error:", error);
 
     return {
       success: false,
       message:
-        error?.message || "Failed to delete artist.",
+        error instanceof Error
+          ? error.message
+          : "Failed to delete artist.",
     };
   }
 }
@@ -223,302 +321,304 @@ export async function deleteArtist(id: string) {
 
 export async function updateProduct(formData: FormData) {
   try {
-    const id = formData.get("id") as string;
+    const id = getText(formData, "id");
 
-    if (!id) {
+    if (!validObjectId(id)) {
       return {
         success: false,
-        message: "Artwork ID is required.",
+        message: "A valid artwork ID is required.",
       };
     }
 
-    /* -------------------------
-       BASIC INFORMATION
-    ------------------------- */
+    const db = await getDb();
+    const productCollection = db.collection("Product");
+    const productId = new ObjectId(id);
 
-    const title =
-      (formData.get("title") as string)?.trim() || null;
-
-    const category =
-      (formData.get("category") as string)?.trim() || null;
-
-    const description =
-      (formData.get("description") as string)?.trim() || null;
-
-    const referenceNo =
-      (formData.get("referenceNo") as string)?.trim() || null;
-
-    const location =
-      (formData.get("location") as string)?.trim() || null;
-
-    const medium =
-      (formData.get("medium") as string)?.trim() || null;
-
-    const size =
-      (formData.get("size") as string)?.trim() || null;
-
-    const artistId =
-      (formData.get("artistId") as string)?.trim() || null;
-
-    /* -------------------------
-       NUMBER VALUES
-    ------------------------- */
-
-    const yearValue = formData.get("year") as string;
-
-    const year =
-      yearValue && yearValue.trim() !== ""
-        ? parseInt(yearValue)
-        : null;
-
-    const slNoValue = formData.get("slNo") as string;
-
-    const slNo =
-      slNoValue && slNoValue.trim() !== ""
-        ? parseInt(slNoValue)
-        : null;
-
-    const price12x18Value =
-      formData.get("price12x18") as string;
-
-    const price12x18 =
-      price12x18Value &&
-      price12x18Value.trim() !== ""
-        ? parseFloat(price12x18Value)
-        : null;
-
-    const price18x24Value =
-      formData.get("price18x24") as string;
-
-    const price18x24 =
-      price18x24Value &&
-      price18x24Value.trim() !== ""
-        ? parseFloat(price18x24Value)
-        : null;
-
-    const price24x33Value =
-      formData.get("price24x33") as string;
-
-    const price24x33 =
-      price24x33Value &&
-      price24x33Value.trim() !== ""
-        ? parseFloat(price24x33Value)
-        : null;
-
-    /* =====================================================
-       MAIN IMAGE
-    ===================================================== */
-
-    let imageUrl =
-      (formData.get("imageUrlInput") as string)?.trim() ||
-      (formData.get("existingImageUrl") as string)?.trim() ||
-      null;
-
-    const mainImage = formData.get("image") as File | null;
-
-    if (
-      mainImage &&
-      typeof mainImage === "object" &&
-      mainImage.size > 0
-    ) {
-      const uploadedImage = await saveFile(
-        mainImage,
-        "products"
-      );
-
-      if (uploadedImage) {
-        imageUrl = uploadedImage;
-      }
-    }
-
-    /* =====================================================
-       IMAGE 2
-    ===================================================== */
-
-    let image2 =
-      (formData.get("imageUrlInput2") as string)?.trim() ||
-      (formData.get("existingImage2") as string)?.trim() ||
-      null;
-
-    const imageFile2 = formData.get("image2") as File | null;
-
-    if (
-      imageFile2 &&
-      typeof imageFile2 === "object" &&
-      imageFile2.size > 0
-    ) {
-      const uploadedImage = await saveFile(
-        imageFile2,
-        "products"
-      );
-
-      if (uploadedImage) {
-        image2 = uploadedImage;
-      }
-    }
-
-    /* =====================================================
-       IMAGE 3
-    ===================================================== */
-
-    let image3 =
-      (formData.get("imageUrlInput3") as string)?.trim() ||
-      (formData.get("existingImage3") as string)?.trim() ||
-      null;
-
-    const imageFile3 = formData.get("image3") as File | null;
-
-    if (
-      imageFile3 &&
-      typeof imageFile3 === "object" &&
-      imageFile3.size > 0
-    ) {
-      const uploadedImage = await saveFile(
-        imageFile3,
-        "products"
-      );
-
-      if (uploadedImage) {
-        image3 = uploadedImage;
-      }
-    }
-
-    /* =====================================================
-       IMAGE 4
-    ===================================================== */
-
-    let image4 =
-      (formData.get("imageUrlInput4") as string)?.trim() ||
-      (formData.get("existingImage4") as string)?.trim() ||
-      null;
-
-    const imageFile4 = formData.get("image4") as File | null;
-
-    if (
-      imageFile4 &&
-      typeof imageFile4 === "object" &&
-      imageFile4.size > 0
-    ) {
-      const uploadedImage = await saveFile(
-        imageFile4,
-        "products"
-      );
-
-      if (uploadedImage) {
-        image4 = uploadedImage;
-      }
-    }
-
-    /* =====================================================
-       IMAGE 5
-    ===================================================== */
-
-    let image5 =
-      (formData.get("imageUrlInput5") as string)?.trim() ||
-      (formData.get("existingImage5") as string)?.trim() ||
-      null;
-
-    const imageFile5 = formData.get("image5") as File | null;
-
-    if (
-      imageFile5 &&
-      typeof imageFile5 === "object" &&
-      imageFile5.size > 0
-    ) {
-      const uploadedImage = await saveFile(
-        imageFile5,
-        "products"
-      );
-
-      if (uploadedImage) {
-        image5 = uploadedImage;
-      }
-    }
-
-    /* =====================================================
-       DATABASE UPDATE
-    ===================================================== */
-
-    await prisma.product.update({
-      where: {
-        id,
-      },
-
-      data: {
-        slNo,
-        title,
-        imageUrl,
-        image2,
-        image3,
-        image4,
-        image5,
-        referenceNo,
-        location,
-        year,
-        medium,
-        size,
-        price12x18,
-        price18x24,
-        price24x33,
-        category,
-        description,
-        artistId,
-      },
+    const existingProduct = await productCollection.findOne({
+      _id: productId,
     });
 
-    revalidatePath("/admin");
-    revalidatePath("/admin/artworks");
-    revalidatePath("/shop");
+    if (!existingProduct) {
+      return {
+        success: false,
+        message: "Artwork not found.",
+      };
+    }
+
+    /* BASIC FIELDS */
+
+    const title = getText(formData, "title");
+
+    if (!title) {
+      return {
+        success: false,
+        message: "Artwork title is required.",
+      };
+    }
+
+    const category = getOptionalText(formData, "category");
+    const description = getOptionalText(formData, "description");
+
+    const referenceNo = getOptionalText(
+      formData,
+      "referenceNo"
+    );
+
+    const location = getOptionalText(
+      formData,
+      "location"
+    );
+
+    const medium = getOptionalText(
+      formData,
+      "medium"
+    );
+
+    const size = getOptionalText(
+      formData,
+      "size"
+    );
+
+    /* ARTIST */
+
+    const artistIdValue = getText(formData, "artistId");
+    let artistId: ObjectId | null = null;
+
+    if (artistIdValue) {
+      if (!validObjectId(artistIdValue)) {
+        return {
+          success: false,
+          message: "Please select a valid artist.",
+        };
+      }
+
+      artistId = new ObjectId(artistIdValue);
+
+      const artistExists = await db.collection("Artist").findOne({
+        _id: artistId,
+      });
+
+      if (!artistExists) {
+        return {
+          success: false,
+          message: "Selected artist was not found.",
+        };
+      }
+    }
+
+    /* NUMERIC FIELDS */
+
+    const yearValue = getText(formData, "year");
+    const slNoValue = getText(formData, "slNo");
+
+    const year = yearValue
+      ? Number.parseInt(yearValue, 10)
+      : null;
+
+    const slNo = slNoValue
+      ? Number.parseInt(slNoValue, 10)
+      : null;
+
+    if (yearValue && !Number.isFinite(year)) {
+      throw new Error("Invalid artwork year.");
+    }
+
+    if (slNoValue && !Number.isFinite(slNo)) {
+      throw new Error("Invalid serial number.");
+    }
+
+    /* IMAGE 1 — MAIN IMAGE */
+
+    let imageUrl = getExistingValue(
+      formData,
+      ["imageUrlInput", "existingImageUrl"],
+      existingProduct["IMAGE URL"] ??
+        existingProduct.imageUrl
+    );
+
+    const mainImage = getImageFile(formData, "image");
+
+    if (mainImage) {
+      imageUrl = await uploadImage(
+        mainImage,
+        "tcl-gallery/products"
+      );
+    }
+
+    /* IMAGES 2–5 */
+
+    const imageResults: Record<string, string | null> = {};
+
+    for (let number = 2; number <= 5; number++) {
+      const databaseKey = `IMAGE ${number}`;
+      const camelKey = `image${number}`;
+
+      const imageFile = getImageFile(
+        formData,
+        `image${number}`
+      );
+
+      let imageUrlForSlot = getExistingValue(
+        formData,
+        [
+          `imageUrlInput${number}`,
+          `existingImage${number}`,
+        ],
+        existingProduct[databaseKey] ??
+          existingProduct[camelKey]
+      );
+
+      if (imageFile) {
+        imageUrlForSlot = await uploadImage(
+          imageFile,
+          "tcl-gallery/products"
+        );
+      }
+
+      imageResults[databaseKey] = imageUrlForSlot;
+    }
+
+    /*
+     * The current EditProductForm sends one field named "price".
+     * The existing Product schema has separate size-price fields.
+     *
+     * To preserve the existing size prices, update only the
+     * 12X18 price when the single price field is submitted.
+     * The other two size prices remain unchanged.
+     */
+
+    const priceValue = getText(formData, "price");
+    const singlePrice = priceValue
+      ? Number(priceValue)
+      : null;
+
+    if (
+      singlePrice !== null &&
+      (!Number.isFinite(singlePrice) || singlePrice < 0)
+    ) {
+      throw new Error("Enter a valid artwork price.");
+    }
+
+    /* UPDATE DOCUMENT */
+
+    const updateData: Record<string, unknown> = {
+      "TITLE": title,
+      "IMAGE URL": imageUrl,
+      "IMAGE 2": imageResults["IMAGE 2"],
+      "IMAGE 3": imageResults["IMAGE 3"],
+      "IMAGE 4": imageResults["IMAGE 4"],
+      "IMAGE 5": imageResults["IMAGE 5"],
+      "REFERENCE NO": referenceNo,
+      "LOCATION": location,
+      "MEDIUM": medium,
+      "SIZE": size,
+      category,
+      description,
+      artistId,
+      updatedAt: new Date(),
+    };
+
+    if (year !== null) {
+      updateData["YEAR"] = year;
+    }
+
+    if (slNo !== null) {
+      updateData["SL NO"] = slNo;
+    }
+
+    if (singlePrice !== null) {
+      updateData.price = singlePrice;
+      updateData["12X18 PRICE"] = singlePrice;
+    }
+
+    // Preserve size prices if this action is also called by
+    // another form that sends individual size-price fields.
+    for (const [field, databaseKey] of [
+      ["price12x18", "12X18 PRICE"],
+      ["price18x24", "18X24 PRICE"],
+      ["price24x33", "24X33 PRICE"],
+    ]) {
+      if (formData.has(field)) {
+        const value = getNumber(formData, field);
+
+        if (value !== null) {
+          updateData[databaseKey] = value;
+        }
+      }
+    }
+
+    const result = await productCollection.updateOne(
+      { _id: productId },
+      { $set: updateData }
+    );
+
+    if (result.matchedCount === 0) {
+      return {
+        success: false,
+        message: "Artwork was not updated.",
+      };
+    }
+
+    revalidateArtworkPaths(id);
 
     return {
       success: true,
       message: "Artwork updated successfully.",
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Artwork update error:", error);
 
     return {
       success: false,
       message:
-        error?.message || "Failed to update artwork.",
+        error instanceof Error
+          ? error.message
+          : "Failed to update artwork.",
     };
   }
 }
 
 /* =========================================================
-   DELETE PRODUCT
+   DELETE PRODUCT / ARTWORK
 ========================================================= */
 
 export async function deleteProduct(id: string) {
   try {
-    if (!id) {
+    if (!validObjectId(id)) {
       return {
         success: false,
-        message: "Artwork ID is required.",
+        message: "A valid artwork ID is required.",
       };
     }
 
-    await prisma.product.delete({
-      where: {
-        id,
-      },
+    const db = await getDb();
+
+    const result = await db.collection("Product").deleteOne({
+      _id: new ObjectId(id),
     });
 
-    revalidatePath("/admin");
-    revalidatePath("/admin/artworks");
-    revalidatePath("/shop");
+    if (result.deletedCount === 0) {
+      return {
+        success: false,
+        message: "Artwork not found.",
+      };
+    }
+
+    revalidateArtworkPaths();
 
     return {
       success: true,
       message: "Artwork deleted successfully.",
     };
-  } catch (error: any) {
-    console.error("Product delete error:", error);
+  } catch (error) {
+    console.error("Artwork deletion error:", error);
 
     return {
       success: false,
       message:
-        error?.message || "Failed to delete artwork.",
+        error instanceof Error
+          ? error.message
+          : "Failed to delete artwork.",
     };
   }
 }

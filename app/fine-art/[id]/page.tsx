@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import prisma from "@/lib/prisma";
+import { getDb } from "@/lib/mongodb";
 import FineArtDetailsClient from "./FineArtDetailsClient";
 
 type PageProps = {
@@ -16,13 +16,89 @@ async function getArtwork(id: string) {
     return null;
   }
 
-  const artwork = await prisma.fineArt.findFirst({
-    where: {
-      slNo: slNo,
-    },
+  const db = await getDb();
+
+  const artwork = await db.collection("FineArt").findOne({
+    "Sl No": slNo,
   });
 
-  return artwork;
+  if (!artwork) {
+    return null;
+  }
+
+  return {
+    id: artwork._id?.toString() ?? "",
+
+    slNo:
+      artwork["Sl No"] ??
+      artwork.slNo ??
+      0,
+
+    category:
+      artwork["Category"] ??
+      artwork.category ??
+      "Fine Art",
+
+    artistName:
+      artwork["Artist Name"] ??
+      artwork.artistName ??
+      "",
+
+    itemRefNo:
+      artwork["Item Ref No"] ??
+      artwork.itemRefNo ??
+      "",
+
+    year:
+      artwork["Year"] ??
+      artwork.year ??
+      null,
+
+    image1:
+      artwork["Image 1"] ??
+      artwork.image1 ??
+      "",
+
+    image2:
+      artwork["Image 2"] ??
+      artwork.image2 ??
+      "",
+
+    image3:
+      artwork["Image 3"] ??
+      artwork.image3 ??
+      "",
+
+    titleOfArt:
+      artwork["Title of the Art"] ??
+      artwork.titleOfArt ??
+      "Fine Art",
+
+    widthCms:
+      artwork["Width (CMS)"] ??
+      artwork.widthCms ??
+      "",
+
+    withFrame:
+      artwork["With Frame"] ??
+      artwork.withFrame ??
+      "",
+
+    photo:
+      artwork["Photo"] ??
+      artwork.photo ??
+      "",
+
+    paintingType:
+      artwork["Painting Type"] ??
+      artwork.paintingType ??
+      "",
+
+    productCategory:
+      artwork["Product Category"] ??
+      artwork.productCategory ??
+      "",
+  };
 }
 
 /* ==========================================
@@ -42,7 +118,6 @@ export async function generateMetadata({
     };
   }
 
-  // Use your actual database field here
   const artworkTitle =
     artwork.titleOfArt || "Fine Art";
 
@@ -108,9 +183,6 @@ export default async function FineArtDetailsPage({
         image2: artwork.image2,
         image3: artwork.image3,
 
-        // IMPORTANT:
-        // Your schema appears to use "title"
-        // instead of "titleOfArt"
         title: artwork.titleOfArt,
 
         withFrame: artwork.withFrame,

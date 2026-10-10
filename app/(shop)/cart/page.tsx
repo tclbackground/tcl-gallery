@@ -1,183 +1,316 @@
+// app/(shop)/cart/page.tsx
+
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { ObjectId, type Document } from "mongodb";
 import Link from "next/link";
-import { FiArrowRight, FiShoppingBag } from "react-icons/fi";
+
+import { authOptions } from "@/lib/auth";
+import { getDb } from "@/lib/mongodb";
 import CartItems from "./CartItems";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+interface ProductDocument extends Document {
+  title?: string;
+  name?: string;
+  location?: string;
+  imageUrl?: string;
+  image?: string;
+
+  "12X18 PRICE"?: number | string;
+  "18X24 PRICE"?: number | string;
+  "24X33 PRICE"?: number | string;
+
+  price12x18?: number | string;
+  price18x24?: number | string;
+  price24x33?: number | string;
+}
+
+interface CartRecord extends Document {
+  userId: string | ObjectId;
+  productId: string | ObjectId;
+  quantity?: number;
+  price?: number | string;
+  size?: string | null;
+  frame?: string | null;
+}
+
+function normalizeSize(value: unknown): string {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[×*]/g, "x")
+    .replace(/\s+/g, "")
+    .replace(/inches|inch|in\b/g, "");
+}
+
+function toValidPrice(value: unknown): number {
+  if (typeof value === "string") {
+    value = value.replace(/[₹,\s]/g, "");
+  }
+
+  const price = Number(value);
+
+  return Number.isFinite(price) && price > 0 ? price : 0;
+}
+
+function getProductPrice(
+  product: ProductDocument,
+  size: string | null
+): number {
+  if (!size) {
+    return 0;
+  }
+
+  const prices: Record<string, unknown> = {
+    "12x18": product["12X18 PRICE"] ?? product.price12x18,
+    "18x24": product["18X24 PRICE"] ?? product.price18x24,
+    "24x33": product["24X33 PRICE"] ?? product.price24x33,
+  };
+
+  return toValidPrice(prices[normalizeSize(size)]);
+}
+
+function getIdString(value: unknown): string {
+  if (value instanceof ObjectId) {
+    return value.toString();
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  return "";
+}
+
+function getIdCandidates(
+  value: string
+): (string | ObjectId)[] {
+  const candidates: (string | ObjectId)[] = [value];
+
+  if (ObjectId.isValid(value) && value.length === 24) {
+    candidates.push(new ObjectId(value));
+  }
+
+  return candidates;
+}
+
+function getImageUrl(product?: ProductDocument): string | null {
+  if (!product) {
+    return null;
+  }
+
+  const possibleImages = [
+    product.imageUrl,
+    product.image,
+    product["image1"],
+    product["Image"],
+    product["Image URL"],
+  ];
+
+  for (const image of possibleImages) {
+    if (typeof image === "string" && image.trim()) {
+      return image.trim();
+    }
+  }
+
+  return null;
+}
 
 export default async function CartPage() {
   const session = await getServerSession(authOptions);
+  const user = session?.user as { id?: string } | undefined;
 
-  // NOT LOGGED IN
-  if (!session?.user) {
+  if (!user?.id) {
     return (
-      <main className="min-h-[70vh] bg-[#FBF9F0]">
-        <section className="bg-[#22211B] px-6 py-10">
-          <div className="mx-auto max-w-[1400px]">
-            <h1 className="font-serif text-4xl text-white sm:text-5xl">
-              Shopping Cart
-            </h1>
-          </div>
-        </section>
+      <main className="mx-auto max-w-4xl px-6 py-20 text-center">
+        <h1 className="text-3xl font-semibold">
+          Your Shopping Cart
+        </h1>
 
-        <section className="mx-auto max-w-[1400px] px-4 py-12 sm:px-6 lg:px-8">
-          <div className="flex min-h-[450px] flex-col items-center justify-center rounded-2xl border border-[#C4A892]/30 bg-white px-6 text-center">
-            <FiShoppingBag
-              size={48}
-              strokeWidth={1.2}
-              className="mb-6 text-[#C4A892]"
-            />
+        <p className="mt-4 text-gray-600">
+          Please sign in to view your cart.
+        </p>
 
-            <h2 className="font-serif text-3xl text-[#22211B] sm:text-4xl">
-              Login to view your cart
-            </h2>
-
-            <p className="mt-4 max-w-md text-sm leading-6 text-[#22211B]/60">
-              Please login to access your shopping cart
-              and continue with your purchase.
-            </p>
-
-            <Link
-              href="/account/login?callbackUrl=/cart"
-              className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#4D3024] px-8 py-3 text-sm font-semibold uppercase tracking-wider text-white transition hover:bg-[#22211B]"
-            >
-              Login to Continue
-              <FiArrowRight />
-            </Link>
-          </div>
-        </section>
+        <Link
+          href="/api/auth/signin?callbackUrl=/cart"
+          className="mt-6 inline-block rounded bg-black px-6 py-3 text-white"
+        >
+          Sign in
+        </Link>
       </main>
     );
   }
 
-  const userId = (session.user as any)?.id;
+  try {
+    const db = await getDb();
 
-  // NO USER ID
-  if (!userId) {
-    return (
-      <main className="min-h-[70vh] bg-[#FBF9F0] px-4 py-16">
-        <div className="mx-auto max-w-[1400px] text-center">
-          <h1 className="font-serif text-3xl text-[#22211B]">
-            Unable to load cart
+    // Find the user's cart items.
+    const cartRecords = await db
+      .collection<CartRecord>("CartItem")
+      .find({
+        userId: {
+          $in: getIdCandidates(user.id),
+        },
+      })
+      .toArray();
+
+    if (cartRecords.length === 0) {
+      return (
+        <main className="mx-auto max-w-4xl px-6 py-20 text-center">
+          <h1 className="text-3xl font-semibold">
+            Your Shopping Cart
           </h1>
 
-          <p className="mt-3 text-sm text-[#22211B]/60">
-            Your session is missing the user ID.
-            Please login again.
+          <p className="mt-4 text-gray-600">
+            Your cart is empty.
           </p>
 
           <Link
-            href="/account/login?callbackUrl=/cart"
-            className="mt-6 inline-block rounded-lg bg-[#4D3024] px-7 py-3 text-sm uppercase tracking-wider text-white"
+            href="/shop"
+            className="mt-6 inline-block rounded bg-black px-6 py-3 text-white"
           >
-            Login Again
+            Continue Shopping
           </Link>
-        </div>
-      </main>
-    );
-  }
+        </main>
+      );
+    }
 
-  // GET CART
-  let cartItems: any[] = [];
+    // Collect product IDs and prepare both possible MongoDB ID types.
+    const productIds = [
+      ...new Set(
+        cartRecords
+          .map((item) => getIdString(item.productId))
+          .filter(Boolean)
+      ),
+    ];
 
-  try {
-    cartItems = await prisma.cartItem.findMany({
-      where: {
-        userId,
-      },
-      include: {
-        product: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
+    const objectIds = productIds
+      .filter(
+        (id) => ObjectId.isValid(id) && id.length === 24
+      )
+      .map((id) => new ObjectId(id));
+
+    const productQueryIds: (string | ObjectId)[] = [
+      ...productIds,
+      ...objectIds,
+    ];
+
+    // Use a broad Document collection type so the MongoDB driver's
+    // filter types do not reject the mixed string/ObjectId $in array.
+    const products = await db
+      .collection<Document>("Product")
+      .find({
+        _id: {
+          $in: productQueryIds as never[],
+        },
+      })
+      .toArray();
+
+    const productMap = new Map<string, ProductDocument>();
+
+    for (const rawProduct of products) {
+      const product = rawProduct as ProductDocument;
+      productMap.set(product._id.toString(), product);
+    }
+
+    // Convert MongoDB cart records into the props CartItems expects.
+    const items = cartRecords.map((cartItem) => {
+      const productId = getIdString(cartItem.productId);
+      const product = productMap.get(productId);
+
+      const size =
+        typeof cartItem.size === "string" &&
+        cartItem.size.trim()
+          ? cartItem.size
+          : null;
+
+      const price = product
+        ? getProductPrice(product, size)
+        : 0;
+
+      const priceError = !product
+        ? "Product not found. Please remove this item and add it again."
+        : !size
+          ? "No size is saved for this item. Remove it and add it again after selecting a size."
+          : price <= 0
+            ? "Price not found for this size. Check the product price fields."
+            : null;
+
+      console.log("[CART PRICE DEBUG]", {
+        cartItemId: cartItem._id.toString(),
+        productId,
+        title: product?.title ?? product?.name ?? null,
+        selectedSize: size,
+        storedCartPrice: cartItem.price,
+        calculatedPrice: price,
+        priceFields: product
+          ? Object.fromEntries(
+              Object.entries(product).filter(([key]) =>
+                key.toLowerCase().includes("price")
+              )
+            )
+          : {},
+      });
+
+      return {
+        id: cartItem._id.toString(),
+        quantity: Math.max(
+          1,
+          Number(cartItem.quantity) || 1
+        ),
+        price,
+        size,
+        frame:
+          typeof cartItem.frame === "string"
+            ? cartItem.frame
+            : null,
+        priceError,
+        product: {
+          id: productId,
+          title:
+            product?.title ??
+            product?.name ??
+            "Untitled artwork",
+          location:
+            typeof product?.location === "string"
+              ? product.location
+              : null,
+          imageUrl: getImageUrl(product),
+        },
+      };
     });
-  } catch (error) {
-    console.error("Cart database error:", error);
-  }
 
-  // EMPTY CART
-  if (cartItems.length === 0) {
     return (
-      <main className="min-h-[70vh] bg-[#FBF9F0]">
-        <section className="bg-[#22211B] px-6 py-10">
-          <div className="mx-auto max-w-[1400px]">
-            <h1 className="font-serif text-4xl text-white sm:text-5xl">
-              Shopping Cart
-            </h1>
-
-            <p className="mt-2 text-sm text-white/60">
-              0 items
-            </p>
-          </div>
-        </section>
-
-        <section className="mx-auto max-w-[1400px] px-4 py-12 sm:px-6 lg:px-8">
-          <div className="flex min-h-[450px] flex-col items-center justify-center rounded-2xl border border-[#C4A892]/30 bg-white px-6 text-center">
-            <FiShoppingBag
-              size={50}
-              strokeWidth={1.2}
-              className="mb-6 text-[#C4A892]"
-            />
-
-            <h2 className="font-serif text-3xl text-[#22211B] sm:text-4xl">
-              Your cart is empty
-            </h2>
-
-            <p className="mt-4 text-sm text-[#22211B]/60">
-              Explore our collection and find an artwork
-              you love.
-            </p>
-
-            <Link
-              href="/shop"
-              className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#4D3024] px-8 py-3 text-sm font-semibold uppercase tracking-wider text-white transition hover:bg-[#22211B]"
-            >
-              Explore Collection
-              <FiArrowRight />
-            </Link>
-          </div>
-        </section>
-      </main>
-    );
-  }
-
-  // PREPARE DATA FOR CLIENT COMPONENT
-  const items = cartItems.map((item) => ({
-    id: item.id,
-    quantity: Number(item.quantity || 1),
-    price: Number(item.price || 0),
-    size: item.size || null,
-    frame: item.frame || null,
-
-    product: {
-      id: item.product.id,
-      title: item.product.title || null,
-      location: item.product.location || null,
-      imageUrl: item.product.imageUrl || null,
-    },
-  }));
-
-  return (
-    <main className="min-h-screen bg-[#FBF9F0]">
-      <section className="bg-[#22211B] px-6 py-10">
-        <div className="mx-auto max-w-[1400px]">
-          <h1 className="font-serif text-4xl text-white sm:text-5xl">
-            Shopping Cart
+      <main className="min-h-screen bg-[#FAF8F5] px-4 py-10 sm:px-8">
+        <div className="mx-auto max-w-6xl">
+          <h1 className="mb-8 text-3xl font-semibold">
+            Your Shopping Cart
           </h1>
 
-          <p className="mt-2 text-sm text-white/60">
-            Review your selected artworks before checkout.
-          </p>
+          <CartItems items={items} />
         </div>
-      </section>
+      </main>
+    );
+  } catch (error) {
+    console.error("[CART PAGE ERROR]", error);
 
-      <section className="mx-auto max-w-[1400px] px-4 py-10 sm:px-6 lg:px-8">
-        <CartItems items={items} />
-      </section>
-    </main>
-  );
+    return (
+      <main className="mx-auto max-w-4xl px-6 py-20 text-center">
+        <h1 className="text-3xl font-semibold">
+          Unable to load your cart
+        </h1>
+
+        <p className="mt-4 text-gray-600">
+          Please refresh the page. If the problem continues,
+          check the server terminal for the cart error.
+        </p>
+
+        <Link
+          href="/shop"
+          className="mt-6 inline-block rounded bg-black px-6 py-3 text-white"
+        >
+          Continue Shopping
+        </Link>
+      </main>
+    );
+  }
 }

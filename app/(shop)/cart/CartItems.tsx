@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
-
 import {
   FiMinus,
   FiPlus,
@@ -30,6 +29,7 @@ interface CartItem {
   price: number;
   size: string | null;
   frame: string | null;
+  priceError?: string | null;
   product: CartProduct;
 }
 
@@ -37,466 +37,277 @@ interface CartItemsProps {
   items: CartItem[];
 }
 
-export default function CartItems({
-  items,
-}: CartItemsProps) {
-  const [cartItems, setCartItems] =
-    useState<CartItem[]>(items);
+function formatPrice(price: number): string {
+  return `₹${Number(price || 0).toLocaleString("en-IN", {
+    maximumFractionDigits: 2,
+  })}`;
+}
 
-  const [isPending, startTransition] =
-    useTransition();
+function normalizeImage(image: string | null): string | null {
+  if (!image?.trim()) return null;
 
-  // ============================================================
-  // UPDATE QUANTITY
-  // ============================================================
+  const value = image.trim();
 
-  const updateQuantity = (
-    itemId: string,
-    newQuantity: number
-  ) => {
-    if (newQuantity < 1) {
-      return;
-    }
+  if (/^https?:\/\//i.test(value)) return value;
+
+  return value.startsWith("/") ? value : `/${value}`;
+}
+
+export default function CartItems({ items }: CartItemsProps) {
+  const [cartItems, setCartItems] = useState<CartItem[]>(items);
+  const [isPending, startTransition] = useTransition();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const updateQuantity = (itemId: string, quantity: number) => {
+    if (quantity < 1 || isPending) return;
 
     const previousItems = cartItems;
+    setErrorMessage(null);
 
-    setCartItems((currentItems) =>
-      currentItems.map((item) => {
-        if (item.id !== itemId) {
-          return item;
-        }
-
-        return {
-          ...item,
-          quantity: newQuantity,
-        };
-      })
-    );
-
-    startTransition(async () => {
-      const result = await updateCartQuantity(
-        itemId,
-        newQuantity
-      );
-
-      if (!result.success) {
-        setCartItems(previousItems);
-      }
-
-      window.dispatchEvent(
-        new Event("cart-updated")
-      );
-    });
-  };
-
-  // ============================================================
-  // REMOVE ITEM
-  // ============================================================
-
-  const removeItem = (itemId: string) => {
-    const previousItems = cartItems;
-
-    setCartItems((currentItems) =>
-      currentItems.filter(
-        (item) => item.id !== itemId
+    setCartItems((current) =>
+      current.map((item) =>
+        item.id === itemId ? { ...item, quantity } : item
       )
     );
 
     startTransition(async () => {
-      const result =
-        await removeFromCart(itemId);
+      try {
+        const result = await updateCartQuantity(itemId, quantity);
 
-      if (!result.success) {
+        if (!result.success) {
+          setCartItems(previousItems);
+          setErrorMessage(result.message ?? "Unable to update quantity.");
+        }
+      } catch (error) {
+        console.error("Cart quantity update failed:", error);
         setCartItems(previousItems);
+        setErrorMessage("Unable to update quantity. Please try again.");
       }
-
-      window.dispatchEvent(
-        new Event("cart-updated")
-      );
     });
   };
 
-  // ============================================================
-  // TOTAL ITEMS
-  // ============================================================
+  const removeItem = (itemId: string) => {
+    if (isPending) return;
+
+    const previousItems = cartItems;
+    setErrorMessage(null);
+    setCartItems((current) => current.filter((item) => item.id !== itemId));
+
+    startTransition(async () => {
+      try {
+        const result = await removeFromCart(itemId);
+
+        if (!result.success) {
+          setCartItems(previousItems);
+          setErrorMessage(result.message ?? "Unable to remove this item.");
+        }
+      } catch (error) {
+        console.error("Remove cart item failed:", error);
+        setCartItems(previousItems);
+        setErrorMessage("Unable to remove item. Please try again.");
+      }
+    });
+  };
 
   const totalItems = cartItems.reduce(
-    (total, item) =>
-      total + Number(item.quantity || 1),
+    (total, item) => total + item.quantity,
     0
   );
 
-  // ============================================================
-  // SUBTOTAL
-  // ============================================================
+  const hasPriceErrors = cartItems.some(
+    (item) => Boolean(item.priceError) || item.price <= 0
+  );
 
   const subtotal = cartItems.reduce(
-    (total, item) => {
-      const price = Number(
-        item.price || 0
-      );
-
-      const quantity = Number(
-        item.quantity || 1
-      );
-
-      return total + price * quantity;
-    },
+    (total, item) => total + item.price * item.quantity,
     0
   );
-
-  // ============================================================
-  // EMPTY CART
-  // ============================================================
 
   if (cartItems.length === 0) {
     return (
-      <div className="rounded-2xl border border-[#C4A892]/30 bg-white">
-        <div className="flex min-h-[450px] flex-col items-center justify-center px-6 text-center">
-
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#F7F3EE]">
-            <FiShoppingBag
-              size={32}
-              strokeWidth={1.2}
-              className="text-[#C4A892]"
-            />
-          </div>
-
-          <h2 className="mt-6 font-serif text-3xl text-[#22211B] sm:text-4xl">
-            Your cart is empty
-          </h2>
-
-          <p className="mt-4 max-w-md text-sm leading-6 text-[#22211B]/60">
-            Explore our collection and
-            discover an artwork you love.
-          </p>
-
-          <Link
-            href="/shop"
-            className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#4D3024] px-8 py-3 text-sm font-semibold uppercase tracking-wider text-white transition hover:bg-[#22211B]"
-          >
-            Explore Collection
-            <FiArrowRight size={16} />
-          </Link>
-
-        </div>
-      </div>
+      <section className="rounded-xl border border-gray-200 bg-white p-10 text-center">
+        <FiShoppingBag className="mx-auto mb-4 text-4xl text-gray-400" />
+        <h2 className="text-xl font-semibold">Your cart is empty</h2>
+        <p className="mt-2 text-gray-600">
+          Explore our collection and find your next artwork.
+        </p>
+        <Link
+          href="/shop"
+          className="mt-6 inline-flex items-center gap-2 rounded bg-black px-6 py-3 text-white"
+        >
+          Continue Shopping <FiArrowRight />
+        </Link>
+      </section>
     );
   }
 
-  // ============================================================
-  // CART
-  // ============================================================
-
   return (
-    <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_380px]">
+    <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
+      <section className="space-y-4">
+        {errorMessage && (
+          <p role="alert" className="rounded bg-red-50 p-3 text-sm text-red-700">
+            {errorMessage}
+          </p>
+        )}
 
-      {/* ======================================================
-          CART ITEMS
-      ======================================================= */}
+        {cartItems.map((item) => {
+          const image = normalizeImage(item.product.imageUrl);
 
-      <div className="rounded-2xl border border-[#C4A892]/30 bg-white">
+          return (
+            <article
+              key={item.id}
+              className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-4 sm:flex-row"
+            >
+              <div className="relative h-36 w-full shrink-0 overflow-hidden rounded-lg bg-gray-100 sm:w-32">
+                {image ? (
+                  <Image
+                    src={image}
+                    alt={item.product.title ?? "Artwork"}
+                    fill
+                    unoptimized
+                    sizes="(max-width: 640px) 100vw, 128px"
+                    className="object-contain"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-sm text-gray-500">
+                    No image
+                  </div>
+                )}
+              </div>
 
-        <div className="border-b border-[#C4A892]/30 px-6 py-5">
-          <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <h2 className="font-semibold">
+                  {item.product.title ?? "Untitled artwork"}
+                </h2>
 
-            <h2 className="font-serif text-2xl text-[#22211B]">
-              Your Items
-            </h2>
+                {item.product.location && (
+                  <p className="mt-1 text-sm text-gray-500">
+                    {item.product.location}
+                  </p>
+                )}
 
-            <span className="text-xs uppercase tracking-widest text-[#22211B]/50">
-              {totalItems}{" "}
-              {totalItems === 1
-                ? "Item"
-                : "Items"}
-            </span>
+                <p className="mt-2 text-sm text-gray-600">
+                  Size: {item.size ?? "Not selected"}
+                </p>
 
-          </div>
-        </div>
+                {item.frame && (
+                  <p className="text-sm text-gray-600">
+                    Frame: {item.frame}
+                  </p>
+                )}
 
-        <div>
+                {item.priceError && (
+                  <p className="mt-2 text-sm text-red-700">
+                    {item.priceError}
+                  </p>
+                )}
 
-          {cartItems.map((item) => {
-            const product = item.product;
-
-            const quantity = Number(
-              item.quantity || 1
-            );
-
-            const price = Number(
-              item.price || 0
-            );
-
-            const itemTotal =
-              price * quantity;
-
-            return (
-              <div
-                key={item.id}
-                className="flex flex-col gap-5 border-b border-[#C4A892]/30 p-6 last:border-b-0 sm:flex-row"
-              >
-
-                {/* IMAGE */}
-
-                <Link
-                  href={`/shop/${product.id}`}
-                  className="relative h-48 w-full flex-shrink-0 overflow-hidden rounded-lg bg-[#E8DBCA]/30 sm:h-40 sm:w-40"
-                >
-                  {product.imageUrl ? (
-                    <Image
-                      src={product.imageUrl}
-                      alt={
-                        product.title ||
-                        "Artwork"
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      aria-label="Decrease quantity"
+                      disabled={isPending || item.quantity <= 1}
+                      onClick={() =>
+                        updateQuantity(item.id, item.quantity - 1)
                       }
-                      fill
-                      sizes="(max-width: 640px) 100vw, 160px"
-                      className="object-cover transition duration-500 hover:scale-105"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-sm text-[#22211B]/40">
-                      No Image
-                    </div>
-                  )}
-                </Link>
+                      className="rounded border p-2 disabled:opacity-40"
+                    >
+                      <FiMinus />
+                    </button>
 
-                {/* DETAILS */}
+                    <span className="min-w-5 text-center">
+                      {item.quantity}
+                    </span>
 
-                <div className="flex flex-1 flex-col">
-
-                  <Link
-                    href={`/shop/${product.id}`}
-                  >
-                    <h3 className="font-serif text-xl text-[#22211B] transition hover:text-[#4D3024]">
-                      {product.title ||
-                        "Untitled Artwork"}
-                    </h3>
-                  </Link>
-
-                  {product.location && (
-                    <p className="mt-1 text-sm text-[#22211B]/60">
-                      {product.location}
-                    </p>
-                  )}
-
-                  {/* SIZE */}
-
-                  {item.size && (
-                    <p className="mt-3 text-xs text-[#22211B]/60">
-                      <span className="font-semibold text-[#22211B]">
-                        Size:
-                      </span>{" "}
-                      {item.size}
-                    </p>
-                  )}
-
-                  {/* FRAME */}
-
-                  {item.frame && (
-                    <p className="mt-1 text-xs text-[#22211B]/60">
-                      <span className="font-semibold text-[#22211B]">
-                        Frame:
-                      </span>{" "}
-                      {item.frame}
-                    </p>
-                  )}
-
-                  {/* PRICE / QUANTITY / TOTAL */}
-
-                  <div className="mt-auto flex flex-wrap items-end justify-between gap-5 pt-6">
-
-                    {/* PRICE */}
-
-                    <div>
-                      <p className="text-[10px] uppercase tracking-widest text-[#22211B]/40">
-                        Price
-                      </p>
-
-                      <p className="mt-1 font-serif text-lg font-semibold text-[#22211B]">
-                        ₹
-                        {price.toLocaleString(
-                          "en-IN"
-                        )}
-                      </p>
-                    </div>
-
-                    {/* QUANTITY */}
-
-                    <div>
-                      <p className="mb-1 text-center text-[10px] uppercase tracking-widest text-[#22211B]/40">
-                        Quantity
-                      </p>
-
-                      <div className="flex items-center border border-[#C4A892]/40">
-
-                        <button
-                          type="button"
-                          disabled={
-                            isPending ||
-                            quantity <= 1
-                          }
-                          onClick={() =>
-                            updateQuantity(
-                              item.id,
-                              quantity - 1
-                            )
-                          }
-                          className="flex h-9 w-9 items-center justify-center text-[#22211B] transition hover:bg-[#F7F3EE] disabled:cursor-not-allowed disabled:opacity-30"
-                          aria-label="Decrease quantity"
-                        >
-                          <FiMinus size={13} />
-                        </button>
-
-                        <span className="flex h-9 min-w-10 items-center justify-center border-x border-[#C4A892]/40 px-2 text-sm">
-                          {quantity}
-                        </span>
-
-                        <button
-                          type="button"
-                          disabled={isPending}
-                          onClick={() =>
-                            updateQuantity(
-                              item.id,
-                              quantity + 1
-                            )
-                          }
-                          className="flex h-9 w-9 items-center justify-center text-[#22211B] transition hover:bg-[#F7F3EE] disabled:cursor-not-allowed disabled:opacity-50"
-                          aria-label="Increase quantity"
-                        >
-                          <FiPlus size={13} />
-                        </button>
-
-                      </div>
-                    </div>
-
-                    {/* ITEM TOTAL */}
-
-                    <div className="text-right">
-                      <p className="text-[10px] uppercase tracking-widest text-[#22211B]/40">
-                        Total
-                      </p>
-
-                      <p className="mt-1 font-serif text-lg font-semibold text-[#4D3024]">
-                        ₹
-                        {itemTotal.toLocaleString(
-                          "en-IN"
-                        )}
-                      </p>
-                    </div>
-
+                    <button
+                      type="button"
+                      aria-label="Increase quantity"
+                      disabled={isPending || item.quantity >= 99}
+                      onClick={() =>
+                        updateQuantity(item.id, item.quantity + 1)
+                      }
+                      className="rounded border p-2 disabled:opacity-40"
+                    >
+                      <FiPlus />
+                    </button>
                   </div>
 
-                  {/* REMOVE */}
-
-                  <button
-                    type="button"
-                    disabled={isPending}
-                    onClick={() =>
-                      removeItem(item.id)
-                    }
-                    className="mt-4 inline-flex w-fit items-center gap-2 text-xs font-medium uppercase tracking-wider text-red-600 transition hover:text-red-800 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <FiTrash2 size={14} />
-                    Remove
-                  </button>
-
+                  <div className="text-right">
+                    <p className="font-semibold">
+                      {item.price > 0 ? formatPrice(item.price * item.quantity) : "Price unavailable"}
+                    </p>
+                    {item.price > 0 && (
+                      <p className="text-sm text-gray-500">
+                        {formatPrice(item.price)} each
+                      </p>
+                    )}
+                  </div>
                 </div>
 
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => removeItem(item.id)}
+                  className="mt-4 inline-flex items-center gap-2 text-sm text-red-700 disabled:opacity-50"
+                >
+                  <FiTrash2 /> Remove
+                </button>
               </div>
-            );
-          })}
+            </article>
+          );
+        })}
+      </section>
 
-        </div>
-      </div>
+      <aside className="h-fit rounded-xl border border-gray-200 bg-white p-5">
+        <h2 className="text-xl font-semibold">Order Summary</h2>
 
-      {/* ======================================================
-          ORDER SUMMARY
-      ======================================================= */}
-
-      <aside className="h-fit rounded-2xl border border-[#C4A892]/30 bg-white">
-
-        <div className="border-b border-[#C4A892]/30 px-6 py-5">
-          <h2 className="font-serif text-2xl text-[#22211B]">
-            Order Summary
-          </h2>
+        <div className="mt-5 flex justify-between text-sm">
+          <span>Items</span>
+          <span>{totalItems}</span>
         </div>
 
-        <div className="p-6">
+        <div className="mt-3 flex justify-between">
+          <span>Subtotal</span>
+          <span className="font-semibold">{formatPrice(subtotal)}</span>
+        </div>
 
-          {/* SUBTOTAL */}
+        {hasPriceErrors && (
+          <p className="mt-4 text-sm text-red-700">
+            Please correct the item size or price before proceeding to checkout.
+          </p>
+        )}
 
-          <div className="flex justify-between gap-4 text-sm text-[#22211B]/60">
-            <span>
-              Subtotal
-            </span>
+        <Link
+          href="/shop"
+          className="mt-5 block text-center text-sm underline"
+        >
+          Continue Shopping
+        </Link>
 
-            <span className="font-medium text-[#22211B]">
-              ₹
-              {subtotal.toLocaleString(
-                "en-IN"
-              )}
-            </span>
-          </div>
-
-          {/* SHIPPING */}
-
-          <div className="mt-3 flex justify-between gap-4 text-sm text-[#22211B]/60">
-            <span>
-              Shipping
-            </span>
-
-            <span className="text-right">
-              Calculated at checkout
-            </span>
-          </div>
-
-          {/* DIVIDER */}
-
-          <div className="my-6 border-t border-[#C4A892]/30" />
-
-          {/* TOTAL */}
-
-          <div className="flex items-center justify-between gap-4">
-
-            <span className="font-serif text-xl text-[#22211B]">
-              Total
-            </span>
-
-            <span className="font-serif text-2xl font-bold text-[#4D3024]">
-              ₹
-              {subtotal.toLocaleString(
-                "en-IN"
-              )}
-            </span>
-
-          </div>
-
-          {/* =================================================
-              PROCEED TO CHECKOUT
-              OLIVE GREEN
-          ================================================== */}
-
+        {hasPriceErrors ? (
+          <button
+            type="button"
+            disabled
+            className="mt-5 w-full rounded bg-gray-300 px-5 py-3 font-medium text-gray-600"
+          >
+            Checkout unavailable
+          </button>
+        ) : (
           <Link
             href="/checkout"
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-[#5F6F32] px-6 py-4 text-sm font-semibold uppercase tracking-wider text-white transition duration-300 hover:bg-[#4A5827]"
+            className="mt-5 flex w-full items-center justify-center gap-2 rounded bg-black px-5 py-3 font-medium text-white"
           >
-            Proceed to Checkout
-            <FiArrowRight size={16} />
+            Proceed to Checkout <FiArrowRight />
           </Link>
+        )}
 
-          {/* CONTINUE SHOPPING */}
-
-          <Link
-            href="/shop"
-            className="mt-3 flex w-full items-center justify-center rounded-lg border border-[#C4A892]/40 px-6 py-3 text-xs font-semibold uppercase tracking-wider text-[#4D3024] transition duration-300 hover:bg-[#F7F3EE]"
-          >
-            Continue Shopping
-          </Link>
-
-        </div>
-
+        {isPending && (
+          <p className="mt-3 text-center text-sm text-gray-500">
+            Updating cart…
+          </p>
+        )}
       </aside>
-
     </div>
   );
 }
