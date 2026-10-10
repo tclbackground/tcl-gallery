@@ -8,13 +8,12 @@
   "scripts": {
     "dev": "next dev --webpack",
     "postinstall": "prisma generate",
-    "build": "prisma generate && next build --webpack",
+    "build": "next build --webpack",
     "start": "prisma generate && next start",
     "lint": "eslint"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
-    "@prisma/client": "^5.22.0",
     "@react-three/drei": "^10.7.8",
     "@react-three/fiber": "^9.7.0",
     "@swc/helpers": "^0.5.23",
@@ -48,7 +47,6 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.11",
-    "prisma": "^5.22.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
     "typescript": "^5"

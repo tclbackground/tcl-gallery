@@ -1,8 +1,13 @@
+
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
+import { ObjectId, type Document } from "mongodb";
+
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getDb } from "@/lib/mongodb";
+
+export const dynamic = "force-dynamic";
 
 const steps = [
   "ORDER_PLACED",
@@ -28,12 +33,22 @@ const labels: Record<string, string> = {
   DELIVERED: "Delivered",
 };
 
+type OrderDocument = Document & {
+  _id: ObjectId;
+  userId?: string | ObjectId;
+  orderNumber?: string | number;
+  createdAt?: Date | string;
+  status?: string;
+  trackingNumber?: string;
+  courier?: string;
+};
+
 export default async function TrackingPage({
   searchParams,
 }: {
   searchParams: Promise<{ order?: string }>;
 }) {
-  const { order: orderId } = await searchParams;
+  const { order: requestedOrderId } = await searchParams;
 
   const session = await getServerSession(authOptions);
 
@@ -41,27 +56,52 @@ export default async function TrackingPage({
     redirect("/login?callbackUrl=/my-account/tracking");
   }
 
-  const userId = (session.user as any).id;
+  const userId = (session.user as { id?: string }).id;
 
-  const orders = await prisma.order.findMany({
-    where: {
-      userId,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+  if (!userId) {
+    redirect("/login?callbackUrl=/my-account/tracking");
+  }
 
-  const selectedOrder = orderId
-    ? orders.find((order: any) => order.id === orderId)
+  const db = await getDb();
+
+  // Support both string and ObjectId formats for the existing user ID.
+  const userIdCandidates: (string | ObjectId)[] = [userId];
+
+  if (ObjectId.isValid(userId)) {
+    userIdCandidates.push(new ObjectId(userId));
+  }
+
+  const orderDocuments = await db
+    .collection<OrderDocument>("Order")
+    .find({
+      userId: { $in: userIdCandidates },
+    })
+    .sort({ createdAt: -1 })
+    .toArray();
+
+  const orders = orderDocuments.map((order) => ({
+    id: order._id.toString(),
+    orderNumber: order.orderNumber ?? order._id.toString(),
+    createdAt: order.createdAt,
+    status: order.status ?? "ORDER_PLACED",
+    trackingNumber: order.trackingNumber,
+    courier: order.courier,
+  }));
+
+  const selectedOrder = requestedOrderId
+    ? orders.find((order) => order.id === requestedOrderId)
     : orders[0];
+
+  const currentStatus = selectedOrder?.status ?? "";
+  const currentIndex = steps.indexOf(currentStatus);
+  const currentLabel = labels[currentStatus] ?? currentStatus.replaceAll("_", " ");
 
   return (
     <main className="min-h-screen bg-[#f7f6f3] px-6 py-16 md:px-12 lg:px-24">
       <div className="mx-auto max-w-5xl">
         <Link
           href="/my-account"
-          className="text-sm font-medium text-gray-600"
+          className="text-sm font-medium text-gray-600 hover:text-black"
         >
           ← Back to My Account
         </Link>
@@ -89,18 +129,24 @@ export default async function TrackingPage({
             <p className="mt-3 text-gray-600">
               Your artwork tracking information will appear here once you place an order.
             </p>
+
+            <Link
+              href="/shop"
+              className="mt-6 inline-block rounded-lg bg-[#2d2d2b] px-6 py-3 font-semibold text-white"
+            >
+              Explore Artwork
+            </Link>
           </div>
         ) : (
           <>
             {/* ORDER SELECTOR */}
-
             <div className="mt-10 rounded-2xl border border-gray-200 bg-white p-6">
               <h2 className="text-xl font-semibold">
                 Select Order
               </h2>
 
               <div className="mt-5 flex flex-wrap gap-3">
-                {orders.map((order: any) => (
+                {orders.map((order) => (
                   <Link
                     key={order.id}
                     href={`/my-account/tracking?order=${order.id}`}
@@ -116,10 +162,19 @@ export default async function TrackingPage({
               </div>
             </div>
 
-            {selectedOrder && (
+            {!selectedOrder ? (
+              <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-8">
+                <h2 className="text-xl font-semibold">
+                  Order not found
+                </h2>
+
+                <p className="mt-3 text-gray-600">
+                  Select one of your orders above to view its tracking information.
+                </p>
+              </div>
+            ) : (
               <>
                 {/* CURRENT STATUS */}
-
                 <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-8">
                   <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
                     <div>
@@ -128,30 +183,26 @@ export default async function TrackingPage({
                       </p>
 
                       <h2 className="mt-2 text-3xl font-semibold">
-                        {labels[selectedOrder.status]}
+                        {currentLabel || "Status unavailable"}
                       </h2>
                     </div>
 
                     <span className="rounded-full bg-[#efeee9] px-5 py-3 text-sm font-semibold">
-                      {selectedOrder.status.replaceAll("_", " ")}
+                      {currentStatus.replaceAll("_", " ") || "STATUS UNAVAILABLE"}
                     </span>
                   </div>
                 </div>
 
                 {/* TIMELINE */}
-
                 <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-8">
                   <h2 className="text-2xl font-semibold">
-                    Production & Delivery Timeline
+                    Production &amp; Delivery Timeline
                   </h2>
 
                   <div className="mt-8 space-y-6">
                     {steps.map((step, index) => {
-                      const currentIndex = steps.indexOf(
-                        selectedOrder.status
-                      );
-
-                      const completed = index <= currentIndex;
+                      const completed =
+                        currentIndex >= 0 && index <= currentIndex;
 
                       return (
                         <div
@@ -173,7 +224,7 @@ export default async function TrackingPage({
                               {labels[step]}
                             </p>
 
-                            {step === selectedOrder.status && (
+                            {step === currentStatus && (
                               <p className="mt-1 text-sm text-gray-500">
                                 Current status of your order.
                               </p>
@@ -186,7 +237,6 @@ export default async function TrackingPage({
                 </div>
 
                 {/* SHIPPING */}
-
                 {selectedOrder.trackingNumber && (
                   <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-8">
                     <h2 className="text-2xl font-semibold">

@@ -1,10 +1,73 @@
+
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { ObjectId, type Document } from "mongodb";
 
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getDb } from "@/lib/mongodb";
 
 export const dynamic = "force-dynamic";
+
+const allowedCollections = [
+  "jewel-tree",
+  "living-legacy",
+  "nature-window",
+  "bags",
+];
+
+type DesignStoreProduct = Document & {
+  _id: ObjectId;
+  slNo?: number | null;
+  title: string;
+  collection: string;
+  description?: string | null;
+  price?: number | null;
+  image1: string;
+  image2?: string | null;
+  image3?: string | null;
+  image4?: string | null;
+  referenceNo?: string | null;
+  material?: string | null;
+  size?: string | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+};
+
+async function isAdmin() {
+  const session = await getServerSession(authOptions);
+
+  const role = String(
+    (session?.user as { role?: string } | undefined)?.role ?? ""
+  ).toUpperCase();
+
+  return Boolean(session?.user && role === "ADMIN");
+}
+
+function serializeProduct(product: DesignStoreProduct) {
+  const { _id, ...fields } = product;
+
+  return {
+    ...fields,
+    id: _id.toString(),
+  };
+}
+
+function parseOptionalNumber(
+  value: unknown,
+  fieldName: string
+): number | null {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`${fieldName} must be a valid number.`);
+  }
+
+  return parsed;
+}
 
 // =====================================================
 // GET ALL PRODUCTS
@@ -12,41 +75,43 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } =
-      new URL(request.url);
+    const { searchParams } = new URL(request.url);
+    const collection = searchParams.get("collection");
 
-    const collection =
-      searchParams.get("collection");
+    if (
+      collection &&
+      !allowedCollections.includes(collection)
+    ) {
+      return NextResponse.json(
+        { error: "Invalid collection." },
+        { status: 400 }
+      );
+    }
 
-    const products =
-      await prisma.designStoreProduct.findMany({
-        where: collection
-          ? {
-              collection,
-            }
-          : undefined,
+    const db = await getDb();
 
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
+    const filter: Document = collection
+      ? { collection }
+      : {};
 
-    return NextResponse.json(products);
-  } catch (error: any) {
-    console.error(
-      "GET DESIGN STORE PRODUCTS ERROR:",
-      error
-    );
+    const products = await db
+      .collection<DesignStoreProduct>("DesignStoreProduct")
+      .find(filter)
+      .sort({ createdAt: -1, _id: -1 })
+      .toArray();
+
+    return NextResponse.json(products.map(serializeProduct));
+  } catch (error: unknown) {
+    console.error("GET DESIGN STORE PRODUCTS ERROR:", error);
 
     return NextResponse.json(
       {
         error:
-          error?.message ||
-          "Failed to fetch products",
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch products",
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }
@@ -57,28 +122,14 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const session =
-      await getServerSession(
-        authOptions
-      );
-
-    const role = (
-      (session?.user as any)?.role || ""
-    ).toUpperCase();
-
-    if (!session || role !== "ADMIN") {
+    if (!(await isAdmin())) {
       return NextResponse.json(
-        {
-          error: "Unauthorized",
-        },
-        {
-          status: 401,
-        }
+        { error: "Unauthorized" },
+        { status: 401 }
       );
     }
 
-    const body =
-      await request.json();
+    const body = await request.json();
 
     const {
       slNo,
@@ -95,110 +146,98 @@ export async function POST(request: Request) {
       size,
     } = body;
 
-    if (!title || !collection || !image1) {
+    if (
+      typeof title !== "string" ||
+      !title.trim() ||
+      typeof collection !== "string" ||
+      !collection ||
+      typeof image1 !== "string" ||
+      !image1.trim()
+    ) {
       return NextResponse.json(
         {
           error:
             "Title, collection and main image are required.",
         },
-        {
-          status: 400,
-        }
+        { status: 400 }
       );
     }
 
-    const allowedCollections = [
-      "jewel-tree",
-      "living-legacy",
-      "nature-window",
-      "bags",
-    ];
+    if (!allowedCollections.includes(collection)) {
+      return NextResponse.json(
+        { error: "Invalid collection." },
+        { status: 400 }
+      );
+    }
 
-    if (
-      !allowedCollections.includes(
-        collection
-      )
-    ) {
+    let parsedSlNo: number | null;
+    let parsedPrice: number | null;
+
+    try {
+      parsedSlNo = parseOptionalNumber(slNo, "Serial number");
+      parsedPrice = parseOptionalNumber(price, "Price");
+    } catch (error: unknown) {
       return NextResponse.json(
         {
           error:
-            "Invalid collection.",
+            error instanceof Error
+              ? error.message
+              : "Invalid numeric value.",
         },
-        {
-          status: 400,
-        }
+        { status: 400 }
       );
     }
 
-    const product =
-      await prisma.designStoreProduct.create({
-        data: {
-          slNo:
-            slNo !== undefined &&
-            slNo !== null &&
-            slNo !== ""
-              ? Number(slNo)
-              : null,
+    const now = new Date();
 
-          title: String(title),
+    const newProduct = {
+      slNo: parsedSlNo,
+      title: title.trim(),
+      collection,
+      description: description || null,
+      price: parsedPrice,
+      image1: image1.trim(),
+      image2: image2 || null,
+      image3: image3 || null,
+      image4: image4 || null,
+      referenceNo: referenceNo || null,
+      material: material || null,
+      size: size || null,
+      createdAt: now,
+      updatedAt: now,
+    };
 
-          collection: String(
-            collection
-          ),
+    const db = await getDb();
 
-          description:
-            description || null,
+    const result = await db
+      .collection<DesignStoreProduct>("DesignStoreProduct")
+      .insertOne(newProduct as DesignStoreProduct);
 
-          price:
-            price !== undefined &&
-            price !== null &&
-            price !== ""
-              ? Number(price)
-              : null,
+    const product = await db
+      .collection<DesignStoreProduct>("DesignStoreProduct")
+      .findOne({ _id: result.insertedId });
 
-          image1: String(image1),
+    if (!product) {
+      return NextResponse.json(
+        { error: "Product was created but could not be retrieved." },
+        { status: 500 }
+      );
+    }
 
-          image2:
-            image2 || null,
-
-          image3:
-            image3 || null,
-
-          image4:
-            image4 || null,
-
-          referenceNo:
-            referenceNo || null,
-
-          material:
-            material || null,
-
-          size:
-            size || null,
-        },
-      });
-
-    return NextResponse.json(
-      product,
-      {
-        status: 201,
-      }
-    );
-  } catch (error: any) {
-    console.error(
-      "CREATE DESIGN STORE PRODUCT ERROR:",
-      error
-    );
+    return NextResponse.json(serializeProduct(product), {
+      status: 201,
+    });
+  } catch (error: unknown) {
+    console.error("CREATE DESIGN STORE PRODUCT ERROR:", error);
 
     return NextResponse.json(
       {
         error:
-          error?.message ||
-          "Failed to create product",
+          error instanceof Error
+            ? error.message
+            : "Failed to create product",
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }

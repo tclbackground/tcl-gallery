@@ -1,8 +1,22 @@
+
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
+import { ObjectId, type Document } from "mongodb";
+
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getDb } from "@/lib/mongodb";
+
+export const dynamic = "force-dynamic";
+
+type OrderDocument = Document & {
+  _id: ObjectId;
+  userId?: string | ObjectId;
+  orderNumber?: string | number;
+  createdAt?: Date | string;
+  totalAmount?: number | string;
+  status?: string;
+};
 
 export default async function OrdersPage() {
   const session = await getServerSession(authOptions);
@@ -11,16 +25,36 @@ export default async function OrdersPage() {
     redirect("/login?callbackUrl=/my-account/orders");
   }
 
-  const userId = (session.user as any).id;
+  const userId = (session.user as { id?: string }).id;
 
-  const orders = await prisma.order.findMany({
-    where: {
-      userId,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+  if (!userId) {
+    redirect("/login?callbackUrl=/my-account/orders");
+  }
+
+  const db = await getDb();
+
+  // Support string and ObjectId formats for the existing user ID.
+  const userIdCandidates: (string | ObjectId)[] = [userId];
+
+  if (ObjectId.isValid(userId)) {
+    userIdCandidates.push(new ObjectId(userId));
+  }
+
+  const orderDocuments = await db
+    .collection<OrderDocument>("Order")
+    .find({
+      userId: { $in: userIdCandidates },
+    })
+    .sort({ createdAt: -1 })
+    .toArray();
+
+  const orders = orderDocuments.map((order) => ({
+    id: order._id.toString(),
+    orderNumber: order.orderNumber ?? order._id.toString(),
+    createdAt: order.createdAt,
+    totalAmount: order.totalAmount ?? 0,
+    status: order.status ?? "PENDING",
+  }));
 
   return (
     <main className="min-h-screen bg-[#f7f6f3] px-6 py-16 md:px-12 lg:px-24">
@@ -65,72 +99,84 @@ export default async function OrdersPage() {
           </div>
         ) : (
           <div className="mt-10 space-y-5">
-            {orders.map((order: any) => (
-              <div
-                key={order.id}
-                className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
-              >
-                <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500">
-                      ORDER NUMBER
-                    </p>
+            {orders.map((order) => {
+              const date = order.createdAt
+                ? new Date(order.createdAt)
+                : null;
 
-                    <h2 className="mt-1 text-2xl font-semibold">
-                      #{order.orderNumber}
-                    </h2>
+              const formattedDate =
+                date && !Number.isNaN(date.getTime())
+                  ? date.toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })
+                  : "Date unavailable";
 
-                    <p className="mt-2 text-sm text-gray-500">
-                      Placed on{" "}
-                      {new Date(order.createdAt).toLocaleDateString(
-                        "en-IN",
-                        {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        }
-                      )}
-                    </p>
-                  </div>
+              const amount = Number(order.totalAmount);
 
-                  <div>
-                    <p className="text-sm text-gray-500">
-                      TOTAL AMOUNT
-                    </p>
+              return (
+                <div
+                  key={order.id}
+                  className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
+                >
+                  <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        ORDER NUMBER
+                      </p>
 
-                    <p className="mt-1 text-xl font-semibold">
-                      ₹{Number(order.totalAmount).toLocaleString("en-IN")}
-                    </p>
-                  </div>
+                      <h2 className="mt-1 text-2xl font-semibold">
+                        #{order.orderNumber}
+                      </h2>
 
-                  <div>
-                    <p className="text-sm text-gray-500">
-                      ORDER STATUS
-                    </p>
+                      <p className="mt-2 text-sm text-gray-500">
+                        Placed on {formattedDate}
+                      </p>
+                    </div>
 
-                    <span className="mt-2 inline-block rounded-full bg-[#efeee9] px-4 py-2 text-sm font-semibold">
-                      {order.status.replaceAll("_", " ")}
-                    </span>
-                  </div>
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        TOTAL AMOUNT
+                      </p>
 
-                  <div className="flex gap-3">
-                    <Link
-                      href={`/my-account/orders/${order.id}`}
-                      className="rounded-lg border border-[#2d2d2b] px-5 py-3 text-sm font-semibold"
-                    >
-                      View Details
-                    </Link>
+                      <p className="mt-1 text-xl font-semibold">
+                        ₹
+                        {Number.isFinite(amount)
+                          ? amount.toLocaleString("en-IN")
+                          : "0"}
+                      </p>
+                    </div>
 
-                    <Link
-                      href={`/my-account/tracking?order=${order.id}`}
-                      className="rounded-lg bg-[#2d2d2b] px-5 py-3 text-sm font-semibold text-white"
-                    >
-                      Track Order
-                    </Link>
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        ORDER STATUS
+                      </p>
+
+                      <span className="mt-2 inline-block rounded-full bg-[#efeee9] px-4 py-2 text-sm font-semibold">
+                        {String(order.status).replaceAll("_", " ")}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                      <Link
+                        href={`/my-account/orders/${order.id}`}
+                        className="rounded-lg border border-[#2d2d2b] px-5 py-3 text-sm font-semibold"
+                      >
+                        View Details
+                      </Link>
+
+                      <Link
+                        href={`/my-account/tracking?order=${order.id}`}
+                        className="rounded-lg bg-[#2d2d2b] px-5 py-3 text-sm font-semibold text-white"
+                      >
+                        Track Order
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

@@ -1,35 +1,88 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 
-export default async function OrdersPage() {
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { ObjectId, type Document } from "mongodb";
+
+import { authOptions } from "@/lib/auth";
+import { getDb } from "@/lib/mongodb";
+
+export const dynamic = "force-dynamic";
+
+type OrderDocument = Document & {
+  _id: ObjectId;
+  userId?: string | ObjectId;
+  orderNumber?: string | number;
+  createdAt?: Date | string;
+  totalAmount?: number | string;
+  status?: string;
+};
+
+export default async function OrderDetailsPage({
+  params,
+}: {
+  params: Promise<{ orderId: string }>;
+}) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
     redirect("/login?callbackUrl=/my-account/orders");
   }
 
-  const userId = (session.user as any).id;
+  const userId = (session.user as { id?: string }).id;
 
-  const orders = await prisma.order.findMany({
-    where: {
-      userId,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
+  if (!userId) {
+    redirect("/login?callbackUrl=/my-account/orders");
+  }
+
+  const { orderId } = await params;
+
+  if (!ObjectId.isValid(orderId)) {
+    notFound();
+  }
+
+  const db = await getDb();
+
+  const userIdCandidates: (string | ObjectId)[] = [userId];
+
+  if (ObjectId.isValid(userId)) {
+    userIdCandidates.push(new ObjectId(userId));
+  }
+
+  const order = await db.collection<OrderDocument>("Order").findOne({
+    _id: new ObjectId(orderId),
+    userId: { $in: userIdCandidates },
   });
+
+  if (!order) {
+    notFound();
+  }
+
+  const orderNumber = order.orderNumber ?? order._id.toString();
+  const status = String(order.status ?? "PENDING").replaceAll("_", " ");
+  const totalAmount = Number(order.totalAmount ?? 0);
+
+  const createdAt = order.createdAt
+    ? new Date(order.createdAt)
+    : null;
+
+  const formattedDate =
+    createdAt && !Number.isNaN(createdAt.getTime())
+      ? createdAt.toLocaleDateString("en-IN", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        })
+      : "Date unavailable";
 
   return (
     <main className="min-h-screen bg-[#f7f6f3] px-6 py-16 md:px-12 lg:px-24">
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-5xl">
         <Link
-          href="/my-account"
+          href="/my-account/orders"
           className="text-sm font-medium text-gray-600 hover:text-black"
         >
-          ← Back to My Account
+          ← Back to My Orders
         </Link>
 
         <div className="mt-8">
@@ -37,102 +90,61 @@ export default async function OrdersPage() {
             TCL Gallery
           </p>
 
-          <h1 className="mt-3 text-5xl font-semibold text-[#2d2d2b]">
-            My Orders
+          <h1 className="mt-3 text-4xl font-semibold text-[#2d2d2b] md:text-5xl">
+            Order Details
           </h1>
 
           <p className="mt-4 text-gray-600">
-            View and manage all your artwork orders.
+            Review the details of your artwork order.
           </p>
         </div>
 
-        {orders.length === 0 ? (
-          <div className="mt-10 rounded-2xl border border-gray-200 bg-white p-12 text-center">
-            <h2 className="text-3xl font-semibold">
-              No orders found
-            </h2>
+        <section className="mt-10 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm md:p-8">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-500">ORDER NUMBER</p>
+              <h2 className="mt-1 text-2xl font-semibold">
+                #{orderNumber}
+              </h2>
+              <p className="mt-2 text-sm text-gray-500">
+                Placed on {formattedDate}
+              </p>
+            </div>
 
-            <p className="mt-3 text-gray-600">
-              You have not placed any orders yet.
+            <div>
+              <p className="text-sm text-gray-500">ORDER STATUS</p>
+              <span className="mt-2 inline-block rounded-full bg-[#efeee9] px-4 py-2 text-sm font-semibold">
+                {status}
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-8 border-t border-gray-200 pt-6">
+            <p className="text-sm text-gray-500">TOTAL AMOUNT</p>
+            <p className="mt-1 text-3xl font-semibold text-[#2d2d2b]">
+              ₹
+              {Number.isFinite(totalAmount)
+                ? totalAmount.toLocaleString("en-IN")
+                : "0"}
             </p>
+          </div>
+
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link
+              href={`/my-account/tracking?order=${order._id.toString()}`}
+              className="rounded-lg bg-[#2d2d2b] px-5 py-3 text-sm font-semibold text-white"
+            >
+              Track Order
+            </Link>
 
             <Link
-              href="/shop"
-              className="mt-6 inline-block rounded-lg bg-[#2d2d2b] px-6 py-3 font-semibold text-white"
+              href="/my-account/orders"
+              className="rounded-lg border border-[#2d2d2b] px-5 py-3 text-sm font-semibold"
             >
-              Explore Artwork
+              All Orders
             </Link>
           </div>
-        ) : (
-          <div className="mt-10 space-y-5">
-            {orders.map((order: any) => (
-              <div
-                key={order.id}
-                className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
-              >
-                <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500">
-                      ORDER NUMBER
-                    </p>
-
-                    <h2 className="mt-1 text-2xl font-semibold">
-                      #{order.orderNumber}
-                    </h2>
-
-                    <p className="mt-2 text-sm text-gray-500">
-                      Placed on{" "}
-                      {new Date(order.createdAt).toLocaleDateString(
-                        "en-IN",
-                        {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        }
-                      )}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-sm text-gray-500">
-                      TOTAL AMOUNT
-                    </p>
-
-                    <p className="mt-1 text-xl font-semibold">
-                      ₹{Number(order.totalAmount).toLocaleString("en-IN")}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-sm text-gray-500">
-                      ORDER STATUS
-                    </p>
-
-                    <span className="mt-2 inline-block rounded-full bg-[#efeee9] px-4 py-2 text-sm font-semibold">
-                      {order.status.replaceAll("_", " ")}
-                    </span>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <Link
-                      href={`/my-account/orders/${order.id}`}
-                      className="rounded-lg border border-[#2d2d2b] px-5 py-3 text-sm font-semibold"
-                    >
-                      View Details
-                    </Link>
-
-                    <Link
-                      href={`/my-account/tracking?order=${order.id}`}
-                      className="rounded-lg bg-[#2d2d2b] px-5 py-3 text-sm font-semibold text-white"
-                    >
-                      Track Order
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        </section>
       </div>
     </main>
   );

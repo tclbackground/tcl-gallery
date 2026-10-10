@@ -1,15 +1,46 @@
+
 "use server";
 
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { ObjectId, type Document } from "mongodb";
 import { revalidatePath } from "next/cache";
+
+import { authOptions } from "@/lib/auth";
+import { getDb } from "@/lib/mongodb";
+
+type WishlistDocument = Document & {
+  _id: ObjectId;
+  userId: string | ObjectId;
+  productId: string;
+  createdAt?: Date;
+};
+
+function idCandidates(id: string): (string | ObjectId)[] {
+  const candidates: (string | ObjectId)[] = [id];
+
+  if (ObjectId.isValid(id)) {
+    candidates.push(new ObjectId(id));
+  }
+
+  return candidates;
+}
+
+async function getAuthenticatedUserId(): Promise<string | null> {
+  const session = await getServerSession(authOptions);
+  const userId = (session?.user as { id?: string } | undefined)?.id;
+
+  return userId || null;
+}
+
+function userIdCandidates(userId: string): (string | ObjectId)[] {
+  return idCandidates(userId);
+}
 
 export async function addToWishlist(productId: string) {
   try {
-    const session = await getServerSession(authOptions);
+    const userId = await getAuthenticatedUserId();
 
-    if (!session?.user) {
+    if (!userId) {
       return {
         success: false,
         loginRequired: true,
@@ -17,22 +48,20 @@ export async function addToWishlist(productId: string) {
       };
     }
 
-    const userId = (session.user as any).id;
-
-    if (!userId) {
+    if (typeof productId !== "string" || !productId.trim()) {
       return {
         success: false,
-        loginRequired: true,
-        message: "User session not found. Please login again.",
+        message: "Invalid artwork product.",
       };
     }
 
-    // Check if already in wishlist
-    const existingItem = await prisma.wishlist.findFirst({
-      where: {
-        userId,
-        productId,
-      },
+    const normalizedProductId = productId.trim();
+    const db = await getDb();
+    const wishlist = db.collection<WishlistDocument>("Wishlist");
+
+    const existingItem = await wishlist.findOne({
+      userId: { $in: userIdCandidates(userId) },
+      productId: normalizedProductId,
     });
 
     if (existingItem) {
@@ -43,15 +72,14 @@ export async function addToWishlist(productId: string) {
       };
     }
 
-    // Add to wishlist
-    await prisma.wishlist.create({
-      data: {
-        userId,
-        productId,
-      },
-    });
+    await wishlist.insertOne({
+      userId,
+      productId: normalizedProductId,
+      createdAt: new Date(),
+    } as WishlistDocument);
 
     revalidatePath("/wishlist");
+    revalidatePath("/api/header-counts");
 
     return {
       success: true,
@@ -69,46 +97,40 @@ export async function addToWishlist(productId: string) {
 
 export async function removeFromWishlist(wishlistItemId: string) {
   try {
-    const session = await getServerSession(authOptions);
+    const userId = await getAuthenticatedUserId();
 
-    if (!session?.user) {
+    if (!userId) {
       return {
         success: false,
         message: "Please login.",
       };
     }
 
-    const userId = (session.user as any).id;
-
-    if (!userId) {
+    if (!ObjectId.isValid(wishlistItemId)) {
       return {
         success: false,
-        message: "Please login again.",
+        message: "Invalid wishlist item.",
       };
     }
 
-    // Make sure the wishlist item belongs to the logged-in user
-    const wishlistItem = await prisma.wishlist.findFirst({
-      where: {
-        id: wishlistItemId,
-        userId,
-      },
+    const db = await getDb();
+    const wishlist = db.collection<WishlistDocument>("Wishlist");
+
+    // Only remove an item owned by the authenticated user.
+    const result = await wishlist.deleteOne({
+      _id: new ObjectId(wishlistItemId),
+      userId: { $in: userIdCandidates(userId) },
     });
 
-    if (!wishlistItem) {
+    if (result.deletedCount === 0) {
       return {
         success: false,
         message: "Wishlist item not found.",
       };
     }
 
-    await prisma.wishlist.delete({
-      where: {
-        id: wishlistItemId,
-      },
-    });
-
     revalidatePath("/wishlist");
+    revalidatePath("/api/header-counts");
 
     return {
       success: true,
@@ -126,9 +148,9 @@ export async function removeFromWishlist(wishlistItemId: string) {
 
 export async function toggleWishlist(productId: string) {
   try {
-    const session = await getServerSession(authOptions);
+    const userId = await getAuthenticatedUserId();
 
-    if (!session?.user) {
+    if (!userId) {
       return {
         success: false,
         loginRequired: true,
@@ -136,32 +158,30 @@ export async function toggleWishlist(productId: string) {
       };
     }
 
-    const userId = (session.user as any).id;
-
-    if (!userId) {
+    if (typeof productId !== "string" || !productId.trim()) {
       return {
         success: false,
-        loginRequired: true,
-        message: "Please login again.",
+        message: "Invalid artwork product.",
       };
     }
 
-    const existingItem = await prisma.wishlist.findFirst({
-      where: {
-        userId,
-        productId,
-      },
+    const normalizedProductId = productId.trim();
+    const db = await getDb();
+    const wishlist = db.collection<WishlistDocument>("Wishlist");
+
+    const existingItem = await wishlist.findOne({
+      userId: { $in: userIdCandidates(userId) },
+      productId: normalizedProductId,
     });
 
-    // If already exists → remove
     if (existingItem) {
-      await prisma.wishlist.delete({
-        where: {
-          id: existingItem.id,
-        },
+      await wishlist.deleteOne({
+        _id: existingItem._id,
+        userId: { $in: userIdCandidates(userId) },
       });
 
       revalidatePath("/wishlist");
+      revalidatePath("/api/header-counts");
 
       return {
         success: true,
@@ -170,15 +190,14 @@ export async function toggleWishlist(productId: string) {
       };
     }
 
-    // Otherwise → add
-    await prisma.wishlist.create({
-      data: {
-        userId,
-        productId,
-      },
-    });
+    await wishlist.insertOne({
+      userId,
+      productId: normalizedProductId,
+      createdAt: new Date(),
+    } as WishlistDocument);
 
     revalidatePath("/wishlist");
+    revalidatePath("/api/header-counts");
 
     return {
       success: true,

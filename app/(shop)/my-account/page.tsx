@@ -1,8 +1,32 @@
+
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
+import { ObjectId, type Document } from "mongodb";
+
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getDb } from "@/lib/mongodb";
+
+export const dynamic = "force-dynamic";
+
+type OrderDocument = Document & {
+  _id: ObjectId;
+  userId?: string | ObjectId;
+  orderNumber?: string | number;
+  createdAt?: Date | string;
+  status?: string;
+};
+
+const processingStatuses = [
+  "ORDER_PLACED",
+  "PAYMENT_CONFIRMED",
+  "ARTWORK_PREPARATION",
+  "FRAMING",
+  "QUALITY_CHECK",
+  "PACKED",
+  "SHIPPED",
+  "OUT_FOR_DELIVERY",
+];
 
 export default async function MyAccountPage() {
   const session = await getServerSession(authOptions);
@@ -11,41 +35,66 @@ export default async function MyAccountPage() {
     redirect("/login?callbackUrl=/my-account");
   }
 
-  const userId = (session.user as any).id;
+  const userId = (session.user as { id?: string }).id;
 
-  const orders = await prisma.order.findMany({
-    where: {
-      userId,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+  if (!userId) {
+    redirect("/login?callbackUrl=/my-account");
+  }
+
+  const db = await getDb();
+
+  // Match the existing user ID as either a string or an ObjectId.
+  const userIdCandidates: (string | ObjectId)[] = [userId];
+
+  if (ObjectId.isValid(userId)) {
+    userIdCandidates.push(new ObjectId(userId));
+  }
+
+  const orderDocuments = await db
+    .collection<OrderDocument>("Order")
+    .find({
+      userId: { $in: userIdCandidates },
+    })
+    .sort({ createdAt: -1 })
+    .toArray();
+
+  const orders = orderDocuments.map((order) => ({
+    id: order._id.toString(),
+    orderNumber: order.orderNumber ?? order._id.toString(),
+    createdAt: order.createdAt,
+    status: order.status ?? "ORDER_PLACED",
+  }));
 
   const totalOrders = orders.length;
 
-  const processingOrders = orders.filter((order: any) =>
-    [
-      "ORDER_PLACED",
-      "PAYMENT_CONFIRMED",
-      "ARTWORK_PREPARATION",
-      "FRAMING",
-      "QUALITY_CHECK",
-      "PACKED",
-      "SHIPPED",
-      "OUT_FOR_DELIVERY",
-    ].includes(order.status)
+  const processingOrders = orders.filter((order) =>
+    processingStatuses.includes(order.status)
   ).length;
 
   const deliveredOrders = orders.filter(
-    (order: any) => order.status === "DELIVERED"
+    (order) => order.status === "DELIVERED"
   ).length;
+
+  const formatDate = (value?: Date | string) => {
+    if (!value) return "Date unavailable";
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return "Date unavailable";
+    }
+
+    return date.toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
 
   return (
     <main className="min-h-screen bg-[#f7f6f3] px-6 py-16 md:px-12 lg:px-24">
       <div className="mx-auto max-w-7xl">
         {/* HEADER */}
-
         <div className="mb-12">
           <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-gray-500">
             TCL Gallery
@@ -61,7 +110,6 @@ export default async function MyAccountPage() {
         </div>
 
         {/* ACCOUNT CARDS */}
-
         <div className="grid gap-6 md:grid-cols-3">
           <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
             <p className="text-sm font-semibold uppercase tracking-wider text-gray-500">
@@ -116,7 +164,6 @@ export default async function MyAccountPage() {
         </div>
 
         {/* QUICK LINKS */}
-
         <div className="mt-12 grid gap-6 md:grid-cols-3">
           <Link
             href="/profile"
@@ -171,7 +218,6 @@ export default async function MyAccountPage() {
         </div>
 
         {/* RECENT ORDERS */}
-
         <div className="mt-16">
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-3xl font-semibold text-[#2d2d2b]">
@@ -205,7 +251,7 @@ export default async function MyAccountPage() {
             </div>
           ) : (
             <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
-              {orders.slice(0, 5).map((order: any) => (
+              {orders.slice(0, 5).map((order) => (
                 <div
                   key={order.id}
                   className="flex flex-col gap-4 border-b border-gray-100 p-6 last:border-0 md:flex-row md:items-center md:justify-between"
@@ -216,20 +262,13 @@ export default async function MyAccountPage() {
                     </p>
 
                     <p className="mt-1 text-sm text-gray-500">
-                      {new Date(order.createdAt).toLocaleDateString(
-                        "en-IN",
-                        {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        }
-                      )}
+                      {formatDate(order.createdAt)}
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-6">
+                  <div className="flex flex-wrap items-center gap-4 md:gap-6">
                     <span className="rounded-full bg-gray-100 px-4 py-2 text-sm font-medium">
-                      {order.status.replaceAll("_", " ")}
+                      {String(order.status).replaceAll("_", " ")}
                     </span>
 
                     <Link

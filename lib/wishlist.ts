@@ -1,59 +1,97 @@
+
 "use server";
 
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { ObjectId, type Document } from "mongodb";
 import { revalidatePath } from "next/cache";
+
+import { authOptions } from "@/lib/auth";
+import { getDb } from "@/lib/mongodb";
+
+type WishlistDocument = Document & {
+  _id: ObjectId;
+  userId: string | ObjectId;
+  productId: string | ObjectId;
+  createdAt?: Date;
+};
+
+function idCandidates(id: string): (string | ObjectId)[] {
+  const candidates: (string | ObjectId)[] = [id];
+
+  if (ObjectId.isValid(id)) {
+    candidates.push(new ObjectId(id));
+  }
+
+  return candidates;
+}
+
+async function getAuthenticatedUserId(): Promise<string | null> {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user) {
+    return null;
+  }
+
+  const userId = (session.user as { id?: string }).id;
+
+  return typeof userId === "string" && userId.length > 0
+    ? userId
+    : null;
+}
+
+async function getWishlistCollection() {
+  const db = await getDb();
+  return db.collection<WishlistDocument>("Wishlist");
+}
+
+function serializeId(id: unknown): string {
+  return String(id);
+}
 
 export async function addToWishlist(productId: string) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
-      return {
-        success: false,
-        loginRequired: true,
-        message:
-          "Please login before adding artwork to your wishlist.",
-      };
-    }
-
-    const userId = (session.user as any).id;
+    const userId = await getAuthenticatedUserId();
 
     if (!userId) {
       return {
         success: false,
         loginRequired: true,
-        message:
-          "User session not found. Please login again.",
+        message: "Please login before adding artwork to your wishlist.",
       };
     }
 
-    const existingItem =
-      await prisma.wishlist.findFirst({
-        where: {
-          userId,
-          productId,
-        },
-      });
+    if (!productId?.trim()) {
+      return {
+        success: false,
+        message: "Invalid artwork ID.",
+      };
+    }
+
+    const wishlist = await getWishlistCollection();
+    const userIds = idCandidates(userId);
+    const productIds = idCandidates(productId);
+
+    const existingItem = await wishlist.findOne({
+      userId: { $in: userIds },
+      productId: { $in: productIds },
+    });
 
     if (existingItem) {
       return {
         success: true,
         alreadyExists: true,
-        message:
-          "Artwork is already in your wishlist.",
+        message: "Artwork is already in your wishlist.",
       };
     }
 
-    await prisma.wishlist.create({
-      data: {
-        userId,
-        productId,
-      },
-    });
+    await wishlist.insertOne({
+      userId,
+      productId,
+      createdAt: new Date(),
+    } as WishlistDocument);
 
     revalidatePath("/wishlist");
+    revalidatePath("/api/header-counts");
 
     return {
       success: true,
@@ -64,155 +102,134 @@ export async function addToWishlist(productId: string) {
 
     return {
       success: false,
-      message:
-        "Unable to add artwork to wishlist.",
+      message: "Unable to add artwork to wishlist.",
     };
   }
 }
 
-export async function removeFromWishlist(
-  wishlistItemId: string
-) {
+export async function removeFromWishlist(wishlistItemId: string) {
   try {
-    const session =
-      await getServerSession(authOptions);
+    const userId = await getAuthenticatedUserId();
 
-    if (!session?.user) {
+    if (!userId) {
       return {
         success: false,
         message: "Please login.",
       };
     }
 
-    const userId = (session.user as any).id;
-
-    if (!userId) {
+    if (!wishlistItemId?.trim()) {
       return {
         success: false,
-        message: "Please login again.",
+        message: "Invalid wishlist item ID.",
       };
     }
 
-    const wishlistItem =
-      await prisma.wishlist.findFirst({
-        where: {
-          id: wishlistItemId,
-          userId,
-        },
+    const wishlist = await getWishlistCollection();
+
+    const itemIdQuery: Document[] = [
+      { _id: wishlistItemId },
+    ];
+
+    if (ObjectId.isValid(wishlistItemId)) {
+      itemIdQuery.push({
+        _id: new ObjectId(wishlistItemId),
       });
-
-    if (!wishlistItem) {
-      return {
-        success: false,
-        message:
-          "Wishlist item not found.",
-      };
     }
 
-    await prisma.wishlist.delete({
-      where: {
-        id: wishlistItemId,
-      },
+    const result = await wishlist.deleteOne({
+      $and: [
+        { $or: itemIdQuery },
+        { userId: { $in: idCandidates(userId) } },
+      ],
     });
 
+    if (result.deletedCount === 0) {
+      return {
+        success: false,
+        message: "Wishlist item not found.",
+      };
+    }
+
     revalidatePath("/wishlist");
+    revalidatePath("/api/header-counts");
 
     return {
       success: true,
-      message:
-        "Artwork removed from wishlist.",
+      message: "Artwork removed from wishlist.",
     };
   } catch (error) {
-    console.error(
-      "Remove wishlist error:",
-      error
-    );
+    console.error("Remove wishlist error:", error);
 
     return {
       success: false,
-      message:
-        "Unable to remove artwork from wishlist.",
+      message: "Unable to remove artwork from wishlist.",
     };
   }
 }
 
-export async function toggleWishlist(
-  productId: string
-) {
+export async function toggleWishlist(productId: string) {
   try {
-    const session =
-      await getServerSession(authOptions);
-
-    if (!session?.user) {
-      return {
-        success: false,
-        loginRequired: true,
-        message:
-          "Please login before adding artwork to your wishlist.",
-      };
-    }
-
-    const userId = (session.user as any).id;
+    const userId = await getAuthenticatedUserId();
 
     if (!userId) {
       return {
         success: false,
         loginRequired: true,
-        message:
-          "Please login again.",
+        message: "Please login before adding artwork to your wishlist.",
       };
     }
 
-    const existingItem =
-      await prisma.wishlist.findFirst({
-        where: {
-          userId,
-          productId,
-        },
-      });
+    if (!productId?.trim()) {
+      return {
+        success: false,
+        message: "Invalid artwork ID.",
+      };
+    }
+
+    const wishlist = await getWishlistCollection();
+
+    const existingItem = await wishlist.findOne({
+      userId: { $in: idCandidates(userId) },
+      productId: { $in: idCandidates(productId) },
+    });
 
     if (existingItem) {
-      await prisma.wishlist.delete({
-        where: {
-          id: existingItem.id,
-        },
+      await wishlist.deleteOne({
+        _id: existingItem._id,
+        userId: { $in: idCandidates(userId) },
       });
 
       revalidatePath("/wishlist");
+      revalidatePath("/api/header-counts");
 
       return {
         success: true,
         action: "removed",
-        message:
-          "Artwork removed from wishlist.",
+        message: "Artwork removed from wishlist.",
       };
     }
 
-    await prisma.wishlist.create({
-      data: {
-        userId,
-        productId,
-      },
-    });
+    await wishlist.insertOne({
+      userId,
+      productId,
+      createdAt: new Date(),
+    } as WishlistDocument);
 
     revalidatePath("/wishlist");
+    revalidatePath("/api/header-counts");
 
     return {
       success: true,
       action: "added",
-      message:
-        "Artwork added to your wishlist.",
+      message: "Artwork added to your wishlist.",
     };
   } catch (error) {
-    console.error(
-      "Toggle wishlist error:",
-      error
-    );
+    console.error("Toggle wishlist error:", error);
 
     return {
       success: false,
-      message:
-        "Unable to update wishlist.",
+      message: "Unable to update wishlist.",
     };
   }
 }

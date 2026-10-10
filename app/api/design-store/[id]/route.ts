@@ -1,66 +1,108 @@
+
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { ObjectId, type Document } from "mongodb";
 
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getDb } from "@/lib/mongodb";
+
+type DesignStoreProduct = Document & {
+  _id: ObjectId;
+  slNo?: number | null;
+  title?: string;
+  collection?: string;
+  description?: string | null;
+  price?: number | null;
+  image1?: string | null;
+  image2?: string | null;
+  image3?: string | null;
+  image4?: string | null;
+  referenceNo?: string | null;
+  material?: string | null;
+  size?: string | null;
+};
+
+const allowedCollections = [
+  "jewel-tree",
+  "living-legacy",
+  "nature-window",
+  "bags",
+];
+
+async function isAdmin() {
+  const session = await getServerSession(authOptions);
+
+  const role = String(
+    (session?.user as { role?: string } | undefined)?.role ?? ""
+  ).toUpperCase();
+
+  return Boolean(session?.user && role === "ADMIN");
+}
+
+function serializeProduct(product: DesignStoreProduct) {
+  const { _id, ...fields } = product;
+
+  return {
+    ...fields,
+    id: _id.toString(),
+  };
+}
+
+function parseProductId(id: string) {
+  // Support MongoDB ObjectId IDs and existing string IDs.
+  return ObjectId.isValid(id) && new ObjectId(id).toString() === id
+    ? new ObjectId(id)
+    : id;
+}
+
+async function findProduct(id: string) {
+  const db = await getDb();
+  const productId = parseProductId(id);
+
+  const product = await db
+    .collection<DesignStoreProduct>("DesignStoreProduct")
+    .findOne({
+      _id: productId,
+    } as Document);
+
+  return { db, product };
+}
 
 // =====================================================
 // GET SINGLE PRODUCT
 // =====================================================
 
 export async function GET(
-  request: Request,
+  _request: Request,
   {
     params,
   }: {
-    params: Promise<{
-      id: string;
-    }>;
+    params: Promise<{ id: string }>;
   }
 ) {
   try {
-    const { id } =
-      await params;
-
-    const product =
-      await prisma.designStoreProduct.findUnique(
-        {
-          where: {
-            id,
-          },
-        }
-      );
+    const { id } = await params;
+    const { product } = await findProduct(id);
 
     if (!product) {
       return NextResponse.json(
-        {
-          error:
-            "Product not found",
-        },
-        {
-          status: 404,
-        }
+        { error: "Product not found" },
+        { status: 404 }
       );
     }
 
-    return NextResponse.json(
-      product
-    );
-  } catch (error: any) {
-    console.error(
-      "GET SINGLE DESIGN STORE PRODUCT ERROR:",
-      error
-    );
+    return NextResponse.json(serializeProduct(product));
+  } catch (error: unknown) {
+    console.error("GET SINGLE DESIGN STORE PRODUCT ERROR:", error);
 
     return NextResponse.json(
       {
         error:
-          error?.message ||
-          "Failed to fetch product",
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch product",
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }
@@ -74,37 +116,19 @@ export async function PUT(
   {
     params,
   }: {
-    params: Promise<{
-      id: string;
-    }>;
+    params: Promise<{ id: string }>;
   }
 ) {
   try {
-    const session =
-      await getServerSession(
-        authOptions
-      );
-
-    const role = (
-      (session?.user as any)?.role || ""
-    ).toUpperCase();
-
-    if (!session || role !== "ADMIN") {
+    if (!(await isAdmin())) {
       return NextResponse.json(
-        {
-          error: "Unauthorized",
-        },
-        {
-          status: 401,
-        }
+        { error: "Unauthorized" },
+        { status: 401 }
       );
     }
 
-    const { id } =
-      await params;
-
-    const body =
-      await request.json();
+    const { id } = await params;
+    const body = await request.json();
 
     const {
       slNo,
@@ -121,133 +145,116 @@ export async function PUT(
       size,
     } = body;
 
-    if (!title || !collection) {
-      return NextResponse.json(
-        {
-          error:
-            "Title and collection are required.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    const allowedCollections = [
-      "jewel-tree",
-      "living-legacy",
-      "nature-window",
-      "bags",
-    ];
-
     if (
-      !allowedCollections.includes(
-        collection
-      )
+      typeof title !== "string" ||
+      !title.trim() ||
+      typeof collection !== "string" ||
+      !collection.trim()
     ) {
       return NextResponse.json(
-        {
-          error:
-            "Invalid collection.",
-        },
-        {
-          status: 400,
-        }
+        { error: "Title and collection are required." },
+        { status: 400 }
       );
     }
 
-    const existing =
-      await prisma.designStoreProduct.findUnique(
-        {
-          where: {
-            id,
-          },
-        }
+    if (!allowedCollections.includes(collection)) {
+      return NextResponse.json(
+        { error: "Invalid collection." },
+        { status: 400 }
       );
+    }
+
+    const { db, product: existing } = await findProduct(id);
 
     if (!existing) {
       return NextResponse.json(
-        {
-          error:
-            "Product not found.",
-        },
-        {
-          status: 404,
-        }
+        { error: "Product not found." },
+        { status: 404 }
       );
     }
 
-    const product =
-      await prisma.designStoreProduct.update({
-        where: {
-          id,
+    const toOptionalNumber = (
+      value: unknown,
+      fieldName: string
+    ): number | null => {
+      if (value === undefined || value === null || value === "") {
+        return null;
+      }
+
+      const parsed = Number(value);
+
+      if (!Number.isFinite(parsed)) {
+        throw new Error(`${fieldName} must be a valid number.`);
+      }
+
+      return parsed;
+    };
+
+    let parsedSlNo: number | null;
+    let parsedPrice: number | null;
+
+    try {
+      parsedSlNo = toOptionalNumber(slNo, "Serial number");
+      parsedPrice = toOptionalNumber(price, "Price");
+    } catch (error: unknown) {
+      return NextResponse.json(
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : "Invalid numeric value.",
         },
+        { status: 400 }
+      );
+    }
 
-        data: {
-          slNo:
-            slNo !== undefined &&
-            slNo !== null &&
-            slNo !== ""
-              ? Number(slNo)
-              : null,
+    const updateFields = {
+      slNo: parsedSlNo,
+      title: title.trim(),
+      collection,
+      description: description || null,
+      price: parsedPrice,
+      // Keep the existing primary image when no new one is supplied.
+      image1: image1 || existing.image1 || null,
+      image2: image2 || null,
+      image3: image3 || null,
+      image4: image4 || null,
+      referenceNo: referenceNo || null,
+      material: material || null,
+      size: size || null,
+      updatedAt: new Date(),
+    };
 
-          title: String(title),
+    await db
+      .collection<DesignStoreProduct>("DesignStoreProduct")
+      .updateOne(
+        { _id: existing._id },
+        { $set: updateFields }
+      );
 
-          collection:
-            String(collection),
+    const updatedProduct = await db
+      .collection<DesignStoreProduct>("DesignStoreProduct")
+      .findOne({ _id: existing._id });
 
-          description:
-            description || null,
+    if (!updatedProduct) {
+      return NextResponse.json(
+        { error: "Product could not be retrieved after update." },
+        { status: 500 }
+      );
+    }
 
-          price:
-            price !== undefined &&
-            price !== null &&
-            price !== ""
-              ? Number(price)
-              : null,
-
-          image1:
-            image1 ||
-            existing.image1,
-
-          image2:
-            image2 || null,
-
-          image3:
-            image3 || null,
-
-          image4:
-            image4 || null,
-
-          referenceNo:
-            referenceNo || null,
-
-          material:
-            material || null,
-
-          size:
-            size || null,
-        },
-      });
-
-    return NextResponse.json(
-      product
-    );
-  } catch (error: any) {
-    console.error(
-      "UPDATE DESIGN STORE PRODUCT ERROR:",
-      error
-    );
+    return NextResponse.json(serializeProduct(updatedProduct));
+  } catch (error: unknown) {
+    console.error("UPDATE DESIGN STORE PRODUCT ERROR:", error);
 
     return NextResponse.json(
       {
         error:
-          error?.message ||
-          "Failed to update product",
+          error instanceof Error
+            ? error.message
+            : "Failed to update product",
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }
@@ -257,86 +264,50 @@ export async function PUT(
 // =====================================================
 
 export async function DELETE(
-  request: Request,
+  _request: Request,
   {
     params,
   }: {
-    params: Promise<{
-      id: string;
-    }>;
+    params: Promise<{ id: string }>;
   }
 ) {
   try {
-    const session =
-      await getServerSession(
-        authOptions
-      );
-
-    const role = (
-      (session?.user as any)?.role || ""
-    ).toUpperCase();
-
-    if (!session || role !== "ADMIN") {
+    if (!(await isAdmin())) {
       return NextResponse.json(
-        {
-          error: "Unauthorized",
-        },
-        {
-          status: 401,
-        }
+        { error: "Unauthorized" },
+        { status: 401 }
       );
     }
 
-    const { id } =
-      await params;
+    const { id } = await params;
+    const { db, product } = await findProduct(id);
 
-    const existing =
-      await prisma.designStoreProduct.findUnique(
-        {
-          where: {
-            id,
-          },
-        }
-      );
-
-    if (!existing) {
+    if (!product) {
       return NextResponse.json(
-        {
-          error:
-            "Product not found.",
-        },
-        {
-          status: 404,
-        }
+        { error: "Product not found." },
+        { status: 404 }
       );
     }
 
-    await prisma.designStoreProduct.delete({
-      where: {
-        id,
-      },
-    });
+    await db
+      .collection<DesignStoreProduct>("DesignStoreProduct")
+      .deleteOne({ _id: product._id });
 
     return NextResponse.json({
       success: true,
-      message:
-        "Product deleted successfully.",
+      message: "Product deleted successfully.",
     });
-  } catch (error: any) {
-    console.error(
-      "DELETE DESIGN STORE PRODUCT ERROR:",
-      error
-    );
+  } catch (error: unknown) {
+    console.error("DELETE DESIGN STORE PRODUCT ERROR:", error);
 
     return NextResponse.json(
       {
         error:
-          error?.message ||
-          "Failed to delete product",
+          error instanceof Error
+            ? error.message
+            : "Failed to delete product",
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }
