@@ -8,6 +8,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_TOTAL_FILE_SIZE = 25 * 1024 * 1024;
 
 const ALLOWED_IMAGE_TYPES = new Set([
   "image/jpeg",
@@ -20,15 +21,12 @@ type UploadedImage = {
   publicId: string;
 };
 
-function getString(formData: FormData, name: string) {
+function getString(formData: FormData, name: string): string {
   const value = formData.get(name);
   return typeof value === "string" ? value.trim() : "";
 }
 
-function getFile(
-  formData: FormData,
-  name: string
-): File | null {
+function getFile(formData: FormData, name: string): File | null {
   const value = formData.get(name);
 
   if (
@@ -62,22 +60,31 @@ async function uploadImage(
   const dataUri =
     `data:${file.type};base64,${bytes.toString("base64")}`;
 
-  const result = await cloudinary.uploader.upload(dataUri, {
-    folder: "tcl-gallery/fine-art",
-    resource_type: "image",
-  });
+  try {
+    const result = await cloudinary.uploader.upload(dataUri, {
+      folder: "tcl-gallery/fine-art",
+      resource_type: "image",
+    });
 
-  return {
-    url: result.secure_url,
-    publicId: result.public_id,
-  };
+    return {
+      url: result.secure_url,
+      publicId: result.public_id,
+    };
+  } catch (error: unknown) {
+    // Log the original error on the server for diagnosis.
+    console.error(`${label} Cloudinary upload failed:`, error);
+
+    throw new Error(
+      `${label} upload failed. Check Cloudinary credentials and server logs.`
+    );
+  }
 }
 
 export async function uploadFineArt(formData: FormData) {
   const uploadedImages: UploadedImage[] = [];
 
   try {
-    // Verify the current admin session.
+    // 1. Verify the current session and admin role.
     const session = await getServerSession(authOptions);
 
     if (!session?.user) {
@@ -98,7 +105,7 @@ export async function uploadFineArt(formData: FormData) {
       };
     }
 
-    // Read the existing form fields.
+    // 2. Read form fields.
     const titleOfArt = getString(formData, "titleOfArt");
     const artistName = getString(formData, "artistName");
     const itemRefNo = getString(formData, "itemRefNo");
@@ -107,14 +114,9 @@ export async function uploadFineArt(formData: FormData) {
       getString(formData, "category") || "Fine Art";
 
     const paintingType = getString(formData, "paintingType");
-    const productCategory = getString(
-      formData,
-      "productCategory"
-    );
-
+    const productCategory = getString(formData, "productCategory");
     const widthCms = getString(formData, "widthCms");
     const withFrame = getString(formData, "withFrame");
-
     const slNoString = getString(formData, "slNo");
     const yearString = getString(formData, "year");
 
@@ -148,7 +150,48 @@ export async function uploadFineArt(formData: FormData) {
       };
     }
 
-    // Validate numeric fields before uploading files.
+    // 3. Validate optional images and total request file size.
+    const image2File = getFile(formData, "image2");
+    const image3File = getFile(formData, "image3");
+    const photoFile = getFile(formData, "photo");
+
+    const files = [
+      mainFile,
+      image2File,
+      image3File,
+      photoFile,
+    ].filter((file): file is File => file !== null);
+
+    const totalSize = files.reduce(
+      (total, file) => total + file.size,
+      0
+    );
+
+    if (totalSize > MAX_TOTAL_FILE_SIZE) {
+      return {
+        success: false,
+        message:
+          "Combined image size must be 25 MB or smaller. Please compress the images.",
+      };
+    }
+
+    for (const [index, file] of files.entries()) {
+      if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+        return {
+          success: false,
+          message: `Image ${index + 1}: Only JPG, PNG and WEBP images are allowed.`,
+        };
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        return {
+          success: false,
+          message: `Image ${index + 1} must be 10 MB or smaller.`,
+        };
+      }
+    }
+
+    // 4. Validate numeric fields before uploading.
     let slNo: number | null = null;
     let year: number | null = null;
 
@@ -178,14 +221,13 @@ export async function uploadFineArt(formData: FormData) {
       }
     }
 
-    // Upload the main image and optional images.
+    // 5. Upload images sequentially and track them for cleanup.
     const image1 = await uploadImage(
       mainFile,
       "Main artwork image"
     );
     uploadedImages.push(image1);
 
-    const image2File = getFile(formData, "image2");
     let image2: UploadedImage | null = null;
 
     if (image2File) {
@@ -193,7 +235,6 @@ export async function uploadFineArt(formData: FormData) {
       uploadedImages.push(image2);
     }
 
-    const image3File = getFile(formData, "image3");
     let image3: UploadedImage | null = null;
 
     if (image3File) {
@@ -201,7 +242,6 @@ export async function uploadFineArt(formData: FormData) {
       uploadedImages.push(image3);
     }
 
-    const photoFile = getFile(formData, "photo");
     let photo: UploadedImage | null = null;
 
     if (photoFile) {
@@ -209,7 +249,7 @@ export async function uploadFineArt(formData: FormData) {
       uploadedImages.push(photo);
     }
 
-    // Insert into the existing MongoDB database.
+    // 6. Save the artwork to the existing MongoDB database.
     const db = await getDb();
     const now = new Date();
 
@@ -229,7 +269,6 @@ export async function uploadFineArt(formData: FormData) {
       paintingType: paintingType || null,
       productCategory: productCategory || null,
 
-      // Cloudinary IDs allow future image management.
       image1PublicId: image1.publicId,
       image2PublicId: image2?.publicId ?? null,
       image3PublicId: image3?.publicId ?? null,
@@ -243,7 +282,7 @@ export async function uploadFineArt(formData: FormData) {
       .collection("FineArt")
       .insertOne(document);
 
-    // Revalidate pages that display Fine Art.
+    // 7. Refresh pages displaying Fine Art.
     revalidatePath("/admin/fine-art");
     revalidatePath("/admin/fine-art/new");
     revalidatePath("/");
@@ -262,19 +301,28 @@ export async function uploadFineArt(formData: FormData) {
   } catch (error: unknown) {
     console.error("FINE ART UPLOAD ERROR:", error);
 
-    // Clean up Cloudinary images if the operation fails.
-    await Promise.allSettled(
+    // Remove images already uploaded if a later operation fails.
+    const cleanupResults = await Promise.allSettled(
       uploadedImages.map((image) =>
         cloudinary.uploader.destroy(image.publicId)
       )
     );
+
+    cleanupResults.forEach((result) => {
+      if (result.status === "rejected") {
+        console.error(
+          "Cloudinary cleanup failed:",
+          result.reason
+        );
+      }
+    });
 
     return {
       success: false,
       message:
         error instanceof Error
           ? error.message
-          : "Failed to upload Fine Art.",
+          : "Failed to upload Fine Art. Check server logs.",
     };
   }
 }
