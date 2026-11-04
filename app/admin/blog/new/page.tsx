@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/lib/auth";
 import { createBlogPost } from "@/app/actions/blog";
+import MarkdownEditor from "./MarkDownEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -60,12 +61,7 @@ export default async function NewBlogPage() {
             <label className="mb-2 block text-sm font-semibold">
               Short Excerpt
             </label>
-            <textarea
-              name="excerpt"
-              rows={3}
-              placeholder="A short introduction for your blog listing..."
-              className="w-full rounded-lg border border-[#DCCFC1] px-4 py-3 outline-none focus:border-[#684633]"
-            />
+            <MarkdownEditor />
           </div>
 
           <div>

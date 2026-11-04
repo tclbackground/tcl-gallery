@@ -1,34 +1,10 @@
+
 @import "tailwindcss";
 
 /* ==========================================
-   TCL GALLERY DESIGN SYSTEM - BLUE PALETTE
+   TCL GALLERY DESIGN SYSTEM
 ========================================== */
-@import "tailwindcss";
 
-html,
-body {
-  width: 100%;
-  min-width: 100%;
-  max-width: 100%;
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden;
-}
-
-body {
-  position: relative;
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-#__next {
-  width: 100%;
-  max-width: 100%;
-}
 :root {
   /* Backgrounds */
   --background: #F7FAFC;
@@ -55,7 +31,6 @@ body {
   /* Buttons */
   --button-primary: #002B5B;
   --button-primary-hover: #1F5AA6;
-
   --button-secondary: #5FA8FF;
   --button-secondary-hover: #1F5AA6;
 
@@ -72,18 +47,84 @@ body {
 }
 
 /* ==========================================
-   BASE
+   BASE STYLES
+   Keep base rules inside @layer base
+   so Tailwind utilities can override them.
 ========================================== */
 
-html {
-  scroll-behavior: smooth;
+@layer base {
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+  }
+
+  body {
+    position: relative;
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+
+    background: var(--background);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+
+    overflow-x: hidden;
+  }
+
+  /* Headings inherit font family.
+     Tailwind controls their font sizes. */
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+
+  p {
+    line-height: 1.7;
+  }
+
+  a {
+    color: inherit;
+    transition: color 0.3s ease;
+  }
+
+  a:hover {
+    color: var(--secondary);
+  }
+
+  ::selection {
+    background: #5FA8FF;
+    color: #FFFFFF;
+  }
 }
 
-body {
-  background: var(--background);
-  color: var(--text-primary);
-  font-family: var(--font-body);
-  overflow-x: hidden;
+/* ==========================================
+   LAYOUT
+========================================== */
+
+#__next {
+  width: 100%;
+  max-width: 100%;
 }
 
 /* ==========================================
@@ -92,46 +133,6 @@ body {
 
 .font-heading {
   font-family: var(--font-heading);
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: var(--font-heading);
-  font-weight: 500;
-  letter-spacing: -0.02em;
-}
-
-h1 {
-  font-size: clamp(1.5rem, 3.5vw, 3rem);
-}
-
-h2 {
-  font-size: clamp(1.3rem, 5vw, 4rem);
-}
-
-h3 {
-  font-size: clamp(0.5rem, 3vw, 2rem);
-}
-
-p {
-  line-height: 1.9;
-}
-
-/* ==========================================
-   LINKS
-========================================== */
-
-a {
-  color: inherit;
-  transition: 0.3s;
-}
-
-a:hover {
-  color: var(--secondary);
 }
 
 /* ==========================================
@@ -211,15 +212,7 @@ a:hover {
 }
 
 /* ==========================================
-   SELECTION
-========================================== */
-
-::selection {
-  background: #5FA8FF;
-  color: #FFFFFF;
-}
-/* ==========================================
-   HERO BACKGROUND COLOR ANIMATION
+   HERO BACKGROUND ANIMATION
 ========================================== */
 
 .hero-background {

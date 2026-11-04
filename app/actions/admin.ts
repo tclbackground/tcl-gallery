@@ -324,228 +324,197 @@ export async function updateProduct(formData: FormData) {
     const id = getText(formData, "id");
 
     if (!validObjectId(id)) {
-      return {
-        success: false,
-        message: "A valid artwork ID is required.",
-      };
+      return { success: false, message: "A valid product ID is required." };
     }
 
     const db = await getDb();
-    const productCollection = db.collection("Product");
     const productId = new ObjectId(id);
 
-    const existingProduct = await productCollection.findOne({
-      _id: productId,
-    });
+    // The edit page sends this value so the action updates the same
+    // collection from which the product was loaded.
+    const requestedCollection = getText(formData, "sourceCollection");
+    const allowedCollections = ["DesignStoreProduct", "JewelTree", "Product"];
+    const collectionNames = requestedCollection
+      ? [requestedCollection]
+      : allowedCollections;
 
-    if (!existingProduct) {
+    if (collectionNames.some((name) => !allowedCollections.includes(name))) {
+      return { success: false, message: "Invalid product collection." };
+    }
+
+    let collectionName = "";
+    let productCollection: ReturnType<typeof db.collection> | null = null;
+    let existingProduct: any = null;
+
+    for (const name of collectionNames) {
+      const collection = db.collection(name);
+      const found = await collection.findOne({ _id: productId });
+      if (found) {
+        collectionName = name;
+        productCollection = collection;
+        existingProduct = found;
+        break;
+      }
+    }
+
+    if (!existingProduct || !productCollection) {
       return {
         success: false,
-        message: "Artwork not found.",
+        message: "Product not found in the selected collection. Refresh the page and try again.",
       };
     }
 
-    /* BASIC FIELDS */
-
     const title = getText(formData, "title");
-
     if (!title) {
-      return {
-        success: false,
-        message: "Artwork title is required.",
-      };
+      return { success: false, message: "Product title is required." };
     }
 
     const category = getOptionalText(formData, "category");
     const description = getOptionalText(formData, "description");
-
-    const referenceNo = getOptionalText(
-      formData,
-      "referenceNo"
-    );
-
-    const location = getOptionalText(
-      formData,
-      "location"
-    );
-
-    const medium = getOptionalText(
-      formData,
-      "medium"
-    );
-
-    const size = getOptionalText(
-      formData,
-      "size"
-    );
-
-    /* ARTIST */
+    const referenceNo = getOptionalText(formData, "referenceNo");
+    const location = getOptionalText(formData, "location");
+    const medium = getOptionalText(formData, "medium");
+    const size = getOptionalText(formData, "size");
 
     const artistIdValue = getText(formData, "artistId");
     let artistId: ObjectId | null = null;
-
     if (artistIdValue) {
       if (!validObjectId(artistIdValue)) {
-        return {
-          success: false,
-          message: "Please select a valid artist.",
-        };
+        return { success: false, message: "Please select a valid artist." };
       }
-
       artistId = new ObjectId(artistIdValue);
-
-      const artistExists = await db.collection("Artist").findOne({
-        _id: artistId,
-      });
-
+      const artistExists = await db.collection("Artist").findOne({ _id: artistId });
       if (!artistExists) {
-        return {
-          success: false,
-          message: "Selected artist was not found.",
-        };
+        return { success: false, message: "Selected artist was not found." };
       }
     }
-
-    /* NUMERIC FIELDS */
 
     const yearValue = getText(formData, "year");
     const slNoValue = getText(formData, "slNo");
+    const year = yearValue ? Number.parseInt(yearValue, 10) : null;
+    const slNo = slNoValue ? Number.parseInt(slNoValue, 10) : null;
+    if (yearValue && !Number.isFinite(year)) throw new Error("Invalid product year.");
+    if (slNoValue && !Number.isFinite(slNo)) throw new Error("Invalid serial number.");
 
-    const year = yearValue
-      ? Number.parseInt(yearValue, 10)
-      : null;
-
-    const slNo = slNoValue
-      ? Number.parseInt(slNoValue, 10)
-      : null;
-
-    if (yearValue && !Number.isFinite(year)) {
-      throw new Error("Invalid artwork year.");
-    }
-
-    if (slNoValue && !Number.isFinite(slNo)) {
-      throw new Error("Invalid serial number.");
-    }
-
-    /* IMAGE 1 — MAIN IMAGE */
-
-    let imageUrl = getExistingValue(
+    const mainImageFile = getImageFile(formData, "image");
+    let mainImageUrl = getExistingValue(
       formData,
       ["imageUrlInput", "existingImageUrl"],
       existingProduct["IMAGE URL"] ??
-        existingProduct.imageUrl
+        existingProduct.imageUrl ??
+        existingProduct.image1 ??
+        existingProduct.mainImage
     );
-
-    const mainImage = getImageFile(formData, "image");
-
-    if (mainImage) {
-      imageUrl = await uploadImage(
-        mainImage,
-        "tcl-gallery/products"
-      );
+    if (mainImageFile) {
+      mainImageUrl = await uploadImage(mainImageFile, "tcl-gallery/products");
     }
 
-    /* IMAGES 2–5 */
-
-    const imageResults: Record<string, string | null> = {};
-
+    const additionalImageUrls: (string | null)[] = [];
     for (let number = 2; number <= 5; number++) {
-      const databaseKey = `IMAGE ${number}`;
-      const camelKey = `image${number}`;
-
-      const imageFile = getImageFile(
+      const imageFile = getImageFile(formData, `image${number}`);
+      let imageUrl = getExistingValue(
         formData,
-        `image${number}`
+        [`imageUrlInput${number}`, `existingImage${number}`],
+        existingProduct[`IMAGE ${number}`] ??
+          existingProduct[`image${number}`] ??
+          (Array.isArray(existingProduct.images)
+            ? existingProduct.images[number - 1]
+            : null)
       );
-
-      let imageUrlForSlot = getExistingValue(
-        formData,
-        [
-          `imageUrlInput${number}`,
-          `existingImage${number}`,
-        ],
-        existingProduct[databaseKey] ??
-          existingProduct[camelKey]
-      );
-
       if (imageFile) {
-        imageUrlForSlot = await uploadImage(
-          imageFile,
-          "tcl-gallery/products"
-        );
+        imageUrl = await uploadImage(imageFile, "tcl-gallery/products");
       }
-
-      imageResults[databaseKey] = imageUrlForSlot;
+      additionalImageUrls.push(imageUrl);
     }
-
-    /*
-     * The current EditProductForm sends one field named "price".
-     * The existing Product schema has separate size-price fields.
-     *
-     * To preserve the existing size prices, update only the
-     * 12X18 price when the single price field is submitted.
-     * The other two size prices remain unchanged.
-     */
 
     const priceValue = getText(formData, "price");
-    const singlePrice = priceValue
-      ? Number(priceValue)
-      : null;
-
-    if (
-      singlePrice !== null &&
-      (!Number.isFinite(singlePrice) || singlePrice < 0)
-    ) {
-      throw new Error("Enter a valid artwork price.");
+    const singlePrice = priceValue ? Number(priceValue) : null;
+    if (singlePrice !== null && (!Number.isFinite(singlePrice) || singlePrice < 0)) {
+      throw new Error("Enter a valid product price.");
     }
 
-    /* UPDATE DOCUMENT */
+    // Keep the existing field naming convention in DesignStoreProduct and
+    // JewelTree. For the legacy Product collection, retain its established
+    // uppercase field names and price behaviour.
+    const findExistingKey = (keys: string[], fallback: string) =>
+      keys.find((key) => Object.prototype.hasOwnProperty.call(existingProduct, key)) || fallback;
 
-    const updateData: Record<string, unknown> = {
-      "TITLE": title,
-      "IMAGE URL": imageUrl,
-      "IMAGE 2": imageResults["IMAGE 2"],
-      "IMAGE 3": imageResults["IMAGE 3"],
-      "IMAGE 4": imageResults["IMAGE 4"],
-      "IMAGE 5": imageResults["IMAGE 5"],
-      "REFERENCE NO": referenceNo,
-      "LOCATION": location,
-      "MEDIUM": medium,
-      "SIZE": size,
-      category,
-      description,
-      artistId,
-      updatedAt: new Date(),
-    };
+    const updateData: Record<string, unknown> = {};
 
-    if (year !== null) {
-      updateData["YEAR"] = year;
-    }
-
-    if (slNo !== null) {
-      updateData["SL NO"] = slNo;
-    }
-
-    if (singlePrice !== null) {
-      updateData.price = singlePrice;
-      updateData["12X18 PRICE"] = singlePrice;
-    }
-
-    // Preserve size prices if this action is also called by
-    // another form that sends individual size-price fields.
-    for (const [field, databaseKey] of [
-      ["price12x18", "12X18 PRICE"],
-      ["price18x24", "18X24 PRICE"],
-      ["price24x33", "24X33 PRICE"],
-    ]) {
-      if (formData.has(field)) {
-        const value = getNumber(formData, field);
-
-        if (value !== null) {
-          updateData[databaseKey] = value;
+    if (collectionName === "Product") {
+      updateData["TITLE"] = title;
+      updateData["IMAGE URL"] = mainImageUrl;
+      for (let number = 2; number <= 5; number++) {
+        updateData[`IMAGE ${number}`] = additionalImageUrls[number - 2];
+      }
+      updateData["REFERENCE NO"] = referenceNo;
+      updateData["LOCATION"] = location;
+      updateData["MEDIUM"] = medium;
+      updateData["SIZE"] = size;
+      updateData.category = category;
+      updateData.description = description;
+      updateData.artistId = artistId;
+      if (year !== null) updateData["YEAR"] = year;
+      if (slNo !== null) updateData["SL NO"] = slNo;
+      if (singlePrice !== null) {
+        updateData.price = singlePrice;
+        updateData["12X18 PRICE"] = singlePrice;
+      }
+      for (const [field, databaseKey] of [
+        ["price12x18", "12X18 PRICE"],
+        ["price18x24", "18X24 PRICE"],
+        ["price24x33", "24X33 PRICE"],
+      ]) {
+        if (formData.has(field)) {
+          const value = getNumber(formData, field);
+          if (value !== null) updateData[databaseKey] = value;
         }
       }
+    } else {
+      const titleKey = findExistingKey(["title", "Title", "TITLE", "name", "Name", "productName", "Product Name"], "title");
+      const categoryKey = findExistingKey(["category", "Category", "collection", "Collection"], "category");
+      const descriptionKey = findExistingKey(["description", "Description"], "description");
+      const priceKey = findExistingKey(["price", "Price", "PRICE", "sellingPrice", "Selling Price"], "price");
+      const mainImageKey = findExistingKey(["imageUrl", "image1", "Image URL", "IMAGE URL", "mainImage", "image"], "imageUrl");
+
+      updateData[titleKey] = title;
+      updateData[categoryKey] = category;
+      updateData[descriptionKey] = description;
+      updateData[mainImageKey] = mainImageUrl;
+
+      // Update the product's current image structure without changing its schema.
+      if (Array.isArray(existingProduct.images)) {
+        updateData.images = additionalImageUrls;
+      } else {
+        for (let number = 2; number <= 5; number++) {
+          const imageKey = findExistingKey(
+            [`image${number}`, `Image ${number}`, `IMAGE ${number}`],
+            `image${number}`
+          );
+          updateData[imageKey] = additionalImageUrls[number - 2];
+        }
+      }
+
+      if (singlePrice !== null) updateData[priceKey] = singlePrice;
+
+      const optionalMappings: [string, string[] , string][] = [
+        ["referenceNo", ["referenceNo", "referenceNumber", "Reference No", "REFERENCE NO"], "referenceNo"],
+        ["location", ["location", "Location", "LOCATION"], "location"],
+        ["medium", ["medium", "Medium", "MEDIUM", "material", "Material"], "medium"],
+        ["size", ["size", "Size", "SIZE"], "size"],
+      ];
+      for (const [formKey, candidates, fallback] of optionalMappings) {
+        if (formData.has(formKey)) {
+          updateData[findExistingKey(candidates, fallback)] = getOptionalText(formData, formKey);
+        }
+      }
+
+      if (formData.has("artistId")) updateData.artistId = artistId;
+      if (year !== null) updateData[findExistingKey(["year", "Year", "YEAR"], "year")] = year;
+      if (slNo !== null) updateData[findExistingKey(["slNo", "serialNo", "SL NO"], "slNo")] = slNo;
     }
+
+    updateData.updatedAt = new Date();
 
     const result = await productCollection.updateOne(
       { _id: productId },
@@ -553,27 +522,24 @@ export async function updateProduct(formData: FormData) {
     );
 
     if (result.matchedCount === 0) {
-      return {
-        success: false,
-        message: "Artwork was not updated.",
-      };
+      return { success: false, message: "Product was not updated." };
     }
 
     revalidateArtworkPaths(id);
+    revalidatePath("/admin/design-store");
+    revalidatePath("/admin/jewel-tree");
+    revalidatePath("/design-store");
 
     return {
       success: true,
-      message: "Artwork updated successfully.",
+      message: "Product updated successfully.",
+      collection: collectionName,
     };
   } catch (error) {
-    console.error("Artwork update error:", error);
-
+    console.error("Product update error:", error);
     return {
       success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Failed to update artwork.",
+      message: error instanceof Error ? error.message : "Failed to update product.",
     };
   }
 }

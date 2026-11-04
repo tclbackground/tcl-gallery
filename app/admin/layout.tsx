@@ -21,6 +21,7 @@ import {
   FiImage,
   FiBox,
   FiFileText,
+  FiEdit2,
 } from "react-icons/fi";
 
 import AdminUserMenu from "./components/AdminUserMenu";
@@ -54,8 +55,10 @@ export default async function AdminLayout({
 
   return (
     <div className="flex min-h-screen bg-[#FBF9F0] font-sans antialiased text-[#22211B]">
+
       {/* SIDEBAR */}
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-[#E8E2D5] bg-white md:flex">
+
         {/* BRAND */}
         <div className="shrink-0 border-b border-[#E8E2D5]/50 p-6">
           <Link href="/admin" className="flex items-center gap-3">
@@ -72,6 +75,7 @@ export default async function AdminLayout({
         {/* NAVIGATION */}
         <div className="flex-1 overflow-y-auto p-6">
           <nav className="space-y-1 text-xs font-semibold">
+
             <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">
               Menu
             </p>
@@ -128,10 +132,16 @@ export default async function AdminLayout({
                 <FiPlus size={14} />
                 Create Blog Post
               </Link>
+
+              <Link href="/admin/blog" className={subLinkClass}>
+                <FiEdit2 size={14} />
+                Edit Existing Blogs
+              </Link>
             </div>
 
             {/* OTHER ADMIN SECTIONS */}
             <div className="pt-3">
+
               <Link href="/admin/artists/add" className={navLinkClass}>
                 <FiUsers size={16} />
                 Artists
@@ -161,12 +171,14 @@ export default async function AdminLayout({
                 <FiSettings size={16} />
                 Settings
               </Link>
+
             </div>
           </nav>
         </div>
 
         {/* QUICK ACTIONS */}
         <div className="shrink-0 space-y-2 border-t border-[#E8E2D5] bg-[#FAF7F0] p-4">
+
           <Link
             href="/admin/add-product"
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#22211B] py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#4D3024]"
@@ -198,13 +210,24 @@ export default async function AdminLayout({
             <FiFileText size={14} />
             Create Blog Post
           </Link>
+
+          <Link
+            href="/admin/blog"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#C4A892] bg-white py-2.5 text-xs font-semibold text-[#4D3024] transition hover:bg-[#F1EBDD]"
+          >
+            <FiEdit2 size={14} />
+            Manage Existing Blogs
+          </Link>
+
         </div>
       </aside>
 
       {/* MAIN CONTENT */}
       <div className="flex min-w-0 flex-1 flex-col">
+
         {/* TOP HEADER */}
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b border-[#E8E2D5] bg-white px-6">
+
           <div className="relative w-full max-w-md">
             <FiSearch
               className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
@@ -224,6 +247,7 @@ export default async function AdminLayout({
           </div>
 
           <div className="flex items-center gap-4">
+
             <button
               type="button"
               aria-label="Dark mode"
@@ -251,6 +275,7 @@ export default async function AdminLayout({
         <main className="min-w-0 flex-1 overflow-y-auto p-6 lg:p-8">
           {children}
         </main>
+
       </div>
     </div>
   );
