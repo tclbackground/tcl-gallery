@@ -37,7 +37,7 @@ const shopItems = [
 const navigationItems = [
   {
     title: "Artists",
-    href: "/artists",
+    href: "/artist",
   },
   {
     title: "Design Store",
